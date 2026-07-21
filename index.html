@@ -269,14 +269,20 @@
           </button>
         </header>
         <div class="contact-dialog-body">
-          <p id="contact-dialog-note" class="contact-dialog-note">
-            埋め込み表示は外部サービスの設定や通信状況により利用できない場合があります。表示されない場合は下のリンクをご利用ください。
-          </p>
-          <iframe id="contact-iframe" title="Notion お問合せフォーム" referrerpolicy="strict-origin-when-cross-origin"></iframe>
-          <a id="contact-fallback" class="button button-secondary contact-fallback" target="_blank" rel="noopener">
-            新しいタブでお問合せフォームを開く
-          </a>
+          <iframe
+            id="contact-iframe"
+            title="Notion お問合せフォーム"
+            referrerpolicy="strict-origin-when-cross-origin"
+            width="100%"
+            height="600"
+            frameborder="0"
+            allowfullscreen
+          ></iframe>
         </div>
+        <footer class="contact-dialog-footer">
+          <p id="contact-dialog-note" class="contact-dialog-note">埋め込みが表示されない場合は右のリンクからご利用ください。</p>
+          <a id="contact-fallback" class="button button-secondary contact-fallback" target="_blank" rel="noopener">新しいタブで開く</a>
+        </footer>
       </div>
     </dialog>
 

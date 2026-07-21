@@ -1072,12 +1072,12 @@ h1 {
 }
 
 .contact-dialog-surface {
-  width: min(900px, 100%);
-  height: min(760px, 100%);
+  width: min(820px, 100%);
+  max-height: 100%;
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   overflow: hidden;
   border: 1px solid var(--color-line-strong);
   border-radius: var(--radius);
@@ -1133,12 +1133,24 @@ h1 {
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: var(--space-xs);
   padding: var(--space-xs);
+  background: var(--color-canvas);
 }
 
-.contact-dialog-note {
+.contact-dialog-footer {
+  min-width: 0;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
+  border-top: 1px solid var(--color-line);
+  background: var(--color-panel);
+}
+
+.contact-dialog-footer .contact-dialog-note {
+  min-width: 0;
   margin: 0;
 }
 
@@ -1146,15 +1158,16 @@ h1 {
   width: 100%;
   height: 100%;
   min-width: 0;
-  min-height: 0;
+  min-height: 360px;
   border: 1px solid var(--color-line-strong);
   border-radius: var(--radius);
   background: var(--color-panel);
 }
 
 #contact-fallback {
-  width: 100%;
-  min-height: var(--control-mobile);
+  flex: 0 0 auto;
+  min-height: 36px;
+  white-space: nowrap;
 }
 
 @media (hover: hover) and (pointer: fine) {
