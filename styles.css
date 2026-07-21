@@ -719,6 +719,10 @@ h1 {
   padding: var(--space-xs);
 }
 
+.participants-panel .panel-body:has(.participant-chips:empty) {
+  display: none;
+}
+
 .participant-chips {
   display: flex;
   flex-wrap: wrap;
@@ -780,7 +784,7 @@ h1 {
   scroll-margin-top: calc(149px + var(--space-xs));
 }
 
-.minutes-section.is-active {
+.minutes-section:focus-within {
   border-color: var(--color-primary);
   box-shadow: inset 3px 0 var(--color-primary);
 }

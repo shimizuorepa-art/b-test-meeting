@@ -84,7 +84,6 @@ const elements = {
   participantChips: document.querySelector("#participant-chips"),
   participantCount: document.querySelector("#participant-count"),
   sectionInputs: [...document.querySelectorAll("[data-section-input]")],
-  sectionPanels: [...document.querySelectorAll("[data-section-key]")],
   generationError: document.querySelector("#generation-error"),
   resultPanel: document.querySelector("#result-panel"),
   generatedLabel: document.querySelector("#generated-label"),
@@ -248,11 +247,6 @@ function markSourceDirty(message = "入力が変わりました") {
     state.generation = state.generation === "editing" ? "editing" : "generated";
   }
   renderState(message);
-}
-
-function setActiveSection(sectionKey) {
-  if (!SECTION_ORDER.includes(sectionKey)) return;
-  elements.sectionPanels.forEach((panel) => panel.classList.toggle("is-active", panel.dataset.sectionKey === sectionKey));
 }
 
 function setParticipantsByIds(ids, markDirty = true) {
@@ -612,7 +606,6 @@ function bindEvents() {
   });
 
   elements.sectionInputs.forEach((input) => {
-    input.addEventListener("focus", () => setActiveSection(input.dataset.sectionInput));
     input.addEventListener("input", () => markSourceDirty(`${SECTION_LABELS[input.dataset.sectionInput]}を更新しました`));
   });
 
@@ -720,7 +713,6 @@ function initialize() {
   loadStoredEntries();
   const restoredSavedEntry = Boolean(state.savedEntries[0]);
   bindEvents();
-  setActiveSection(SECTION_ORDER[0]);
   renderState(
     restoredSavedEntry
       ? `${meetingTypeLabel(getSelectedMeetingType())}の保存内容を復元しました`
