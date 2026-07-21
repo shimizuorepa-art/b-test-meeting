@@ -12,10 +12,10 @@ const MEETING_TYPE_CONFIG = {
 };
 
 const SECTION_CONFIG = [
-  { key: "notices", label: "連絡事項", templateLine: "連絡事項を入力", voiceLine: "音声入力した連絡事項を確認" },
-  { key: "office", label: "事務所", templateLine: "事務所の予定を入力", voiceLine: "音声入力した事務所の予定を確認" },
-  { key: "restaurant", label: "レストラン", templateLine: "レストランの予定を入力", voiceLine: "音声入力したレストランの予定を確認" },
-  { key: "farm", label: "農園（園の状況・予定）", templateLine: "農園の状況・予定を入力", voiceLine: "音声入力した農園の状況・予定を確認" },
+  { key: "notices", label: "連絡事項" },
+  { key: "office", label: "事務所" },
+  { key: "restaurant", label: "レストラン" },
+  { key: "farm", label: "農園（園の状況・予定）" },
 ];
 
 const SECTION_ORDER = SECTION_CONFIG.map(({ key }) => key);
@@ -53,7 +53,6 @@ const state = {
   input: "pristine",
   generation: "idle",
   save: "idle",
-  activeSection: "notices",
   stale: false,
   generatedText: "",
   savedEntries: [],
@@ -71,9 +70,6 @@ const elements = {
   meetingDateLabel: document.querySelector("#meeting-date-label"),
   meetingTypeOptions: document.querySelector("#meeting-type-options"),
   meetingTypeInputs: [],
-  copyPreviousButton: document.querySelector("#copy-previous-button"),
-  copyPreviousReason: document.querySelector("#copy-previous-reason"),
-  templateButton: document.querySelector("#template-button"),
   qaDisclosure: document.querySelector("#qa-disclosure"),
   failNextGeneration: document.querySelector("#fail-next-generation"),
   failNextSave: document.querySelector("#fail-next-save"),
@@ -86,13 +82,11 @@ const elements = {
   participantOptions: document.querySelector("#participant-options"),
   participantSearchEmpty: document.querySelector("#participant-search-empty"),
   participantChips: document.querySelector("#participant-chips"),
-  participantEmpty: document.querySelector("#participant-empty"),
   participantCount: document.querySelector("#participant-count"),
   sectionInputs: [...document.querySelectorAll("[data-section-input]")],
   sectionPanels: [...document.querySelectorAll("[data-section-key]")],
   generationError: document.querySelector("#generation-error"),
   resultPanel: document.querySelector("#result-panel"),
-  resultEmpty: document.querySelector("#result-empty"),
   generatedLabel: document.querySelector("#generated-label"),
   generatedText: document.querySelector("#generated-text"),
   generationBadge: document.querySelector("#generation-badge"),
@@ -102,8 +96,6 @@ const elements = {
   saveStatus: document.querySelector("#save-status"),
   saveError: document.querySelector("#save-error"),
   actionStatus: document.querySelector("#action-status"),
-  mainVoiceButton: document.querySelector("#main-voice-button"),
-  mainVoiceLabel: document.querySelector("#main-voice-label"),
   generateButton: document.querySelector("#generate-button"),
   contactTriggers: [...document.querySelectorAll("[data-contact-trigger]")],
   contactDialog: document.querySelector("#contact-dialog"),
@@ -208,6 +200,12 @@ function getAuthor() {
   return ACCOUNTS.find((account) => account.id === elements.accountSelect.value)?.name ?? ACCOUNTS[0].name;
 }
 
+function renderAuthor() {
+  const author = getAuthor();
+  elements.authorOutput.textContent = author;
+  elements.authorOutput.setAttribute("aria-label", `記入者：${author}`);
+}
+
 function getSelectedParticipantIds() {
   return [...state.selectedParticipantIds];
 }
@@ -259,12 +257,9 @@ function markSourceDirty(message = "入力が変わりました") {
   renderState(message);
 }
 
-function setActiveSection(sectionKey, options = {}) {
+function setActiveSection(sectionKey) {
   if (!SECTION_ORDER.includes(sectionKey)) return;
-  state.activeSection = sectionKey;
   elements.sectionPanels.forEach((panel) => panel.classList.toggle("is-active", panel.dataset.sectionKey === sectionKey));
-  elements.mainVoiceLabel.textContent = `音声入力：${SECTION_LABELS[sectionKey]}`;
-  if (!options.quiet) elements.actionStatus.textContent = `現在の音声入力先：${SECTION_LABELS[sectionKey]}`;
 }
 
 function setParticipantsByIds(ids, markDirty = true) {
@@ -333,7 +328,6 @@ function renderParticipants() {
     fragment.append(chip);
   });
   elements.participantChips.replaceChildren(fragment);
-  elements.participantEmpty.hidden = participants.length > 0;
   elements.participantCount.textContent = `${participants.length}名`;
 }
 
@@ -351,19 +345,6 @@ function switchParticipantCategory(categoryId, { focus = true, resetSearch = tru
   });
   renderParticipantOptions();
   if (focus) elements.participantCategoryTabs.querySelector(`[data-participant-category="${categoryId}"]`)?.focus({ preventScroll: true });
-}
-
-function getPreviousEntryForCurrentType() {
-  const meetingType = getSelectedMeetingType();
-  return state.savedEntries.find((entry) => entry?.record?.meetingType === meetingType) ?? null;
-}
-
-function renderPreviousCopyState() {
-  const previous = getPreviousEntryForCurrentType();
-  elements.copyPreviousButton.disabled = !previous;
-  elements.copyPreviousReason.textContent = previous
-    ? `${meetingTypeLabel(getSelectedMeetingType())}の保存データがあります`
-    : `${meetingTypeLabel(getSelectedMeetingType())}の前回データがありません`;
 }
 
 function renderState(actionMessage = "") {
@@ -385,17 +366,16 @@ function renderState(actionMessage = "") {
   elements.accountSelect.disabled = isGenerating || isSaving;
   elements.meetingTypeInputs.forEach((input) => { input.disabled = isGenerating || isSaving; });
 
-  elements.resultEmpty.hidden = hasResult;
   elements.generatedLabel.hidden = !hasResult;
   elements.generatedText.hidden = !hasResult;
   if (elements.generatedText.value !== state.generatedText) elements.generatedText.value = state.generatedText;
   elements.generatedText.readOnly = state.generation !== "editing";
-  elements.editResultButton.textContent = state.generation === "editing" ? "編集を終了" : "手動で編集";
+  elements.editResultButton.textContent = state.generation === "editing" ? "編集を終了" : "編集";
   elements.overwriteNote.hidden = !hasResult;
 
   if (state.stale) {
     elements.generationBadge.textContent = "要再清書";
-    elements.overwriteNote.textContent = "入力が変わりました。保存前に再清書してください。再清書すると現在の清書結果を上書きします。";
+    elements.overwriteNote.textContent = "入力が変わりました。保存前に再清書してください。再清書すると現在の清書を上書きします。";
   } else if (state.generation === "generating") {
     elements.generationBadge.textContent = "清書中";
   } else if (state.generation === "generation-error") {
@@ -405,7 +385,7 @@ function renderState(actionMessage = "") {
     elements.overwriteNote.textContent = "再清書すると、現在の手動編集を上書きします。";
   } else if (state.generation === "generated") {
     elements.generationBadge.textContent = "清書済み";
-    elements.overwriteNote.textContent = "再清書すると、現在の清書結果を上書きします。";
+    elements.overwriteNote.textContent = "再清書すると、現在の清書を上書きします。";
   } else {
     elements.generationBadge.textContent = "清書前";
   }
@@ -425,7 +405,6 @@ function renderState(actionMessage = "") {
   }
 
   if (actionMessage) elements.actionStatus.textContent = actionMessage;
-  renderPreviousCopyState();
 }
 
 function hydrateRecord(record) {
@@ -434,7 +413,7 @@ function hydrateRecord(record) {
   if (account) elements.accountSelect.value = account.id;
   const typeInput = elements.meetingTypeInputs.find((input) => input.value === record.meetingType);
   if (typeInput) typeInput.checked = true;
-  elements.authorOutput.textContent = `${getAuthor()}（自動）`;
+  renderAuthor();
   const participantIds = PARTICIPANTS
     .filter((participant) => Array.isArray(record.participants) && record.participants.includes(participant.name))
     .map((participant) => participant.id);
@@ -479,23 +458,6 @@ function writeStoredRecord(record) {
 
 function wait(milliseconds) {
   return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
-}
-
-async function runVoiceInput(sectionKey) {
-  if (!SECTION_ORDER.includes(sectionKey)) return;
-  setActiveSection(sectionKey, { quiet: true });
-  const target = elements.sectionInputs.find((input) => input.dataset.sectionInput === sectionKey);
-  const section = SECTION_CONFIG.find(({ key }) => key === sectionKey);
-  elements.mainVoiceButton.disabled = true;
-  elements.actionStatus.textContent = `音声入力中：${section.label}`;
-  await wait(420);
-  const items = textToItems(target.value);
-  items.push(section.voiceLine);
-  target.value = itemsToText(items);
-  elements.mainVoiceButton.disabled = false;
-  markSourceDirty(`音声入力を${section.label}へ追加しました`);
-  target.focus();
-  setActiveSection(sectionKey);
 }
 
 async function handleGenerate() {
@@ -543,8 +505,8 @@ async function handleSave() {
     elements.failNextSave.setAttribute("aria-pressed", "false");
     state.save = "save-error";
     elements.saveError.hidden = false;
-    elements.saveError.textContent = "保存できませんでした。入力と清書結果は保持しています。保存を再試行してください。";
-    renderState("保存エラー：入力と清書結果は保持しています");
+    elements.saveError.textContent = "保存できませんでした。入力と清書は保持しています。保存を再試行してください。";
+    renderState("保存エラー：入力と清書は保持しています");
     return;
   }
 
@@ -556,37 +518,9 @@ async function handleSave() {
   } catch {
     state.save = "save-error";
     elements.saveError.hidden = false;
-    elements.saveError.textContent = "保存できませんでした。入力と清書結果は保持しています。保存を再試行してください。";
-    renderState("保存エラー：入力と清書結果は保持しています");
+    elements.saveError.textContent = "保存できませんでした。入力と清書は保持しています。保存を再試行してください。";
+    renderState("保存エラー：入力と清書は保持しています");
   }
-}
-
-function handlePreviousCopy() {
-  const previous = getPreviousEntryForCurrentType();
-  if (!previous) return;
-  const { record } = previous;
-  const participantIds = PARTICIPANTS
-    .filter((participant) => Array.isArray(record.participants) && record.participants.includes(participant.name))
-    .map((participant) => participant.id);
-  setParticipantsByIds(participantIds, false);
-  SECTION_ORDER.forEach((key) => {
-    const input = elements.sectionInputs.find((candidate) => candidate.dataset.sectionInput === key);
-    if (input) input.value = itemsToText(record.sections?.[key] ?? []);
-  });
-  state.generatedText = "";
-  state.generation = "idle";
-  state.save = "idle";
-  state.stale = false;
-  markSourceDirty(`${meetingTypeLabel(record.meetingType)}の前回入力をコピーしました。日付と記入者は変更していません`);
-}
-
-function handleTemplate() {
-  SECTION_CONFIG.forEach(({ key, templateLine }) => {
-    const input = elements.sectionInputs.find((candidate) => candidate.dataset.sectionInput === key);
-    const existing = textToItems(input.value);
-    input.value = itemsToText(existing.includes(templateLine) ? existing : [...existing, templateLine]);
-  });
-  markSourceDirty("テンプレートを追加しました");
 }
 
 function toggleParticipantMenu(force, { restoreFocus = false } = {}) {
@@ -675,14 +609,13 @@ function bindEvents() {
   });
 
   elements.accountSelect.addEventListener("change", () => {
-    elements.authorOutput.textContent = `${getAuthor()}（自動）`;
+    renderAuthor();
     markSourceDirty("アカウントから記入者を更新しました");
   });
 
   elements.meetingTypeInputs.forEach((input) => {
     input.addEventListener("change", () => {
       markSourceDirty(`${meetingTypeLabel(input.value)}へ切り替えました`);
-      renderPreviousCopyState();
     });
   });
 
@@ -694,7 +627,7 @@ function bindEvents() {
   elements.generatedText.addEventListener("input", () => {
     state.generatedText = elements.generatedText.value;
     state.save = "idle";
-    renderState("清書結果を手動で編集しました");
+    renderState("清書を手動で編集しました");
   });
 
   elements.participantOptions.addEventListener("change", (event) => {
@@ -759,15 +692,12 @@ function bindEvents() {
     elements.actionStatus.textContent = "チェックイン中のスタッフと記入者を参加者へ追加しました";
   });
 
-  elements.copyPreviousButton.addEventListener("click", handlePreviousCopy);
-  elements.templateButton.addEventListener("click", handleTemplate);
-  elements.mainVoiceButton.addEventListener("click", () => runVoiceInput(state.activeSection));
   elements.generateButton.addEventListener("click", handleGenerate);
   elements.saveButton.addEventListener("click", handleSave);
 
   elements.editResultButton.addEventListener("click", () => {
     state.generation = state.generation === "editing" ? "generated" : "editing";
-    renderState(state.generation === "editing" ? "清書結果を手動編集できます" : "手動編集を終了しました");
+    renderState(state.generation === "editing" ? "清書を手動編集できます" : "手動編集を終了しました");
     if (state.generation === "editing") elements.generatedText.focus();
   });
 
@@ -787,16 +717,18 @@ function initialize() {
   renderParticipantOptions();
   elements.qaDisclosure.hidden = new URLSearchParams(window.location.search).get("dev") !== "1";
   elements.contactFallback.href = CONTACT_FORM_URL;
-  elements.meetingDateLabel.textContent = formatDateWithWeekday(DEMO_DATE);
+  const formattedDate = formatDateWithWeekday(DEMO_DATE);
+  elements.meetingDateLabel.textContent = formattedDate;
   elements.meetingDateLabel.dateTime = DEMO_DATE;
+  elements.meetingDateLabel.setAttribute("aria-label", `実施日：${formattedDate}`);
   const inferredType = new Date().getHours() < MEETING_TYPE_CONFIG.cutoffHour ? "morning" : "evening";
   const inferredInput = elements.meetingTypeInputs.find((input) => input.value === inferredType);
   if (inferredInput) inferredInput.checked = true;
-  elements.authorOutput.textContent = `${getAuthor()}（自動）`;
+  renderAuthor();
   renderParticipants();
   loadStoredEntries();
   bindEvents();
-  setActiveSection(SECTION_ORDER[0], { quiet: true });
+  setActiveSection(SECTION_ORDER[0]);
   renderState(`${meetingTypeLabel(getSelectedMeetingType())}を${MEETING_TYPE_CONFIG.cutoffHour}:00を境に初期設定しました`);
 }
 

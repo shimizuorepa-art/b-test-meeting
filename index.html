@@ -50,10 +50,7 @@
         <header class="work-header">
           <div class="title-lockup">
             <span class="mobile-brand" aria-hidden="true">B</span>
-            <div>
-              <span class="eyebrow">Bsystem 議事録 / Solution.News</span>
-              <h1>議事録作成</h1>
-            </div>
+            <h1>議事録作成</h1>
             <button
               id="contact-trigger-mobile"
               class="button button-secondary contact-trigger-mobile"
@@ -65,10 +62,18 @@
               お問合せ
             </button>
           </div>
+          <div class="header-context" role="group" aria-label="会議情報">
+            <time id="meeting-date-label" datetime="2026-07-21" aria-label="実施日：2026/07/21(火)">2026/07/21(火)</time>
+            <fieldset class="meeting-type" aria-label="会議区分">
+              <legend class="sr-only">会議区分</legend>
+              <div id="meeting-type-options" class="meeting-type-options"></div>
+            </fieldset>
+            <output id="author-output" aria-label="記入者：田中">田中</output>
+          </div>
           <div class="header-tools">
             <label class="account-switcher" for="account-select">
-              <span>アカウント</span>
-              <select id="account-select" aria-describedby="account-note">
+              <span class="sr-only">アカウント</span>
+              <select id="account-select" aria-label="アカウント" aria-describedby="account-note">
                 <option value="office-tanaka">田中</option>
                 <option value="restaurant-takahashi">高橋</option>
                 <option value="management-kato">加藤</option>
@@ -81,28 +86,6 @@
           </div>
         </header>
         <p id="account-note" class="sr-only">選択したアカウントを記入者に反映します。</p>
-
-        <section class="context-panel panel" aria-labelledby="context-heading">
-          <div class="context-primary">
-            <div class="date-block">
-              <span id="context-heading" class="field-label">実施日</span>
-              <time id="meeting-date-label" datetime="2026-07-21">2026/07/21(火)</time>
-            </div>
-            <fieldset class="meeting-type" aria-label="会議区分">
-              <legend>区分</legend>
-              <div id="meeting-type-options" class="meeting-type-options"></div>
-            </fieldset>
-            <div class="author-block">
-              <span class="field-label">記入者</span>
-              <output id="author-output">田中（自動）</output>
-            </div>
-          </div>
-          <div class="context-actions" aria-label="入力補助">
-            <button id="copy-previous-button" class="button button-secondary" type="button" disabled>前回をコピー</button>
-            <span id="copy-previous-reason" class="control-reason">前回データがありません</span>
-            <button id="template-button" class="button button-secondary" type="button">テンプレート</button>
-          </div>
-        </section>
 
         <details id="qa-disclosure" class="qa-disclosure" hidden>
           <summary>モック状態確認</summary>
@@ -149,9 +132,8 @@
               </div>
             </div>
           </div>
-          <div class="panel-body participant-body">
+          <div class="panel-body">
             <div id="participant-chips" class="participant-chips" aria-label="選択済み参加者"></div>
-            <p id="participant-empty" class="empty-inline">参加者は未選択です。「参加者を選ぶ」を開き、チェックインまたは一覧から追加できます。</p>
           </div>
         </section>
 
@@ -163,8 +145,7 @@
               </div>
             </div>
             <div class="section-body">
-              <label for="notices-input">箇条書きメモ（改行で1項目）</label>
-              <textarea id="notices-input" data-section-input="notices" rows="4" placeholder="連絡事項を1行ずつ入力"></textarea>
+              <textarea id="notices-input" data-section-input="notices" rows="4" aria-label="連絡事項" placeholder="連絡事項を1行ずつ入力"></textarea>
             </div>
           </article>
 
@@ -175,8 +156,7 @@
               </div>
             </div>
             <div class="section-body">
-              <label for="office-input">箇条書きメモ（改行で1項目）</label>
-              <textarea id="office-input" data-section-input="office" rows="4" placeholder="事務所のメモを1行ずつ入力"></textarea>
+              <textarea id="office-input" data-section-input="office" rows="4" aria-label="事務所" placeholder="事務所のメモを1行ずつ入力"></textarea>
             </div>
           </article>
 
@@ -187,8 +167,7 @@
               </div>
             </div>
             <div class="section-body">
-              <label for="restaurant-input">箇条書きメモ（改行で1項目）</label>
-              <textarea id="restaurant-input" data-section-input="restaurant" rows="4" placeholder="レストランのメモを1行ずつ入力"></textarea>
+              <textarea id="restaurant-input" data-section-input="restaurant" rows="4" aria-label="レストラン" placeholder="レストランのメモを1行ずつ入力"></textarea>
             </div>
           </article>
 
@@ -199,32 +178,32 @@
               </div>
             </div>
             <div class="section-body">
-              <label for="farm-input">箇条書きメモ（改行で1項目）</label>
-              <textarea id="farm-input" data-section-input="farm" rows="4" placeholder="農園の状況・予定を1行ずつ入力"></textarea>
+              <textarea id="farm-input" data-section-input="farm" rows="4" aria-label="農園（園の状況・予定）" placeholder="農園の状況・予定を1行ずつ入力"></textarea>
             </div>
           </article>
         </section>
 
         <section id="generation-error" class="compact-message is-error" role="status" aria-live="polite" hidden></section>
+        <p id="action-status" class="sr-only" role="status" aria-live="polite"></p>
 
         <section id="result-panel" class="result-panel panel" aria-labelledby="result-heading" tabindex="-1" data-state="idle">
           <div class="panel-header result-header">
             <div class="panel-title">
-              <h2 id="result-heading">清書結果</h2>
+              <h2 id="result-heading">清書</h2>
               <span id="generation-badge" class="mini-badge">清書前</span>
-              <span class="mini-badge">AI清書</span>
             </div>
-            <button id="edit-result-button" class="button button-secondary" type="button" disabled>手動で編集</button>
+            <div class="result-actions" aria-label="清書操作">
+              <button id="generate-button" class="button button-primary" type="button">AI清書</button>
+              <button id="edit-result-button" class="button button-secondary" type="button" disabled>編集</button>
+            </div>
           </div>
           <div class="panel-body result-body">
-            <p id="result-empty" class="result-empty">4区分のメモを入力し、「AI清書」を押すと Solution.News 体裁をここへ表示します。</p>
-            <label id="generated-label" for="generated-text" hidden>Solution.News 清書テキスト</label>
+            <label id="generated-label" class="sr-only" for="generated-text" hidden>Solution.News 清書テキスト</label>
             <textarea id="generated-text" rows="16" readonly hidden></textarea>
-            <p id="overwrite-note" class="compact-message is-warning" hidden>再清書すると、現在の清書結果を上書きします。</p>
+            <p id="overwrite-note" class="compact-message is-warning" hidden>再清書すると、現在の清書を上書きします。</p>
             <div class="save-row">
               <div>
                 <button id="save-button" class="button button-primary" type="button" disabled>保存</button>
-                <span class="local-only-note">この端末に保存</span>
               </div>
               <span id="save-status" class="save-status" role="status" aria-live="polite">まだ保存していません</span>
             </div>
@@ -232,17 +211,6 @@
           </div>
         </section>
       </main>
-    </div>
-
-    <div class="bottom-actions" aria-label="議事録の主要操作">
-      <p id="action-status" class="action-status" role="status" aria-live="polite">現在の音声入力先：連絡事項</p>
-      <div class="bottom-action-buttons">
-        <button id="main-voice-button" class="button voice-primary" type="button">
-          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/><path d="M5 11v1a7 7 0 0 0 14 0v-1M12 19v3M8 22h8"/></svg>
-          <span id="main-voice-label">音声入力：連絡事項</span>
-        </button>
-        <button id="generate-button" class="button button-primary" type="button">AI清書</button>
-      </div>
     </div>
 
     <dialog
