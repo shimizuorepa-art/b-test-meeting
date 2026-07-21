@@ -23,14 +23,6 @@
             <span class="side-link-mark" aria-hidden="true">議</span>
             <span>議事録作成</span>
           </a>
-          <span class="side-link is-disabled" aria-disabled="true">
-            <span class="side-link-mark" aria-hidden="true">覧</span>
-            <span>議事録一覧</span>
-          </span>
-          <span class="side-link is-disabled" aria-disabled="true">
-            <span class="side-link-mark" aria-hidden="true">種</span>
-            <span>会議種別</span>
-          </span>
           <button
             id="contact-trigger-desktop"
             class="side-link contact-trigger-desktop"
@@ -53,7 +45,7 @@
             <h1>議事録作成</h1>
             <button
               id="contact-trigger-mobile"
-              class="button button-secondary contact-trigger-mobile"
+              class="button button-primary contact-trigger-mobile"
               type="button"
               data-contact-trigger
               aria-haspopup="dialog"
@@ -64,10 +56,10 @@
           </div>
           <div class="header-context" role="group" aria-label="会議情報">
             <time id="meeting-date-label" datetime="2026-07-21" aria-label="実施日：2026/07/21(火)">2026/07/21(火)</time>
-            <fieldset class="meeting-type" aria-label="会議区分">
-              <legend class="sr-only">会議区分</legend>
-              <div id="meeting-type-options" class="meeting-type-options"></div>
-            </fieldset>
+            <label class="meeting-type" for="meeting-type-select">
+              <span>会議種別選択</span>
+              <select id="meeting-type-select" name="meeting-type"></select>
+            </label>
             <output id="author-output" aria-label="記入者：田中">田中</output>
           </div>
           <div class="header-tools">

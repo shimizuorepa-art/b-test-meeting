@@ -145,7 +145,10 @@ summary:focus-visible,
     "context"
     "tools";
   grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: repeat(3, 44px);
   gap: var(--space-2xs);
+  height: 149px;
+  min-height: 149px;
   padding-block: var(--space-2xs);
   background: var(--color-canvas);
   border-bottom: 1px solid var(--color-line);
@@ -161,6 +164,7 @@ summary:focus-visible,
 }
 
 .contact-trigger-mobile {
+  width: 112px;
   flex: 0 0 auto;
   min-height: var(--control-mobile);
   margin-inline-start: auto;
@@ -199,7 +203,7 @@ h1 {
   grid-area: context;
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(104px, 1.2fr) minmax(108px, 1fr) minmax(44px, 0.55fr);
+  grid-template-columns: minmax(96px, 1.2fr) minmax(104px, 1fr) minmax(32px, 0.45fr);
   align-items: center;
   gap: var(--space-2xs);
 }
@@ -217,6 +221,7 @@ h1 {
 }
 
 .header-context output {
+  justify-content: flex-start;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -282,6 +287,7 @@ h1 {
 }
 
 .status-pill {
+  min-width: 58px;
   min-height: 26px;
   display: inline-flex;
   align-items: center;
@@ -314,71 +320,53 @@ h1 {
 }
 
 .meeting-type {
-  min-width: 0;
-  display: grid;
-  padding: 0;
-  margin: 0;
-  border: 0;
-}
-
-.meeting-type-options {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.meeting-type label {
   position: relative;
   min-width: 0;
   min-height: var(--control-mobile);
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--color-line-strong);
-  background: var(--color-panel);
-  cursor: pointer;
+  display: block;
+  color: var(--color-text-secondary);
+  font-size: 9px;
   font-weight: 700;
+}
+
+.meeting-type > span {
+  position: absolute;
+  top: 4px;
+  left: var(--space-xs);
+  z-index: var(--z-raised);
+  max-width: calc(100% - 32px);
+  overflow: hidden;
+  line-height: 1;
+  pointer-events: none;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.meeting-type label:first-child {
-  border-start-start-radius: var(--radius-pill);
-  border-end-start-radius: var(--radius-pill);
+.meeting-type select {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--control-mobile);
+  padding: 11px var(--space-xs) 0;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-field);
+  outline: 2px solid transparent;
+  outline-offset: 1px;
+  background: var(--color-panel);
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
-.meeting-type label:last-child {
-  border-start-end-radius: var(--radius-pill);
-  border-end-end-radius: var(--radius-pill);
-}
-
-.meeting-type label + label {
-  margin-inline-start: -1px;
-}
-
-.meeting-type input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-}
-
-.meeting-type label:has(input:checked) {
-  z-index: var(--z-raised);
+.meeting-type select:focus,
+.meeting-type select:focus-visible {
   border-color: var(--color-primary);
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
+  outline-color: var(--color-focus);
 }
 
-.meeting-type label:active:not(:has(input:disabled)) {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-}
-
-.meeting-type label:has(input:focus-visible) {
-  outline: 3px solid var(--color-focus);
-  outline-offset: 2px;
-}
-
-.meeting-type label:has(input:disabled) {
+.meeting-type select:disabled {
+  border-color: var(--color-line-soft);
   background: var(--color-disabled);
   color: var(--color-text-disabled);
   cursor: not-allowed;
@@ -789,7 +777,7 @@ h1 {
 }
 
 .minutes-section {
-  scroll-margin-top: 104px;
+  scroll-margin-top: calc(149px + var(--space-xs));
 }
 
 .minutes-section.is-active {
@@ -1058,13 +1046,13 @@ h1 {
     background: var(--color-hover);
   }
 
-  .meeting-type label:not(:has(input:checked)):not(:has(input:disabled)):hover,
   .participant-category-tabs button:not([aria-selected="true"]):not(:disabled):hover,
   .participant-option:not(:has(input:checked)):not(:has(input:disabled)):hover {
     background: var(--color-hover);
   }
 
   .account-switcher select:not(:disabled):hover,
+  .meeting-type select:not(:disabled):hover,
   .participant-search input:not(:disabled):hover,
   .section-body textarea:not(:disabled):hover,
   #generated-text:not([readonly]):not(:disabled):hover {
@@ -1076,7 +1064,7 @@ h1 {
     color: var(--color-primary-ink);
   }
 
-  .side-link:not(.is-disabled):hover {
+  .side-link:hover {
     background: var(--color-primary-dark);
     color: var(--color-primary-ink);
   }
@@ -1163,16 +1151,26 @@ h1 {
 @media (min-width: 48rem) {
   .work-header {
     grid-template-areas: "title context tools";
-    grid-template-columns: max-content minmax(250px, 1fr) minmax(148px, auto);
+    grid-template-columns: minmax(204px, max-content) minmax(300px, 1fr) minmax(146px, auto);
+    grid-template-rows: 1fr;
     align-items: center;
     gap: var(--space-xs);
-    min-height: 54px;
-    padding-block: var(--space-2xs);
+    height: 48px;
+    min-height: 48px;
+    padding-block: 0;
   }
 
   .header-context {
-    grid-template-columns: max-content 128px max-content;
+    grid-template-columns: max-content minmax(188px, 1fr) 32px;
     justify-content: start;
+  }
+
+  .meeting-type {
+    width: 128px;
+  }
+
+  .minutes-section {
+    scroll-margin-top: calc(48px + var(--space-xs));
   }
 
   .header-tools {
@@ -1271,11 +1269,6 @@ h1 {
     outline-color: var(--color-focus-on-dark);
   }
 
-  .side-link.is-disabled {
-    cursor: not-allowed;
-    opacity: 0.52;
-  }
-
   .sidebar-meta {
     margin-top: auto;
     padding: var(--space-sm) var(--space-md);
@@ -1297,13 +1290,14 @@ h1 {
   }
 
   .contact-trigger-desktop {
-    width: 100%;
+    width: calc(100% - 16px);
     min-height: var(--control-mobile);
-    margin-top: var(--space-2xs);
+    justify-content: center;
+    margin: var(--space-2xs) var(--space-xs) var(--space-xs);
     border: 1px solid var(--color-focus-on-dark);
     border-radius: var(--radius-pill);
-    background: transparent;
-    color: var(--color-nav-text);
+    background: var(--color-primary);
+    color: var(--color-primary-ink);
     cursor: pointer;
     font-weight: 700;
     text-align: start;

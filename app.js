@@ -8,6 +8,7 @@ const MEETING_TYPE_CONFIG = {
   options: [
     { id: "morning", label: "朝礼" },
     { id: "evening", label: "夕礼" },
+    { id: "meeting", label: "ミーティング" },
   ],
 };
 
@@ -68,8 +69,7 @@ const elements = {
   inputStatus: document.querySelector("#input-status"),
   authorOutput: document.querySelector("#author-output"),
   meetingDateLabel: document.querySelector("#meeting-date-label"),
-  meetingTypeOptions: document.querySelector("#meeting-type-options"),
-  meetingTypeInputs: [],
+  meetingTypeSelect: document.querySelector("#meeting-type-select"),
   qaDisclosure: document.querySelector("#qa-disclosure"),
   failNextGeneration: document.querySelector("#fail-next-generation"),
   failNextSave: document.querySelector("#fail-next-save"),
@@ -176,24 +176,17 @@ export async function generateMinutesDraft(input) {
 
 function renderMeetingTypeOptions() {
   const fragment = document.createDocumentFragment();
-  MEETING_TYPE_CONFIG.options.forEach((option, index) => {
-    const label = document.createElement("label");
-    const input = document.createElement("input");
-    input.type = "radio";
-    input.name = "meeting-type";
-    input.value = option.id;
-    input.checked = index === 0;
-    const text = document.createElement("span");
-    text.textContent = option.label;
-    label.append(input, text);
-    fragment.append(label);
+  MEETING_TYPE_CONFIG.options.forEach((meetingType) => {
+    const option = document.createElement("option");
+    option.value = meetingType.id;
+    option.textContent = meetingType.label;
+    fragment.append(option);
   });
-  elements.meetingTypeOptions.replaceChildren(fragment);
-  elements.meetingTypeInputs = [...elements.meetingTypeOptions.querySelectorAll('input[name="meeting-type"]')];
+  elements.meetingTypeSelect.replaceChildren(fragment);
 }
 
 function getSelectedMeetingType() {
-  return elements.meetingTypeInputs.find((input) => input.checked)?.value ?? MEETING_TYPE_CONFIG.options[0].id;
+  return elements.meetingTypeSelect.value || MEETING_TYPE_CONFIG.options[0].id;
 }
 
 function getAuthor() {
@@ -364,7 +357,7 @@ function renderState(actionMessage = "") {
   elements.saveButton.setAttribute("aria-busy", String(isSaving));
   elements.editResultButton.disabled = !hasResult || state.stale || isGenerating || isSaving;
   elements.accountSelect.disabled = isGenerating || isSaving;
-  elements.meetingTypeInputs.forEach((input) => { input.disabled = isGenerating || isSaving; });
+  elements.meetingTypeSelect.disabled = isGenerating || isSaving;
 
   elements.generatedLabel.hidden = !hasResult;
   elements.generatedText.hidden = !hasResult;
@@ -411,8 +404,9 @@ function hydrateRecord(record) {
   if (!record || typeof record !== "object") return false;
   const account = ACCOUNTS.find((candidate) => candidate.name === record.author);
   if (account) elements.accountSelect.value = account.id;
-  const typeInput = elements.meetingTypeInputs.find((input) => input.value === record.meetingType);
-  if (typeInput) typeInput.checked = true;
+  if (MEETING_TYPE_CONFIG.options.some(({ id }) => id === record.meetingType)) {
+    elements.meetingTypeSelect.value = record.meetingType;
+  }
   renderAuthor();
   const participantIds = PARTICIPANTS
     .filter((participant) => Array.isArray(record.participants) && record.participants.includes(participant.name))
@@ -613,10 +607,8 @@ function bindEvents() {
     markSourceDirty("アカウントから記入者を更新しました");
   });
 
-  elements.meetingTypeInputs.forEach((input) => {
-    input.addEventListener("change", () => {
-      markSourceDirty(`${meetingTypeLabel(input.value)}へ切り替えました`);
-    });
+  elements.meetingTypeSelect.addEventListener("change", () => {
+    markSourceDirty(`${meetingTypeLabel(elements.meetingTypeSelect.value)}へ切り替えました`);
   });
 
   elements.sectionInputs.forEach((input) => {
@@ -722,14 +714,18 @@ function initialize() {
   elements.meetingDateLabel.dateTime = DEMO_DATE;
   elements.meetingDateLabel.setAttribute("aria-label", `実施日：${formattedDate}`);
   const inferredType = new Date().getHours() < MEETING_TYPE_CONFIG.cutoffHour ? "morning" : "evening";
-  const inferredInput = elements.meetingTypeInputs.find((input) => input.value === inferredType);
-  if (inferredInput) inferredInput.checked = true;
+  elements.meetingTypeSelect.value = inferredType;
   renderAuthor();
   renderParticipants();
   loadStoredEntries();
+  const restoredSavedEntry = Boolean(state.savedEntries[0]);
   bindEvents();
   setActiveSection(SECTION_ORDER[0]);
-  renderState(`${meetingTypeLabel(getSelectedMeetingType())}を${MEETING_TYPE_CONFIG.cutoffHour}:00を境に初期設定しました`);
+  renderState(
+    restoredSavedEntry
+      ? `${meetingTypeLabel(getSelectedMeetingType())}の保存内容を復元しました`
+      : `${meetingTypeLabel(getSelectedMeetingType())}を${MEETING_TYPE_CONFIG.cutoffHour}:00を境に初期設定しました`,
+  );
 }
 
 initialize();
