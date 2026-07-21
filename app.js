@@ -89,7 +89,6 @@ const elements = {
   participantCount: document.querySelector("#participant-count"),
   sectionInputs: [...document.querySelectorAll("[data-section-input]")],
   sectionPanels: [...document.querySelectorAll("[data-section-key]")],
-  sectionVoiceButtons: [...document.querySelectorAll("[data-voice-section]")],
   generationError: document.querySelector("#generation-error"),
   resultPanel: document.querySelector("#result-panel"),
   resultEmpty: document.querySelector("#result-empty"),
@@ -479,16 +478,15 @@ async function runVoiceInput(sectionKey) {
   const target = elements.sectionInputs.find((input) => input.dataset.sectionInput === sectionKey);
   const section = SECTION_CONFIG.find(({ key }) => key === sectionKey);
   elements.mainVoiceButton.disabled = true;
-  elements.sectionVoiceButtons.forEach((button) => { button.disabled = true; });
   elements.actionStatus.textContent = `音声入力中：${section.label}`;
   await wait(420);
   const items = textToItems(target.value);
   items.push(section.voiceLine);
   target.value = itemsToText(items);
   elements.mainVoiceButton.disabled = false;
-  elements.sectionVoiceButtons.forEach((button) => { button.disabled = false; });
   markSourceDirty(`音声入力を${section.label}へ追加しました`);
   target.focus();
+  setActiveSection(sectionKey);
 }
 
 async function handleGenerate() {
@@ -680,9 +678,6 @@ function bindEvents() {
 
   elements.copyPreviousButton.addEventListener("click", handlePreviousCopy);
   elements.templateButton.addEventListener("click", handleTemplate);
-  elements.sectionVoiceButtons.forEach((button) => {
-    button.addEventListener("click", () => runVoiceInput(button.dataset.voiceSection));
-  });
   elements.mainVoiceButton.addEventListener("click", () => runVoiceInput(state.activeSection));
   elements.generateButton.addEventListener("click", handleGenerate);
   elements.saveButton.addEventListener("click", handleSave);
