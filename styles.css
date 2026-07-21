@@ -74,7 +74,8 @@ body {
   line-height: 1.45;
 }
 
-body.is-contact-open {
+body.is-contact-open,
+body.is-mobile-menu-open {
   overflow-y: hidden;
 }
 
@@ -163,11 +164,25 @@ summary:focus-visible,
   gap: var(--space-xs);
 }
 
-.contact-trigger-mobile {
-  width: 112px;
+.mobile-menu-trigger {
+  width: var(--control-mobile);
+  min-width: var(--control-mobile);
   flex: 0 0 auto;
   min-height: var(--control-mobile);
-  margin-inline-start: auto;
+  padding: 0;
+}
+
+.mobile-menu-icon {
+  width: 18px;
+  display: grid;
+  gap: var(--space-2xs);
+}
+
+.mobile-menu-icon > span {
+  height: 2px;
+  display: block;
+  border-radius: var(--radius-pill);
+  background: currentColor;
 }
 
 .mobile-brand,
@@ -197,6 +212,105 @@ h1 {
   font-size: 17px;
   font-style: normal;
   line-height: 1.2;
+}
+
+.mobile-menu-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-toast);
+  background: var(--color-overlay);
+}
+
+.mobile-menu-drawer {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: calc(var(--z-toast) + 1);
+  width: min(300px, 88%);
+  max-width: 88%;
+  max-height: 100dvh;
+  overflow-y: auto;
+  border: 0;
+  border-inline-end: 1px solid var(--color-line-strong);
+  background: var(--color-panel);
+  color: var(--color-text);
+}
+
+.mobile-menu-heading {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  padding: var(--space-2xs) var(--space-xs);
+  border-bottom: 1px solid var(--color-line-strong);
+  background: var(--color-hover);
+}
+
+.mobile-menu-close {
+  min-height: var(--control-mobile);
+}
+
+.mobile-menu-nav,
+.mobile-menu-section {
+  padding: var(--space-xs);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.mobile-menu-link {
+  min-height: var(--control-mobile);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
+  border: 1px solid transparent;
+  background: var(--color-panel);
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.mobile-menu-link.is-current {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.voice-box-open {
+  min-height: var(--control-mobile);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
+  border: 1px solid var(--color-focus-on-dark);
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: var(--color-primary-ink);
+  cursor: pointer;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: background-color var(--duration-short) var(--ease-out), transform var(--duration-micro) var(--ease-out);
+}
+
+.voice-box-open:active {
+  background: var(--color-nav);
+  transform: translateY(1px);
+}
+
+.voice-box-open:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.voice-box-glyph {
+  line-height: 1;
+}
+
+.mobile-menu-section .voice-box-open {
+  width: 100%;
+  margin: 0;
 }
 
 .header-context {
@@ -1072,6 +1186,11 @@ h1 {
     background: var(--color-primary-dark);
     color: var(--color-primary-ink);
   }
+
+  .voice-box-open:not(:disabled):hover {
+    background: var(--color-primary-dark);
+    color: var(--color-primary-ink);
+  }
 }
 
 @media (min-width: 40rem) {
@@ -1153,9 +1272,13 @@ h1 {
 }
 
 @media (min-width: 48rem) {
+  :root {
+    --sidebar-width: 82px;
+  }
+
   .work-header {
     grid-template-areas: "title context tools";
-    grid-template-columns: minmax(204px, max-content) minmax(300px, 1fr) minmax(146px, auto);
+    grid-template-columns: minmax(96px, max-content) minmax(300px, 1fr) minmax(146px, auto);
     grid-template-rows: 1fr;
     align-items: center;
     gap: var(--space-xs);
@@ -1180,6 +1303,12 @@ h1 {
   .header-tools {
     grid-template-columns: minmax(78px, 1fr) max-content;
   }
+
+  .mobile-menu-trigger,
+  .mobile-menu-scrim,
+  .mobile-menu-drawer {
+    display: none;
+  }
 }
 
 @media (min-width: 60rem) {
@@ -1197,7 +1326,7 @@ h1 {
   }
 }
 
-@media (min-width: 64rem) {
+@media (min-width: 48rem) {
   .app-shell {
     display: grid;
     grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
@@ -1289,40 +1418,63 @@ h1 {
     display: none;
   }
 
-  .contact-trigger-mobile {
+  .sidebar > .voice-box-open {
+    width: calc(100% - 16px);
+    min-height: var(--control-mobile);
+    margin: var(--space-2xs) var(--space-xs) var(--space-xs);
+  }
+
+  .sidebar > .voice-box-open:focus-visible {
+    outline-color: var(--color-focus-on-dark);
+  }
+}
+
+@media (min-width: 48rem) and (max-width: 63.999rem) {
+  .brand-block {
+    justify-content: center;
+  }
+
+  .brand-copy,
+  .sidebar-meta {
     display: none;
   }
 
-  .contact-trigger-desktop {
-    width: calc(100% - 16px);
+  .sidebar-nav {
+    justify-items: center;
+  }
+
+  .side-link {
+    width: var(--control-mobile);
     min-height: var(--control-mobile);
     justify-content: center;
-    margin: var(--space-2xs) var(--space-xs) var(--space-xs);
-    border: 1px solid var(--color-focus-on-dark);
-    border-radius: var(--radius-pill);
-    background: var(--color-primary);
-    color: var(--color-primary-ink);
-    cursor: pointer;
-    font-weight: 700;
-    text-align: start;
-    transition: background-color var(--duration-short) var(--ease-out), transform var(--duration-micro) var(--ease-out);
+    padding: 0;
   }
 
-  .contact-trigger-desktop:active {
-    transform: translateY(1px);
+  .side-link > span:last-child,
+  .voice-box-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
-  .contact-trigger-desktop:disabled {
-    cursor: not-allowed;
-    opacity: 0.52;
+  .sidebar > .voice-box-open {
+    width: var(--control-mobile);
+    min-height: var(--control-mobile);
+    gap: 0;
+    margin: var(--space-2xs) auto var(--space-xs);
+    padding: 0;
   }
-
 }
 
-@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
-  .contact-trigger-desktop:not(:disabled):hover {
-    background: var(--color-primary-dark);
-    color: var(--color-primary-ink);
+@media (min-width: 64rem) {
+  :root {
+    --sidebar-width: 184px;
   }
 }
 

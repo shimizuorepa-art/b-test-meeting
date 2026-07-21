@@ -23,36 +23,37 @@
             <span class="side-link-mark" aria-hidden="true">議</span>
             <span>議事録作成</span>
           </a>
-          <button
-            id="contact-trigger-desktop"
-            class="side-link contact-trigger-desktop"
-            type="button"
-            data-contact-trigger
-            aria-haspopup="dialog"
-            aria-controls="contact-dialog"
-          >
-            <span class="side-link-mark" aria-hidden="true">問</span>
-            <span>お問合せ</span>
-          </button>
         </nav>
+        <button
+          id="contact-trigger-desktop"
+          class="voice-box-open"
+          type="button"
+          data-contact-trigger
+          aria-haspopup="dialog"
+          aria-controls="contact-dialog"
+          aria-label="お問合せを開く"
+        >
+          <span class="voice-box-glyph" aria-hidden="true">声</span>
+          <span class="voice-box-label">お問合せ</span>
+        </button>
         <div class="sidebar-meta"><span class="status-dot" aria-hidden="true"></span>この端末に保存</div>
       </aside>
 
       <main class="main" id="minutes-workspace">
         <header class="work-header">
           <div class="title-lockup">
+            <button
+              id="mobile-menu-trigger"
+              class="button button-secondary mobile-menu-trigger"
+              type="button"
+              aria-expanded="false"
+              aria-controls="mobile-menu-drawer"
+              aria-label="メニューを開く"
+            >
+              <span class="mobile-menu-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+            </button>
             <span class="mobile-brand" aria-hidden="true">B</span>
             <h1>議事録作成</h1>
-            <button
-              id="contact-trigger-mobile"
-              class="button button-primary contact-trigger-mobile"
-              type="button"
-              data-contact-trigger
-              aria-haspopup="dialog"
-              aria-controls="contact-dialog"
-            >
-              お問合せ
-            </button>
           </div>
           <div class="header-context" role="group" aria-label="会議情報">
             <time id="meeting-date-label" datetime="2026-07-21" aria-label="実施日：2026/07/21(火)">2026/07/21(火)</time>
@@ -204,6 +205,43 @@
         </section>
       </main>
     </div>
+
+    <div id="mobile-menu-scrim" class="mobile-menu-scrim" hidden></div>
+    <aside
+      id="mobile-menu-drawer"
+      class="mobile-menu-drawer"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mobile-menu-title"
+      aria-hidden="true"
+      tabindex="-1"
+      hidden
+    >
+      <div class="mobile-menu-heading">
+        <strong id="mobile-menu-title">メニュー</strong>
+        <button class="button button-secondary mobile-menu-close" type="button" data-mobile-menu-close>閉じる</button>
+      </div>
+      <nav class="mobile-menu-nav" aria-label="業務メニュー">
+        <a class="mobile-menu-link is-current" href="#minutes-workspace" aria-current="page" data-mobile-menu-current>
+          <span class="side-link-mark" aria-hidden="true">議</span>
+          <span>議事録作成</span>
+        </a>
+      </nav>
+      <section class="mobile-menu-section" aria-label="お問合せ">
+        <button
+          id="contact-trigger-drawer"
+          class="voice-box-open"
+          type="button"
+          data-contact-trigger
+          aria-haspopup="dialog"
+          aria-controls="contact-dialog"
+          aria-label="お問合せを開く"
+        >
+          <span class="voice-box-glyph" aria-hidden="true">声</span>
+          <span class="voice-box-label">お問合せ</span>
+        </button>
+      </section>
+    </aside>
 
     <dialog
       id="contact-dialog"

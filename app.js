@@ -65,6 +65,12 @@ const state = {
 };
 
 const elements = {
+  appShell: document.querySelector(".app-shell"),
+  mobileMenuTrigger: document.querySelector("#mobile-menu-trigger"),
+  mobileMenuScrim: document.querySelector("#mobile-menu-scrim"),
+  mobileMenuDrawer: document.querySelector("#mobile-menu-drawer"),
+  mobileMenuClose: document.querySelector("[data-mobile-menu-close]"),
+  mobileMenuCurrent: document.querySelector("[data-mobile-menu-current]"),
   accountSelect: document.querySelector("#account-select"),
   inputStatus: document.querySelector("#input-status"),
   authorOutput: document.querySelector("#author-output"),
@@ -104,7 +110,9 @@ const elements = {
   contactFallback: document.querySelector("#contact-fallback"),
 };
 
+const mobileMenuMedia = window.matchMedia("(max-width: 47.999rem)");
 let lastContactTrigger = null;
+let restoreMobileMenuAfterContact = false;
 
 function textToItems(value) {
   return value
@@ -521,6 +529,68 @@ function toggleParticipantMenu(force, { restoreFocus = false } = {}) {
   }
 }
 
+function isElementVisible(element) {
+  if (!element?.isConnected) return false;
+  const style = window.getComputedStyle(element);
+  const rect = element.getBoundingClientRect();
+  return style.visibility !== "hidden" && style.display !== "none" && rect.width > 0 && rect.height > 0;
+}
+
+function getMobileMenuFocusableElements() {
+  return [...elements.mobileMenuDrawer.querySelectorAll(
+    'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+  )].filter(isElementVisible);
+}
+
+function setMobileMenu(open, { restoreFocus = false, focusTarget = null } = {}) {
+  const next = Boolean(open && mobileMenuMedia.matches);
+  if (next && !elements.participantMenu.hidden) toggleParticipantMenu(false);
+  elements.mobileMenuTrigger.setAttribute("aria-expanded", String(next));
+  elements.mobileMenuTrigger.setAttribute("aria-label", next ? "メニューを閉じる" : "メニューを開く");
+  elements.mobileMenuDrawer.setAttribute("aria-hidden", String(!next));
+  elements.mobileMenuDrawer.hidden = !next;
+  elements.mobileMenuScrim.hidden = !next;
+  elements.appShell.inert = next;
+  document.body.classList.toggle("is-mobile-menu-open", next);
+  if (next) {
+    window.requestAnimationFrame(() => {
+      const target = isElementVisible(focusTarget) ? focusTarget : elements.mobileMenuCurrent;
+      target?.focus({ preventScroll: true });
+    });
+  } else if (restoreFocus && isElementVisible(elements.mobileMenuTrigger)) {
+    elements.mobileMenuTrigger.focus({ preventScroll: true });
+  }
+}
+
+function trapMobileMenuFocus(event) {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    event.stopPropagation();
+    setMobileMenu(false, { restoreFocus: true });
+    return;
+  }
+  if (event.key !== "Tab") return;
+  const focusable = getMobileMenuFocusableElements();
+  if (focusable.length === 0) {
+    event.preventDefault();
+    elements.mobileMenuDrawer.focus({ preventScroll: true });
+    return;
+  }
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const activeIndex = focusable.indexOf(document.activeElement);
+  if (activeIndex === -1) {
+    event.preventDefault();
+    (event.shiftKey ? last : first).focus({ preventScroll: true });
+  } else if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus({ preventScroll: true });
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus({ preventScroll: true });
+  }
+}
+
 function getContactDialogFocusableElements() {
   return [...elements.contactDialog.querySelectorAll(
     'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), iframe, [tabindex]:not([tabindex="-1"])',
@@ -575,8 +645,22 @@ function trapContactDialogFocus(event) {
 }
 
 function bindEvents() {
+  elements.mobileMenuTrigger.addEventListener("click", () => {
+    setMobileMenu(elements.mobileMenuTrigger.getAttribute("aria-expanded") !== "true");
+  });
+  elements.mobileMenuScrim.addEventListener("click", () => setMobileMenu(false, { restoreFocus: true }));
+  elements.mobileMenuClose.addEventListener("click", () => setMobileMenu(false, { restoreFocus: true }));
+  elements.mobileMenuCurrent.addEventListener("click", () => setMobileMenu(false, { restoreFocus: true }));
+  elements.mobileMenuDrawer.addEventListener("keydown", trapMobileMenuFocus);
+  mobileMenuMedia.addEventListener("change", (event) => {
+    if (!event.matches) setMobileMenu(false);
+  });
   elements.contactTriggers.forEach((trigger) => {
-    trigger.addEventListener("click", () => openContactDialog(trigger));
+    trigger.addEventListener("click", () => {
+      restoreMobileMenuAfterContact = Boolean(trigger.closest("#mobile-menu-drawer"));
+      if (restoreMobileMenuAfterContact) setMobileMenu(false);
+      openContactDialog(trigger);
+    });
   });
   elements.contactDialogClose.addEventListener("click", closeContactDialog);
   elements.contactDialog.addEventListener("cancel", (event) => {
@@ -590,9 +674,16 @@ function bindEvents() {
   elements.contactDialog.addEventListener("close", () => {
     document.body.classList.remove("is-contact-open");
     const trigger = lastContactTrigger;
+    const shouldRestoreMobileMenu = restoreMobileMenuAfterContact;
     lastContactTrigger = null;
+    restoreMobileMenuAfterContact = false;
     window.requestAnimationFrame(() => {
-      if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+      if (shouldRestoreMobileMenu && mobileMenuMedia.matches) {
+        setMobileMenu(true, { focusTarget: trigger });
+        return;
+      }
+      const focusTarget = [trigger, ...elements.contactTriggers, elements.mobileMenuTrigger].find(isElementVisible);
+      focusTarget?.focus({ preventScroll: true });
     });
   });
 
