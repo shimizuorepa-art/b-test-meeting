@@ -99,7 +99,6 @@
               <span id="participant-count" class="mini-badge">0名</span>
             </div>
             <div class="participant-actions">
-              <button id="check-in-button" class="button button-secondary" type="button">チェックイン</button>
               <div class="participant-picker">
                 <button
                   id="participant-trigger"
@@ -113,7 +112,10 @@
                 <div id="participant-menu" class="participant-menu" role="group" aria-label="参加者を選ぶ" hidden>
                   <div class="participant-menu-header">
                     <strong>参加者を選ぶ</strong>
-                    <button id="participant-close" class="participant-close" type="button" aria-label="参加者選択を閉じる">閉じる</button>
+                    <div class="participant-menu-actions">
+                      <button id="check-in-button" class="button button-secondary" type="button">チェックイン</button>
+                      <button id="participant-close" class="participant-close" type="button" aria-label="参加者選択を閉じる">閉じる</button>
+                    </div>
                   </div>
                   <div id="participant-category-tabs" class="participant-category-tabs" role="tablist" aria-label="所属カテゴリ"></div>
                   <label class="participant-search" for="participant-search">
@@ -128,7 +130,7 @@
           </div>
           <div class="panel-body participant-body">
             <div id="participant-chips" class="participant-chips" aria-label="選択済み参加者"></div>
-            <p id="participant-empty" class="empty-inline">参加者は未選択です。チェックインまたは「参加者を選ぶ」から追加できます。</p>
+            <p id="participant-empty" class="empty-inline">参加者は未選択です。「参加者を選ぶ」を開き、チェックインまたは一覧から追加できます。</p>
           </div>
         </section>
 
