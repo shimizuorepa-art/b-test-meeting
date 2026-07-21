@@ -1,6 +1,7 @@
 const STORAGE_KEY = "bsystem.minutes.mock.v1";
 const STORAGE_VERSION = 1;
 const DEMO_DATE = "2026-07-21";
+const CONTACT_FORM_URL = "https://northern-hearing-e36.notion.site/55559c2fd62e828c8c318163c97e7d62";
 
 const MEETING_TYPE_CONFIG = {
   cutoffHour: 12,
@@ -104,7 +105,15 @@ const elements = {
   mainVoiceButton: document.querySelector("#main-voice-button"),
   mainVoiceLabel: document.querySelector("#main-voice-label"),
   generateButton: document.querySelector("#generate-button"),
+  contactTriggers: [...document.querySelectorAll("[data-contact-trigger]")],
+  contactDialog: document.querySelector("#contact-dialog"),
+  contactDialogTitle: document.querySelector("#contact-dialog-title"),
+  contactDialogClose: document.querySelector("#contact-dialog-close"),
+  contactIframe: document.querySelector("#contact-iframe"),
+  contactFallback: document.querySelector("#contact-fallback"),
 };
+
+let lastContactTrigger = null;
 
 function textToItems(value) {
   return value
@@ -590,7 +599,81 @@ function toggleParticipantMenu(force, { restoreFocus = false } = {}) {
   }
 }
 
+function getContactDialogFocusableElements() {
+  return [...elements.contactDialog.querySelectorAll(
+    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), iframe, [tabindex]:not([tabindex="-1"])',
+  )].filter((element) => {
+    const style = window.getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+    return style.visibility !== "hidden" && style.display !== "none" && rect.width > 0 && rect.height > 0;
+  });
+}
+
+function openContactDialog(trigger) {
+  if (elements.contactDialog.open) return;
+  if (!elements.participantMenu.hidden) toggleParticipantMenu(false);
+  lastContactTrigger = trigger;
+  elements.contactFallback.href = CONTACT_FORM_URL;
+  if (!elements.contactIframe.hasAttribute("src")) elements.contactIframe.src = CONTACT_FORM_URL;
+  document.body.classList.add("is-contact-open");
+  elements.contactDialog.showModal();
+  window.requestAnimationFrame(() => elements.contactDialogTitle.focus({ preventScroll: true }));
+}
+
+function closeContactDialog() {
+  if (elements.contactDialog.open) elements.contactDialog.close();
+}
+
+function trapContactDialogFocus(event) {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeContactDialog();
+    return;
+  }
+  if (event.key !== "Tab") return;
+  const focusable = getContactDialogFocusableElements();
+  if (focusable.length === 0) {
+    event.preventDefault();
+    elements.contactDialogTitle.focus({ preventScroll: true });
+    return;
+  }
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const activeIndex = focusable.indexOf(document.activeElement);
+  if (activeIndex === -1) {
+    event.preventDefault();
+    (event.shiftKey ? last : first).focus({ preventScroll: true });
+  } else if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus({ preventScroll: true });
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus({ preventScroll: true });
+  }
+}
+
 function bindEvents() {
+  elements.contactTriggers.forEach((trigger) => {
+    trigger.addEventListener("click", () => openContactDialog(trigger));
+  });
+  elements.contactDialogClose.addEventListener("click", closeContactDialog);
+  elements.contactDialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeContactDialog();
+  });
+  elements.contactDialog.addEventListener("click", (event) => {
+    if (event.target === elements.contactDialog) closeContactDialog();
+  });
+  elements.contactDialog.addEventListener("keydown", trapContactDialogFocus);
+  elements.contactDialog.addEventListener("close", () => {
+    document.body.classList.remove("is-contact-open");
+    const trigger = lastContactTrigger;
+    lastContactTrigger = null;
+    window.requestAnimationFrame(() => {
+      if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+    });
+  });
+
   elements.accountSelect.addEventListener("change", () => {
     elements.authorOutput.textContent = `${getAuthor()}（自動）`;
     markSourceDirty("アカウントから記入者を更新しました");
@@ -703,6 +786,7 @@ function initialize() {
   renderParticipantCategoryTabs();
   renderParticipantOptions();
   elements.qaDisclosure.hidden = new URLSearchParams(window.location.search).get("dev") !== "1";
+  elements.contactFallback.href = CONTACT_FORM_URL;
   elements.meetingDateLabel.textContent = formatDateWithWeekday(DEMO_DATE);
   elements.meetingDateLabel.dateTime = DEMO_DATE;
   const inferredType = new Date().getHours() < MEETING_TYPE_CONFIG.cutoffHour ? "morning" : "evening";

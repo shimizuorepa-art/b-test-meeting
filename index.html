@@ -31,6 +31,17 @@
             <span class="side-link-mark" aria-hidden="true">種</span>
             <span>会議種別</span>
           </span>
+          <button
+            id="contact-trigger-desktop"
+            class="side-link contact-trigger-desktop"
+            type="button"
+            data-contact-trigger
+            aria-haspopup="dialog"
+            aria-controls="contact-dialog"
+          >
+            <span class="side-link-mark" aria-hidden="true">問</span>
+            <span>お問合せ</span>
+          </button>
         </nav>
         <div class="sidebar-meta"><span class="status-dot" aria-hidden="true"></span>この端末に保存</div>
       </aside>
@@ -43,6 +54,16 @@
               <span class="eyebrow">Bsystem 議事録 / Solution.News</span>
               <h1>議事録作成</h1>
             </div>
+            <button
+              id="contact-trigger-mobile"
+              class="button button-secondary contact-trigger-mobile"
+              type="button"
+              data-contact-trigger
+              aria-haspopup="dialog"
+              aria-controls="contact-dialog"
+            >
+              お問合せ
+            </button>
           </div>
           <div class="header-tools">
             <label class="account-switcher" for="account-select">
@@ -223,6 +244,41 @@
         <button id="generate-button" class="button button-primary" type="button">AI清書</button>
       </div>
     </div>
+
+    <dialog
+      id="contact-dialog"
+      class="contact-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="contact-dialog-title"
+      aria-describedby="contact-dialog-description contact-dialog-note"
+    >
+      <div class="contact-dialog-surface">
+        <header class="contact-dialog-header">
+          <div>
+            <h2 id="contact-dialog-title" tabindex="-1">お問合せ</h2>
+            <p id="contact-dialog-description">お問合せはNotionのフォームへ送信されます（外部サービス）</p>
+          </div>
+          <button
+            id="contact-dialog-close"
+            class="button button-secondary contact-dialog-close"
+            type="button"
+            aria-label="お問合せを閉じる"
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        </header>
+        <div class="contact-dialog-body">
+          <p id="contact-dialog-note" class="contact-dialog-note">
+            埋め込み表示は外部サービスの設定や通信状況により利用できない場合があります。表示されない場合は下のリンクをご利用ください。
+          </p>
+          <iframe id="contact-iframe" title="Notion お問合せフォーム" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+          <a id="contact-fallback" class="button button-secondary contact-fallback" target="_blank" rel="noopener">
+            新しいタブでお問合せフォームを開く
+          </a>
+        </div>
+      </div>
+    </dialog>
 
     <script type="module" src="./app.js"></script>
   </body>
