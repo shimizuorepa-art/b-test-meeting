@@ -1,7 +1,7 @@
 const STORAGE_KEY = "bsystem.minutes.mock.v1";
 const STORAGE_VERSION = 1;
 const DEMO_DATE = "2026-07-21";
-const CONTACT_FORM_URL = "https://northern-hearing-e36.notion.site/55559c2fd62e828c8c318163c97e7d62";
+const CONTACT_FORM_URL = "https://northern-hearing-e36.notion.site/55559c2fd62e828c8c318163c97e7d62?pvs=105";
 
 const MEETING_TYPE_CONFIG = {
   cutoffHour: 12,
