@@ -13,14 +13,15 @@ const MEETING_TYPE_CONFIG = {
 };
 
 const SECTION_CONFIG = [
-  { key: "notices", label: "連絡事項" },
-  { key: "office", label: "事務所" },
-  { key: "restaurant", label: "レストラン" },
-  { key: "farm", label: "農園（園の状況・予定）" },
+  { key: "notices", label: "連絡事項", resultLabel: "連絡事項" },
+  { key: "office", label: "事務所", resultLabel: "事務所" },
+  { key: "restaurant", label: "レストラン", resultLabel: "レストラン" },
+  { key: "farm", label: "農園（園の状況・予定）", resultLabel: "農園" },
 ];
 
 const SECTION_ORDER = SECTION_CONFIG.map(({ key }) => key);
 const SECTION_LABELS = Object.fromEntries(SECTION_CONFIG.map(({ key, label }) => [key, label]));
+const RESULT_SECTION_LABELS = Object.fromEntries(SECTION_CONFIG.map(({ key, resultLabel }) => [key, resultLabel]));
 
 const PARTICIPANT_CATEGORIES = [
   { id: "office", label: "事務所" },
@@ -30,18 +31,18 @@ const PARTICIPANT_CATEGORIES = [
 ];
 
 const PARTICIPANTS = [
-  { id: "office-tanaka", name: "田中", category: "office", checkedIn: true },
-  { id: "office-sato", name: "佐藤", category: "office", checkedIn: true },
-  { id: "office-suzuki", name: "鈴木", category: "office", checkedIn: false },
-  { id: "restaurant-takahashi", name: "高橋", category: "restaurant", checkedIn: true },
-  { id: "restaurant-ito", name: "伊藤", category: "restaurant", checkedIn: false },
-  { id: "restaurant-watanabe", name: "渡辺", category: "restaurant", checkedIn: true },
-  { id: "farm-yamamoto", name: "山本", category: "farm", checkedIn: true },
-  { id: "farm-nakamura", name: "中村", category: "farm", checkedIn: false },
-  { id: "farm-kobayashi", name: "小林", category: "farm", checkedIn: true },
-  { id: "management-kato", name: "加藤", category: "management", checkedIn: true },
-  { id: "management-yoshida", name: "吉田", category: "management", checkedIn: false },
-  { id: "management-yamada", name: "山田", category: "management", checkedIn: true },
+  { id: "office-tanaka", name: "田中", category: "office" },
+  { id: "office-sato", name: "佐藤", category: "office" },
+  { id: "office-suzuki", name: "鈴木", category: "office" },
+  { id: "restaurant-takahashi", name: "高橋", category: "restaurant" },
+  { id: "restaurant-ito", name: "伊藤", category: "restaurant" },
+  { id: "restaurant-watanabe", name: "渡辺", category: "restaurant" },
+  { id: "farm-yamamoto", name: "山本", category: "farm" },
+  { id: "farm-nakamura", name: "中村", category: "farm" },
+  { id: "farm-kobayashi", name: "小林", category: "farm" },
+  { id: "management-kato", name: "加藤", category: "management" },
+  { id: "management-yoshida", name: "吉田", category: "management" },
+  { id: "management-yamada", name: "山田", category: "management" },
 ];
 
 const CURRENT_ACCOUNT = Object.freeze({ id: "office-tanaka", name: "田中" });
@@ -52,6 +53,7 @@ const state = {
   save: "idle",
   stale: false,
   generatedText: "",
+  resultStage: "source",
   savedEntries: [],
   failNextGeneration: false,
   failNextSave: false,
@@ -74,7 +76,6 @@ const elements = {
   qaDisclosure: document.querySelector("#qa-disclosure"),
   failNextGeneration: document.querySelector("#fail-next-generation"),
   failNextSave: document.querySelector("#fail-next-save"),
-  checkInButton: document.querySelector("#check-in-button"),
   participantTrigger: document.querySelector("#participant-trigger"),
   participantMenu: document.querySelector("#participant-menu"),
   participantClose: document.querySelector("#participant-close"),
@@ -89,6 +90,7 @@ const elements = {
   resultPanel: document.querySelector("#result-panel"),
   generatedLabel: document.querySelector("#generated-label"),
   generatedText: document.querySelector("#generated-text"),
+  resultFlowNote: document.querySelector("#result-flow-note"),
   generationBadge: document.querySelector("#generation-badge"),
   editResultButton: document.querySelector("#edit-result-button"),
   overwriteNote: document.querySelector("#overwrite-note"),
@@ -163,7 +165,7 @@ export async function generateMinutesDraft(input) {
   ];
 
   SECTION_ORDER.forEach((key, index) => {
-    lines.push(`【${SECTION_LABELS[key]}】`);
+    lines.push(`【${RESULT_SECTION_LABELS[key]}】`);
     const items = normalized.sections[key];
     if (items.length === 0) {
       lines.push("・特になし");
@@ -174,6 +176,13 @@ export async function generateMinutesDraft(input) {
   });
 
   return lines.join("\n");
+}
+
+function composeSourceDraft(input) {
+  const normalized = normalizeDraftInput(input);
+  return SECTION_ORDER
+    .map((key) => [`【${RESULT_SECTION_LABELS[key]}】`, ...normalized.sections[key]].join("\n"))
+    .join("\n\n");
 }
 
 function renderMeetingTypeOptions() {
@@ -241,19 +250,29 @@ function createRecord(status) {
     participants: [...input.participants],
     sections: Object.fromEntries(SECTION_ORDER.map((key) => [key, [...input.sections[key]]])),
     generatedText: state.generatedText,
+    resultStage: state.resultStage,
     status,
   };
 }
 
+function hasSourceContent() {
+  return Object.values(getSectionsFromInputs()).some((items) => items.length > 0);
+}
+
+function syncSourceDraft() {
+  state.generatedText = composeSourceDraft(collectDraftInput());
+  state.resultStage = "source";
+  state.generation = "source";
+  state.stale = false;
+}
+
 function markSourceDirty(message = "入力が変わりました") {
+  const returnedFromFinishedResult = state.resultStage !== "source";
   state.input = "dirty";
   state.save = "idle";
   elements.saveError.hidden = true;
-  if (state.generatedText) {
-    state.stale = true;
-    state.generation = state.generation === "editing" ? "editing" : "generated";
-  }
-  renderState(message);
+  syncSourceDraft();
+  renderState(returnedFromFinishedResult ? `${message}。清書欄を最新の入力内容へ戻しました` : message);
 }
 
 function setParticipantsByIds(ids, markDirty = true) {
@@ -345,61 +364,70 @@ function renderState(actionMessage = "") {
   const isGenerating = state.generation === "generating";
   const isSaving = state.save === "saving";
   const hasResult = Boolean(state.generatedText);
-  const resultState = state.stale
-    ? "stale"
-    : isGenerating
-      ? "generating"
-      : isSaving
-        ? "saving"
-        : state.generation === "generation-error"
-          ? "generation-error"
-          : state.save === "save-error"
-            ? "save-error"
-            : state.save === "saved"
-              ? "saved"
-              : state.generation === "editing"
-                ? "editing"
-                : hasResult
-                  ? "generated"
-                  : "idle";
+  const sourceHasContent = hasSourceContent();
+  const isSourceStage = state.resultStage === "source";
+  const sourceReadyForAi = isSourceStage && sourceHasContent && state.save === "saved";
+  let resultState = "idle";
+  if (state.stale) resultState = "stale";
+  else if (isGenerating) resultState = "generating";
+  else if (isSaving) resultState = "saving";
+  else if (state.generation === "generation-error") resultState = "generation-error";
+  else if (state.save === "save-error") resultState = "save-error";
+  else if (state.generation === "editing") resultState = "editing";
+  else if (isSourceStage) resultState = "source";
+  else if (state.save === "saved") resultState = "saved";
+  else if (hasResult) resultState = "generated";
 
   elements.resultPanel.dataset.state = resultState;
+  elements.resultPanel.dataset.resultStage = state.resultStage;
 
   elements.inputStatus.className = `status-pill is-${state.input}`;
   elements.inputStatus.querySelector("span:last-child").textContent = state.input === "dirty" ? "未保存" : "未変更";
 
-  elements.generateButton.disabled = isGenerating || isSaving;
+  elements.generateButton.disabled = isGenerating || isSaving || (isSourceStage && !sourceReadyForAi);
   elements.generateButton.classList.toggle("is-loading", isGenerating);
   elements.generateButton.setAttribute("aria-busy", String(isGenerating));
 
-  elements.saveButton.disabled = !hasResult || state.stale || isGenerating || isSaving;
+  elements.saveButton.disabled = (isSourceStage ? !sourceHasContent : !hasResult) || state.stale || state.save === "saved" || isGenerating || isSaving;
   elements.saveButton.classList.toggle("is-loading", isSaving);
   elements.saveButton.setAttribute("aria-busy", String(isSaving));
-  elements.editResultButton.disabled = !hasResult || state.stale || isGenerating || isSaving;
+  elements.editResultButton.disabled = isSourceStage || !hasResult || state.stale || isGenerating || isSaving;
   elements.meetingTypeSelect.disabled = isGenerating || isSaving;
-
-  elements.generatedLabel.hidden = !hasResult;
-  elements.generatedText.hidden = !hasResult;
   if (elements.generatedText.value !== state.generatedText) elements.generatedText.value = state.generatedText;
   elements.generatedText.readOnly = state.generation !== "editing";
   elements.editResultButton.textContent = state.generation === "editing" ? "編集を終了" : "編集";
-  elements.overwriteNote.hidden = !hasResult;
+  elements.overwriteNote.hidden = isSourceStage || !hasResult;
 
   if (state.stale) {
     elements.generationBadge.textContent = "要再清書";
     elements.overwriteNote.textContent = "入力が変わりました。保存前に再清書してください。再清書すると現在の清書を上書きします。";
+    elements.resultFlowNote.textContent = "保存済みの記入者と現在の記入者が異なります。4区分を更新すると、最新の入力内容へ戻せます。";
   } else if (state.generation === "generating") {
     elements.generationBadge.textContent = "清書中";
+    elements.resultFlowNote.textContent = "保存した4区分の内容へAI清書を適用しています。";
   } else if (state.generation === "generation-error") {
     elements.generationBadge.textContent = "清書エラー";
+    elements.resultFlowNote.textContent = "入力内容は保持しています。もう一度「AI清書」を押してください。";
   } else if (state.generation === "editing") {
     elements.generationBadge.textContent = "手動編集中";
     elements.overwriteNote.textContent = "再清書すると、現在の手動編集を上書きします。";
+    elements.resultFlowNote.textContent = "この欄へ直接入力できます。終わったら「編集を終了」を押してください。";
+  } else if (isSourceStage) {
+    elements.generationBadge.textContent = sourceHasContent ? "入力内容" : "入力待ち";
+    elements.resultFlowNote.textContent = sourceReadyForAi
+      ? "入力内容を保存しました。「AI清書」で文章を整えられます。"
+      : "4区分の入力内容を上から反映しています。保存するとAI清書を実行できます。";
+  } else if (state.resultStage === "manual") {
+    elements.generationBadge.textContent = "手動編集済み";
+    elements.overwriteNote.textContent = "再清書すると、現在の手動編集を上書きします。";
+    elements.resultFlowNote.textContent = "手動編集した内容です。必要なら再度「編集」で修正できます。";
   } else if (state.generation === "generated") {
     elements.generationBadge.textContent = "清書済み";
     elements.overwriteNote.textContent = "再清書すると、現在の清書を上書きします。";
+    elements.resultFlowNote.textContent = "AI清書を反映しました。「編集」で直接修正できます。";
   } else {
     elements.generationBadge.textContent = "清書前";
+    elements.resultFlowNote.textContent = "4区分の入力内容を保存してからAI清書を実行できます。";
   }
 
   elements.saveStatus.className = "save-status";
@@ -408,12 +436,20 @@ function renderState(actionMessage = "") {
     elements.saveStatus.textContent = "この端末に保存中";
   } else if (state.save === "saved") {
     elements.saveStatus.classList.add("is-saved");
-    elements.saveStatus.textContent = "保存しました（この端末に保存）";
+    elements.saveStatus.textContent = isSourceStage
+      ? "入力内容を保存しました（この端末に保存）"
+      : "保存しました（この端末に保存）";
   } else if (state.save === "save-error") {
     elements.saveStatus.classList.add("is-error");
     elements.saveStatus.textContent = "保存できませんでした";
   } else {
-    elements.saveStatus.textContent = hasResult ? "まだ保存していません" : "清書後に保存できます";
+    elements.saveStatus.textContent = isSourceStage
+      ? sourceHasContent
+        ? "入力内容を保存するとAI清書できます"
+        : "4区分へ入力すると保存できます"
+      : hasResult
+        ? "清書後の内容はまだ保存していません"
+        : "清書後に保存できます";
   }
 
   if (actionMessage) elements.actionStatus.textContent = actionMessage;
@@ -435,11 +471,18 @@ function hydrateRecord(record) {
   });
   state.generatedText = typeof record.generatedText === "string" ? record.generatedText : "";
   const hasGeneratedText = Boolean(state.generatedText);
+  const storedResultStage = ["source", "generated", "manual"].includes(record.resultStage)
+    ? record.resultStage
+    : hasGeneratedText
+      ? "generated"
+      : "source";
   const authorMismatch = String(record.author ?? "").trim() !== getAuthor();
-  state.generation = hasGeneratedText ? "generated" : "idle";
+  const needsAuthorRefresh = hasGeneratedText && authorMismatch;
+  state.resultStage = storedResultStage;
+  state.generation = storedResultStage === "source" ? "source" : hasGeneratedText ? "generated" : "idle";
   state.save = hasGeneratedText && !authorMismatch ? "saved" : "idle";
-  state.input = hasGeneratedText && authorMismatch ? "dirty" : "pristine";
-  state.stale = hasGeneratedText && authorMismatch;
+  state.input = needsAuthorRefresh ? "dirty" : "pristine";
+  state.stale = needsAuthorRefresh && storedResultStage !== "source";
   return true;
 }
 
@@ -474,8 +517,8 @@ function wait(milliseconds) {
 }
 
 async function handleGenerate() {
+  if (state.resultStage === "source" && state.save !== "saved") return;
   state.generation = "generating";
-  state.save = "idle";
   elements.generationError.hidden = true;
   elements.saveError.hidden = true;
   renderState("AI清書中");
@@ -493,9 +536,11 @@ async function handleGenerate() {
 
   try {
     state.generatedText = await generateMinutesDraft(collectDraftInput());
+    state.resultStage = "generated";
     state.generation = "generated";
     state.stale = false;
     state.save = "idle";
+    state.input = "dirty";
     renderState("AI清書が完了しました。内容を確認してください");
     elements.resultPanel.focus({ preventScroll: false });
   } catch {
@@ -507,7 +552,7 @@ async function handleGenerate() {
 }
 
 async function handleSave() {
-  if (!state.generatedText || state.stale) return;
+  if ((!state.generatedText && state.resultStage !== "source") || (state.resultStage === "source" && !hasSourceContent()) || state.stale) return;
   state.save = "saving";
   elements.saveError.hidden = true;
   renderState("この端末に保存中");
@@ -527,7 +572,7 @@ async function handleSave() {
     writeStoredRecord(createRecord("saved"));
     state.save = "saved";
     state.input = "pristine";
-    renderState("保存しました（この端末に保存）");
+    renderState(state.resultStage === "source" ? "入力内容を保存しました。AI清書を実行できます" : "保存しました（この端末に保存）");
   } catch {
     state.save = "save-error";
     elements.saveError.hidden = false;
@@ -714,7 +759,9 @@ function bindEvents() {
 
   elements.generatedText.addEventListener("input", () => {
     state.generatedText = elements.generatedText.value;
+    state.resultStage = "manual";
     state.save = "idle";
+    state.input = "dirty";
     renderState("清書を手動で編集しました");
   });
 
@@ -773,13 +820,6 @@ function bindEvents() {
     }
   });
 
-  elements.checkInButton.addEventListener("click", () => {
-    const authorId = getCurrentAccount().id;
-    const checkedInIds = PARTICIPANTS.filter((participant) => participant.checkedIn).map((participant) => participant.id);
-    setParticipantsByIds([...new Set([authorId, ...checkedInIds])]);
-    elements.actionStatus.textContent = "チェックイン中のスタッフと記入者を参加者へ追加しました";
-  });
-
   elements.generateButton.addEventListener("click", handleGenerate);
   elements.saveButton.addEventListener("click", handleSave);
 
@@ -815,6 +855,7 @@ function initialize() {
   renderParticipants();
   loadStoredEntries();
   const restoredSavedEntry = Boolean(state.savedEntries[0]);
+  if (!restoredSavedEntry) syncSourceDraft();
   bindEvents();
   renderState(
     restoredSavedEntry

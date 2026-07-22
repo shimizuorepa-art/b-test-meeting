@@ -102,10 +102,7 @@
                 <div id="participant-menu" class="participant-menu" role="group" aria-label="参加者を選ぶ" hidden>
                   <div class="participant-menu-header">
                     <strong>参加者を選ぶ</strong>
-                    <div class="participant-menu-actions">
-                      <button id="check-in-button" class="button button-secondary" type="button">チェックイン</button>
-                      <button id="participant-close" class="participant-close" type="button" aria-label="参加者選択を閉じる">閉じる</button>
-                    </div>
+                    <button id="participant-close" class="participant-close" type="button" aria-label="参加者選択を閉じる">閉じる</button>
                   </div>
                   <div id="participant-category-tabs" class="participant-category-tabs" role="tablist" aria-label="所属カテゴリ"></div>
                   <label class="participant-search" for="participant-search">
@@ -184,8 +181,9 @@
             </div>
           </div>
           <div class="panel-body result-body">
-            <label id="generated-label" class="sr-only" for="generated-text" hidden>Solution.News 清書テキスト</label>
-            <textarea id="generated-text" rows="16" readonly hidden></textarea>
+            <label id="generated-label" class="sr-only" for="generated-text">Solution.News 清書テキスト</label>
+            <p id="result-flow-note" class="result-flow-note">4区分の入力内容を上から反映しています。保存するとAI清書を実行できます。</p>
+            <textarea id="generated-text" rows="18" readonly aria-describedby="result-flow-note"></textarea>
             <p id="overwrite-note" class="compact-message is-warning" hidden>再清書すると、現在の清書を上書きします。</p>
             <div class="save-row">
               <div>
