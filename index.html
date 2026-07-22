@@ -31,10 +31,12 @@
           data-contact-trigger
           aria-haspopup="dialog"
           aria-controls="contact-dialog"
-          aria-label="お問合せを開く"
+          aria-label="意見箱を開く"
         >
-          <span class="voice-box-glyph" aria-hidden="true">声</span>
-          <span class="voice-box-label">お問合せ</span>
+          <svg class="voice-box-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M4 5.5h16v11H9l-5 4v-15Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+          </svg>
+          <span class="voice-box-label">意見箱</span>
         </button>
         <div class="sidebar-meta"><span class="status-dot" aria-hidden="true"></span>この端末に保存</div>
       </aside>
@@ -58,27 +60,18 @@
           <div class="header-context" role="group" aria-label="会議情報">
             <time id="meeting-date-label" datetime="2026-07-21" aria-label="実施日：2026/07/21(火)">2026/07/21(火)</time>
             <label class="meeting-type" for="meeting-type-select">
-              <span>会議種別選択</span>
+              <span class="sr-only">会議種別</span>
               <select id="meeting-type-select" name="meeting-type"></select>
             </label>
             <output id="author-output" aria-label="記入者：田中">田中</output>
           </div>
           <div class="header-tools">
-            <label class="account-switcher" for="account-select">
-              <span class="sr-only">アカウント</span>
-              <select id="account-select" aria-label="アカウント" aria-describedby="account-note">
-                <option value="office-tanaka">田中</option>
-                <option value="restaurant-takahashi">高橋</option>
-                <option value="management-kato">加藤</option>
-              </select>
-            </label>
             <span id="input-status" class="status-pill is-pristine" role="status" aria-live="polite">
               <span class="status-dot" aria-hidden="true"></span>
               <span>未変更</span>
             </span>
           </div>
         </header>
-        <p id="account-note" class="sr-only">選択したアカウントを記入者に反映します。</p>
 
         <details id="qa-disclosure" class="qa-disclosure" hidden>
           <summary>モック状態確認</summary>
@@ -227,7 +220,7 @@
           <span>議事録作成</span>
         </a>
       </nav>
-      <section class="mobile-menu-section" aria-label="お問合せ">
+      <section class="mobile-menu-section" aria-label="意見箱">
         <button
           id="contact-trigger-drawer"
           class="voice-box-open"
@@ -235,10 +228,12 @@
           data-contact-trigger
           aria-haspopup="dialog"
           aria-controls="contact-dialog"
-          aria-label="お問合せを開く"
+          aria-label="意見箱を開く"
         >
-          <span class="voice-box-glyph" aria-hidden="true">声</span>
-          <span class="voice-box-label">お問合せ</span>
+          <svg class="voice-box-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M4 5.5h16v11H9l-5 4v-15Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+          </svg>
+          <span class="voice-box-label">意見箱</span>
         </button>
       </section>
     </aside>
@@ -254,14 +249,14 @@
       <div class="contact-dialog-surface">
         <header class="contact-dialog-header">
           <div>
-            <h2 id="contact-dialog-title" tabindex="-1">お問合せ</h2>
-            <p id="contact-dialog-description">お問合せはNotionのフォームへ送信されます（外部サービス）</p>
+            <h2 id="contact-dialog-title" tabindex="-1">意見箱（気づいたこと・改修要望）</h2>
+            <p id="contact-dialog-description">ご意見は外部サービスのNotionに保管され、改修の参考にします。</p>
           </div>
           <button
             id="contact-dialog-close"
             class="button button-secondary contact-dialog-close"
             type="button"
-            aria-label="お問合せを閉じる"
+            aria-label="意見箱を閉じる"
           >
             <span aria-hidden="true">×</span>
           </button>
@@ -269,7 +264,7 @@
         <div class="contact-dialog-body">
           <iframe
             id="contact-iframe"
-            title="Notion お問合せフォーム"
+            title="意見箱フォーム"
             referrerpolicy="strict-origin-when-cross-origin"
             width="100%"
             height="600"

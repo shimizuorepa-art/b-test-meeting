@@ -44,11 +44,7 @@ const PARTICIPANTS = [
   { id: "management-yamada", name: "山田", category: "management", checkedIn: true },
 ];
 
-const ACCOUNTS = [
-  { id: "office-tanaka", name: "田中" },
-  { id: "restaurant-takahashi", name: "高橋" },
-  { id: "management-kato", name: "加藤" },
-];
+const CURRENT_ACCOUNT = Object.freeze({ id: "office-tanaka", name: "田中" });
 
 const state = {
   input: "pristine",
@@ -71,7 +67,6 @@ const elements = {
   mobileMenuDrawer: document.querySelector("#mobile-menu-drawer"),
   mobileMenuClose: document.querySelector("[data-mobile-menu-close]"),
   mobileMenuCurrent: document.querySelector("[data-mobile-menu-current]"),
-  accountSelect: document.querySelector("#account-select"),
   inputStatus: document.querySelector("#input-status"),
   authorOutput: document.querySelector("#author-output"),
   meetingDateLabel: document.querySelector("#meeting-date-label"),
@@ -196,8 +191,12 @@ function getSelectedMeetingType() {
   return elements.meetingTypeSelect.value || MEETING_TYPE_CONFIG.options[0].id;
 }
 
+function getCurrentAccount() {
+  return CURRENT_ACCOUNT;
+}
+
 function getAuthor() {
-  return ACCOUNTS.find((account) => account.id === elements.accountSelect.value)?.name ?? ACCOUNTS[0].name;
+  return getCurrentAccount().name;
 }
 
 function renderAuthor() {
@@ -377,7 +376,6 @@ function renderState(actionMessage = "") {
   elements.saveButton.classList.toggle("is-loading", isSaving);
   elements.saveButton.setAttribute("aria-busy", String(isSaving));
   elements.editResultButton.disabled = !hasResult || state.stale || isGenerating || isSaving;
-  elements.accountSelect.disabled = isGenerating || isSaving;
   elements.meetingTypeSelect.disabled = isGenerating || isSaving;
 
   elements.generatedLabel.hidden = !hasResult;
@@ -423,8 +421,6 @@ function renderState(actionMessage = "") {
 
 function hydrateRecord(record) {
   if (!record || typeof record !== "object") return false;
-  const account = ACCOUNTS.find((candidate) => candidate.name === record.author);
-  if (account) elements.accountSelect.value = account.id;
   if (MEETING_TYPE_CONFIG.options.some(({ id }) => id === record.meetingType)) {
     elements.meetingTypeSelect.value = record.meetingType;
   }
@@ -438,10 +434,12 @@ function hydrateRecord(record) {
     if (input) input.value = itemsToText(record.sections?.[key] ?? []);
   });
   state.generatedText = typeof record.generatedText === "string" ? record.generatedText : "";
-  state.generation = state.generatedText ? "generated" : "idle";
-  state.save = state.generatedText ? "saved" : "idle";
-  state.input = "pristine";
-  state.stale = false;
+  const hasGeneratedText = Boolean(state.generatedText);
+  const authorMismatch = String(record.author ?? "").trim() !== getAuthor();
+  state.generation = hasGeneratedText ? "generated" : "idle";
+  state.save = hasGeneratedText && !authorMismatch ? "saved" : "idle";
+  state.input = hasGeneratedText && authorMismatch ? "dirty" : "pristine";
+  state.stale = hasGeneratedText && authorMismatch;
   return true;
 }
 
@@ -706,11 +704,6 @@ function bindEvents() {
     });
   });
 
-  elements.accountSelect.addEventListener("change", () => {
-    renderAuthor();
-    markSourceDirty("アカウントから記入者を更新しました");
-  });
-
   elements.meetingTypeSelect.addEventListener("change", () => {
     markSourceDirty(`${meetingTypeLabel(elements.meetingTypeSelect.value)}へ切り替えました`);
   });
@@ -781,7 +774,7 @@ function bindEvents() {
   });
 
   elements.checkInButton.addEventListener("click", () => {
-    const authorId = elements.accountSelect.value;
+    const authorId = getCurrentAccount().id;
     const checkedInIds = PARTICIPANTS.filter((participant) => participant.checkedIn).map((participant) => participant.id);
     setParticipantsByIds([...new Set([authorId, ...checkedInIds])]);
     elements.actionStatus.textContent = "チェックイン中のスタッフと記入者を参加者へ追加しました";
