@@ -346,6 +346,25 @@ function renderState(actionMessage = "") {
   const isGenerating = state.generation === "generating";
   const isSaving = state.save === "saving";
   const hasResult = Boolean(state.generatedText);
+  const resultState = state.stale
+    ? "stale"
+    : isGenerating
+      ? "generating"
+      : isSaving
+        ? "saving"
+        : state.generation === "generation-error"
+          ? "generation-error"
+          : state.save === "save-error"
+            ? "save-error"
+            : state.save === "saved"
+              ? "saved"
+              : state.generation === "editing"
+                ? "editing"
+                : hasResult
+                  ? "generated"
+                  : "idle";
+
+  elements.resultPanel.dataset.state = resultState;
 
   elements.inputStatus.className = `status-pill is-${state.input}`;
   elements.inputStatus.querySelector("span:last-child").textContent = state.input === "dirty" ? "未保存" : "未変更";
