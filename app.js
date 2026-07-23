@@ -99,6 +99,7 @@ const elements = {
   saveError: document.querySelector("#save-error"),
   actionStatus: document.querySelector("#action-status"),
   generateButton: document.querySelector("#generate-button"),
+  infoTriggers: [...document.querySelectorAll("[data-info-trigger]")],
   contactTriggers: [...document.querySelectorAll("[data-contact-trigger]")],
   contactDialog: document.querySelector("#contact-dialog"),
   contactDialogTitle: document.querySelector("#contact-dialog-title"),
@@ -110,6 +111,10 @@ const elements = {
 const mobileMenuMedia = window.matchMedia("(max-width: 47.999rem)");
 let lastContactTrigger = null;
 let restoreMobileMenuAfterContact = false;
+let activeInfoTrigger = null;
+let infoOpenTimer = null;
+let infoCloseTimer = null;
+let suppressInfoFocusOpen = false;
 
 function textToItems(value) {
   return value
@@ -367,6 +372,7 @@ function renderState(actionMessage = "") {
   const sourceHasContent = hasSourceContent();
   const isSourceStage = state.resultStage === "source";
   const sourceReadyForAi = isSourceStage && sourceHasContent && state.save === "saved";
+  const isEditing = state.generation === "editing";
   let resultState = "idle";
   if (state.stale) resultState = "stale";
   else if (isGenerating) resultState = "generating";
@@ -388,46 +394,51 @@ function renderState(actionMessage = "") {
   elements.generateButton.classList.toggle("is-loading", isGenerating);
   elements.generateButton.setAttribute("aria-busy", String(isGenerating));
 
-  elements.saveButton.disabled = (isSourceStage ? !sourceHasContent : !hasResult) || state.stale || state.save === "saved" || isGenerating || isSaving;
+  elements.saveButton.disabled = (isSourceStage ? !sourceHasContent : !hasResult) || state.stale || state.save === "saved" || isGenerating || isSaving || isEditing;
   elements.saveButton.classList.toggle("is-loading", isSaving);
   elements.saveButton.setAttribute("aria-busy", String(isSaving));
   elements.editResultButton.disabled = isSourceStage || !hasResult || state.stale || isGenerating || isSaving;
   elements.meetingTypeSelect.disabled = isGenerating || isSaving;
   if (elements.generatedText.value !== state.generatedText) elements.generatedText.value = state.generatedText;
-  elements.generatedText.readOnly = state.generation !== "editing";
-  elements.editResultButton.textContent = state.generation === "editing" ? "編集を終了" : "編集";
+  elements.generatedText.readOnly = !isEditing;
+  elements.editResultButton.textContent = isEditing ? "編集を終了" : "編集";
+  elements.editResultButton.classList.toggle("button-primary", isEditing);
+  elements.editResultButton.classList.toggle("button-secondary", !isEditing);
+  elements.saveButton.textContent = isSourceStage ? "入力を保存" : "清書を保存";
   elements.overwriteNote.hidden = isSourceStage || !hasResult;
 
   if (state.stale) {
     elements.generationBadge.textContent = "要再清書";
     elements.overwriteNote.textContent = "入力が変わりました。保存前に再清書してください。再清書すると現在の清書を上書きします。";
-    elements.resultFlowNote.textContent = "保存済みの記入者と現在の記入者が異なります。4区分を更新すると、最新の入力内容へ戻せます。";
+    elements.resultFlowNote.textContent = "記入者が変わりました。再清書が必要です";
   } else if (state.generation === "generating") {
     elements.generationBadge.textContent = "清書中";
-    elements.resultFlowNote.textContent = "保存した4区分の内容へAI清書を適用しています。";
+    elements.resultFlowNote.textContent = "AI清書中です";
   } else if (state.generation === "generation-error") {
     elements.generationBadge.textContent = "清書エラー";
-    elements.resultFlowNote.textContent = "入力内容は保持しています。もう一度「AI清書」を押してください。";
+    elements.resultFlowNote.textContent = "AI清書を再試行できます";
   } else if (state.generation === "editing") {
     elements.generationBadge.textContent = "手動編集中";
     elements.overwriteNote.textContent = "再清書すると、現在の手動編集を上書きします。";
-    elements.resultFlowNote.textContent = "この欄へ直接入力できます。終わったら「編集を終了」を押してください。";
+    elements.resultFlowNote.textContent = "直接編集できます";
   } else if (isSourceStage) {
     elements.generationBadge.textContent = sourceHasContent ? "入力内容" : "入力待ち";
     elements.resultFlowNote.textContent = sourceReadyForAi
-      ? "入力内容を保存しました。「AI清書」で文章を整えられます。"
-      : "4区分の入力内容を上から反映しています。保存するとAI清書を実行できます。";
+      ? "入力保存済み。AI清書できます"
+      : sourceHasContent
+        ? "入力内容を保存してください"
+        : "4区分へ入力して保存してください";
   } else if (state.resultStage === "manual") {
     elements.generationBadge.textContent = "手動編集済み";
     elements.overwriteNote.textContent = "再清書すると、現在の手動編集を上書きします。";
-    elements.resultFlowNote.textContent = "手動編集した内容です。必要なら再度「編集」で修正できます。";
+    elements.resultFlowNote.textContent = "手動編集済みです";
   } else if (state.generation === "generated") {
     elements.generationBadge.textContent = "清書済み";
     elements.overwriteNote.textContent = "再清書すると、現在の清書を上書きします。";
-    elements.resultFlowNote.textContent = "AI清書を反映しました。「編集」で直接修正できます。";
+    elements.resultFlowNote.textContent = "清書済み。必要なら編集できます";
   } else {
     elements.generationBadge.textContent = "清書前";
-    elements.resultFlowNote.textContent = "4区分の入力内容を保存してからAI清書を実行できます。";
+    elements.resultFlowNote.textContent = "4区分を保存してください";
   }
 
   elements.saveStatus.className = "save-status";
@@ -438,12 +449,14 @@ function renderState(actionMessage = "") {
     elements.saveStatus.classList.add("is-saved");
     elements.saveStatus.textContent = isSourceStage
       ? "入力内容を保存しました（この端末に保存）"
-      : "保存しました（この端末に保存）";
+      : "清書を保存しました（この端末に保存）";
   } else if (state.save === "save-error") {
     elements.saveStatus.classList.add("is-error");
-    elements.saveStatus.textContent = "保存できませんでした";
+    elements.saveStatus.textContent = isSourceStage ? "入力未保存・内容は保持しています" : "清書未保存・内容は保持しています";
   } else {
-    elements.saveStatus.textContent = isSourceStage
+    elements.saveStatus.textContent = state.stale
+      ? "再清書後に保存できます"
+      : isSourceStage
       ? sourceHasContent
         ? "入力内容を保存するとAI清書できます"
         : "4区分へ入力すると保存できます"
@@ -598,6 +611,111 @@ function isElementVisible(element) {
   return style.visibility !== "hidden" && style.display !== "none" && rect.width > 0 && rect.height > 0;
 }
 
+function getInfoPopover(trigger) {
+  return trigger ? document.getElementById(trigger.getAttribute("aria-controls")) : null;
+}
+
+function clearInfoTimers() {
+  window.clearTimeout(infoOpenTimer);
+  window.clearTimeout(infoCloseTimer);
+  infoOpenTimer = null;
+  infoCloseTimer = null;
+}
+
+function positionInfoPopover(trigger, popover) {
+  const viewportGap = 8;
+  const triggerGap = 6;
+  popover.style.visibility = "hidden";
+  popover.hidden = false;
+  const triggerRect = trigger.getBoundingClientRect();
+  const popoverRect = popover.getBoundingClientRect();
+  const left = Math.min(
+    Math.max(viewportGap, triggerRect.left),
+    window.innerWidth - popoverRect.width - viewportGap,
+  );
+  const preferredTop = triggerRect.bottom + triggerGap;
+  const top = preferredTop + popoverRect.height <= window.innerHeight - viewportGap
+    ? preferredTop
+    : Math.max(viewportGap, triggerRect.top - popoverRect.height - triggerGap);
+  popover.style.left = `${Math.round(left)}px`;
+  popover.style.top = `${Math.round(top)}px`;
+  popover.style.visibility = "visible";
+}
+
+function closeInfoPopover({ restoreFocus = false } = {}) {
+  clearInfoTimers();
+  if (!activeInfoTrigger) return;
+  const trigger = activeInfoTrigger;
+  const popover = getInfoPopover(trigger);
+  trigger.setAttribute("aria-expanded", "false");
+  if (popover) {
+    popover.hidden = true;
+    popover.style.removeProperty("left");
+    popover.style.removeProperty("top");
+    popover.style.removeProperty("visibility");
+  }
+  activeInfoTrigger = null;
+  if (restoreFocus) trigger.focus({ preventScroll: true });
+}
+
+function openInfoPopover(trigger) {
+  clearInfoTimers();
+  if (activeInfoTrigger && activeInfoTrigger !== trigger) closeInfoPopover();
+  const popover = getInfoPopover(trigger);
+  if (!popover) return;
+  activeInfoTrigger = trigger;
+  trigger.setAttribute("aria-expanded", "true");
+  positionInfoPopover(trigger, popover);
+}
+
+function scheduleInfoClose(trigger) {
+  window.clearTimeout(infoCloseTimer);
+  infoCloseTimer = window.setTimeout(() => {
+    const popover = getInfoPopover(trigger);
+    if (document.activeElement !== trigger && !popover?.matches(":hover")) closeInfoPopover();
+  }, 100);
+}
+
+function bindInfoAffordances() {
+  elements.infoTriggers.forEach((trigger) => {
+    const popover = getInfoPopover(trigger);
+    trigger.addEventListener("pointerdown", () => {
+      suppressInfoFocusOpen = true;
+    });
+    trigger.addEventListener("click", () => {
+      const isOpen = trigger.getAttribute("aria-expanded") === "true";
+      suppressInfoFocusOpen = false;
+      if (isOpen) closeInfoPopover();
+      else openInfoPopover(trigger);
+    });
+    trigger.addEventListener("focus", () => {
+      if (!suppressInfoFocusOpen) openInfoPopover(trigger);
+    });
+    trigger.addEventListener("blur", () => {
+      suppressInfoFocusOpen = false;
+      scheduleInfoClose(trigger);
+    });
+    trigger.addEventListener("mouseenter", () => {
+      clearInfoTimers();
+      infoOpenTimer = window.setTimeout(() => openInfoPopover(trigger), 800);
+    });
+    trigger.addEventListener("mouseleave", () => scheduleInfoClose(trigger));
+    popover?.addEventListener("mouseenter", clearInfoTimers);
+    popover?.addEventListener("mouseleave", () => scheduleInfoClose(trigger));
+  });
+  document.addEventListener("pointerdown", (event) => {
+    if (event.target.closest(".info-affordance")) return;
+    closeInfoPopover();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !activeInfoTrigger) return;
+    event.preventDefault();
+    closeInfoPopover({ restoreFocus: true });
+  });
+  window.addEventListener("resize", () => closeInfoPopover());
+  window.addEventListener("scroll", () => closeInfoPopover(), { passive: true });
+}
+
 function getMobileMenuFocusableElements() {
   return [...elements.mobileMenuDrawer.querySelectorAll(
     'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
@@ -707,6 +825,7 @@ function trapContactDialogFocus(event) {
 }
 
 function bindEvents() {
+  bindInfoAffordances();
   elements.mobileMenuTrigger.addEventListener("click", () => {
     setMobileMenu(elements.mobileMenuTrigger.getAttribute("aria-expanded") !== "true");
   });

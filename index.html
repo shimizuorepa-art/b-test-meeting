@@ -87,6 +87,20 @@
             <div class="panel-title">
               <h2 id="participants-heading">参加者</h2>
               <span id="participant-count" class="mini-badge">0名</span>
+              <span class="info-affordance">
+                <button
+                  class="info-trigger"
+                  type="button"
+                  data-info-trigger
+                  aria-label="参加者選択の説明"
+                  aria-expanded="false"
+                  aria-controls="participants-info"
+                  aria-describedby="participants-info"
+                >i</button>
+                <span id="participants-info" class="info-popover" data-info-popover role="tooltip" hidden>
+                  所属を切り替えても選択は保持されます。チェックした人だけを参加者として反映します。
+                </span>
+              </span>
             </div>
             <div class="participant-actions">
               <div class="participant-picker">
@@ -174,6 +188,20 @@
             <div class="panel-title">
               <h2 id="result-heading">清書</h2>
               <span id="generation-badge" class="mini-badge">清書前</span>
+              <span class="info-affordance">
+                <button
+                  class="info-trigger"
+                  type="button"
+                  data-info-trigger
+                  aria-label="清書の進め方"
+                  aria-expanded="false"
+                  aria-controls="result-workflow-info"
+                  aria-describedby="result-workflow-info"
+                >i</button>
+                <span id="result-workflow-info" class="info-popover" data-info-popover role="tooltip" hidden>
+                  4区分の入力を保存するとAI清書できます。AI清書後は直接編集し、清書内容を保存します。
+                </span>
+              </span>
             </div>
             <div class="result-actions" aria-label="清書操作">
               <button id="generate-button" class="button button-primary" type="button">AI清書</button>
