@@ -38,7 +38,7 @@
           </svg>
           <span class="voice-box-label">意見箱</span>
         </button>
-        <div class="sidebar-meta"><span class="status-dot" aria-hidden="true"></span>この端末に保存</div>
+        <div class="sidebar-meta"><span class="status-dot" aria-hidden="true"></span>このタブに一時保存</div>
       </aside>
 
       <main class="main" id="minutes-workspace">
@@ -79,8 +79,30 @@
             <p>次の操作だけを失敗させ、入力保持と復旧導線を確認できます。</p>
             <button id="fail-next-generation" class="button button-secondary" type="button" aria-pressed="false">次の清書を失敗</button>
             <button id="fail-next-save" class="button button-secondary" type="button" aria-pressed="false">次の保存を失敗</button>
+            <label class="qa-scenario-field" for="recording-scenario-select">
+              <span>録音デモ状態</span>
+              <select id="recording-scenario-select">
+                <option value="setup">初期</option>
+                <option value="consent">権限・同意</option>
+                <option value="ready">開始準備</option>
+                <option value="recording">録音中</option>
+                <option value="paused">一時停止</option>
+                <option value="interrupted">中断</option>
+                <option value="processing">処理中</option>
+                <option value="review">確認</option>
+                <option value="permission-denied">権限拒否</option>
+                <option value="processing-error">処理エラー</option>
+              </select>
+            </label>
+            <button id="recording-scenario-apply" class="button button-secondary" type="button">状態を表示</button>
+            <button id="recording-offline-toggle" class="button button-secondary" type="button" aria-pressed="false">オフラインを再現</button>
           </div>
         </details>
+
+        <aside class="recording-boundary" aria-label="録音デモの境界">
+          <span class="boundary-mark" aria-hidden="true">i</span>
+          <p><strong>UI-onlyデモ</strong> — 音声は取得・保存・送信しません。文字起こしとAI提案は固定サンプルです。</p>
+        </aside>
 
         <section class="participants-panel panel" aria-labelledby="participants-heading">
           <div class="panel-header">
@@ -133,6 +155,192 @@
             <div id="participant-chips" class="participant-chips" aria-label="選択済み参加者"></div>
           </div>
         </section>
+
+        <section id="recording-workflow" class="recording-workflow" aria-labelledby="recording-workflow-heading">
+          <header class="recording-workflow-header">
+            <div>
+              <h2 id="recording-workflow-heading">録音から議事録を作成</h2>
+              <p id="recording-workflow-status" role="status" aria-live="polite">会議設定と参加者を確認してください</p>
+            </div>
+            <span id="recording-demo-status" class="state-label is-neutral">準備前</span>
+          </header>
+
+          <ol class="recording-steps" aria-label="録音議事録の工程">
+            <li data-recording-step="setup" aria-current="step"><span>1</span>設定</li>
+            <li data-recording-step="capture"><span>2</span>録音</li>
+            <li data-recording-step="processing"><span>3</span>処理</li>
+            <li data-recording-step="review"><span>4</span>確認</li>
+          </ol>
+
+          <section class="recording-screen" data-recording-screen="setup" aria-labelledby="recording-setup-title">
+            <div class="recording-screen-heading">
+              <span class="state-label is-neutral">初期画面</span>
+              <h3 id="recording-setup-title">会議を確認して録音を始める</h3>
+            </div>
+            <dl class="meeting-summary">
+              <div><dt>会議</dt><dd id="recording-meeting-summary">朝礼</dd></div>
+              <div><dt>出席者</dt><dd id="recording-participant-summary">0名・未選択</dd></div>
+              <div><dt>記録方法</dt><dd>UI-only録音デモ</dd></div>
+            </dl>
+            <p class="screen-helper">録音開始の前に、端末利用の説明と参加者の同意を別々に確認します。</p>
+            <div class="screen-actions">
+              <button id="recording-enter-consent" class="button button-primary" type="button">録音を開始</button>
+              <button class="button button-secondary" type="button" data-open-manual>手入力で開始</button>
+            </div>
+          </section>
+
+          <section class="recording-screen" data-recording-screen="consent" aria-labelledby="recording-consent-title" hidden>
+            <div class="recording-screen-heading">
+              <span class="state-label is-warning">録音前確認</span>
+              <h3 id="recording-consent-title" tabindex="-1">端末状態と参加者同意を確認</h3>
+            </div>
+            <div class="permission-row">
+              <div>
+                <h4>端末の利用可否</h4>
+                <p>実際のマイク権限は要求しません。デモ上の利用可否だけを切り替えます。</p>
+              </div>
+              <div class="permission-action">
+                <output id="device-permission-status" class="state-label is-neutral">未確認</output>
+                <button id="demo-device-check" class="button button-secondary" type="button">端末確認（デモ）</button>
+              </div>
+            </div>
+            <fieldset class="consent-fieldset">
+              <legend>参加者の録音同意</legend>
+              <label class="consent-check">
+                <input id="participant-consent-check" type="checkbox" />
+                <span>録音目的、停止方法、共有前に人が確認することを参加者へ説明し、同意を確認しました</span>
+              </label>
+              <p id="participant-consent-note">参加者の選択だけでは同意済みになりません。参加者が変わると再確認が必要です。</p>
+            </fieldset>
+            <div class="screen-actions">
+              <button id="recording-consent-ready" class="button button-primary" type="button" disabled>録音を準備</button>
+              <button id="recording-consent-back" class="button button-secondary" type="button">設定へ戻る</button>
+              <button class="button button-quiet" type="button" data-open-manual>手入力で開始</button>
+            </div>
+          </section>
+
+          <section class="recording-screen" data-recording-screen="ready" aria-labelledby="recording-ready-title" hidden>
+            <div class="recording-screen-heading">
+              <span class="state-label is-success">準備完了</span>
+              <h3 id="recording-ready-title" tabindex="-1">デモ録音を開始できます</h3>
+            </div>
+            <dl class="meeting-summary is-compact">
+              <div><dt>端末</dt><dd>デモ上で利用可能</dd></div>
+              <div><dt>参加者同意</dt><dd>確認済み</dd></div>
+              <div><dt>音声データ</dt><dd>取得しない</dd></div>
+            </dl>
+            <p class="screen-helper">開始すると経過時間だけが進みます。音声、波形、ファイルは生成しません。</p>
+            <div class="screen-actions">
+              <button id="recording-start-demo" class="button button-primary" type="button">デモ録音を開始</button>
+              <button id="recording-ready-back" class="button button-secondary" type="button">同意確認へ戻る</button>
+              <button class="button button-quiet" type="button" data-open-manual>手入力で開始</button>
+            </div>
+          </section>
+
+          <section class="recording-screen capture-screen" data-recording-screen="capture" aria-labelledby="recording-capture-title" hidden>
+            <div class="recording-screen-heading capture-heading">
+              <div>
+                <span id="capture-state-label" class="state-label is-danger">録音中</span>
+                <h3 id="recording-capture-title" tabindex="-1"><span id="capture-meeting-label">朝礼</span>の録音デモ</h3>
+              </div>
+              <output id="recording-timer" class="recording-timer" aria-label="録音経過時間">00:00</output>
+            </div>
+            <p id="recording-network-state" class="capture-support-state">オンライン想定・音声データなし</p>
+            <label class="quick-note" for="recording-quick-note">
+              <span>録音中の簡易メモ</span>
+              <textarea id="recording-quick-note" rows="3" placeholder="後で確認する点を入力"></textarea>
+            </label>
+            <p class="screen-helper">経過時間は画面表示だけを更新し、毎秒読み上げません。</p>
+            <div class="screen-actions capture-actions">
+              <button id="recording-stop" class="button button-primary" type="button">録音を停止</button>
+              <button id="recording-pause" class="button button-secondary" type="button">一時停止</button>
+              <button id="recording-interrupt" class="button button-quiet" type="button">中断を再現</button>
+            </div>
+          </section>
+
+          <section class="recording-screen" data-recording-screen="interrupted" aria-labelledby="recording-interrupted-title" hidden>
+            <div class="recording-screen-heading">
+              <span class="state-label is-warning">録音中断</span>
+              <h3 id="recording-interrupted-title" tabindex="-1">自動では再開しません</h3>
+            </div>
+            <p id="recording-interruption-reason" class="screen-callout">着信や画面ロックを想定したデモ中断です。取得済み音声はありません。</p>
+            <p class="screen-helper">明示的に再開するか、ここまでの固定サンプルで処理画面へ進んでください。</p>
+            <div class="screen-actions">
+              <button id="recording-resume-interrupted" class="button button-primary" type="button">デモ録音を再開</button>
+              <button id="recording-process-interrupted" class="button button-secondary" type="button">ここまでを処理</button>
+              <button class="button button-quiet" type="button" data-open-manual>手入力へ切替</button>
+            </div>
+          </section>
+
+          <section class="recording-screen processing-screen" data-recording-screen="processing" aria-labelledby="recording-processing-title" aria-busy="true" hidden>
+            <div class="recording-screen-heading">
+              <span class="state-label is-progress">デモ処理中</span>
+              <h3 id="recording-processing-title" tabindex="-1">固定サンプルから提案を準備</h3>
+            </div>
+            <ol class="processing-list" aria-label="処理状況">
+              <li data-processing-step="prepare"><span aria-hidden="true"></span><strong>音声準備</strong><small>音声ファイルは作りません</small></li>
+              <li data-processing-step="transcript"><span aria-hidden="true"></span><strong>文字起こし</strong><small>固定サンプルを表示します</small></li>
+              <li data-processing-step="extract"><span aria-hidden="true"></span><strong>AI提案抽出</strong><small>決定事項とtaskの候補です</small></li>
+            </ol>
+            <p id="processing-status" class="screen-helper" role="status" aria-live="polite">音声準備を再現しています</p>
+            <div class="screen-actions">
+              <button class="button button-secondary" type="button" data-open-manual>手入力へ切替</button>
+            </div>
+          </section>
+
+          <section class="recording-screen review-screen" data-recording-screen="review" aria-labelledby="recording-review-title" hidden>
+            <div class="recording-screen-heading">
+              <span class="state-label is-warning">AI生成・未確認</span>
+              <h3 id="recording-review-title" tabindex="-1">提案を1件ずつ人が確認</h3>
+            </div>
+            <details class="transcript-disclosure">
+              <summary>固定文字起こしを確認</summary>
+              <div class="transcript-body">
+                <p><time datetime="PT18S">00:18</time>「来週の朝礼までに、各部署から夏期運営の注意点を持ち寄りましょう。」</p>
+                <p><time datetime="PT42S">00:42</time>「担当と期限はこの場では決めず、次回確認します。」</p>
+              </div>
+            </details>
+            <div class="review-summary">
+              <span id="review-pending-count">未確認 2件</span>
+              <span>担当・部署は未割当、期限は未確認</span>
+            </div>
+            <div id="review-suggestion-list" class="review-suggestion-list" aria-label="AI提案一覧"></div>
+            <div class="review-save-area">
+              <p id="recording-draft-status" role="status" aria-live="polite">デモ下書きはまだ保持していません</p>
+              <div class="screen-actions">
+                <button id="recording-save-draft" class="button button-primary" type="button">デモ下書きを保持</button>
+                <button id="recording-finalize" class="button button-secondary" type="button" disabled aria-describedby="recording-finalize-reason">正式確定・共有</button>
+                <button class="button button-quiet" type="button" data-open-manual>4区分へ反映せず手入力</button>
+              </div>
+              <p id="recording-finalize-reason" class="screen-helper">本番の保存・共有・task登録は未接続です。</p>
+            </div>
+          </section>
+
+          <section class="recording-screen error-screen" data-recording-screen="error" aria-labelledby="recording-error-title" hidden>
+            <div class="recording-screen-heading">
+              <span class="state-label is-danger">デモエラー</span>
+              <h3 id="recording-error-title" tabindex="-1">録音デモを続けられません</h3>
+            </div>
+            <p id="recording-error-message" class="screen-callout is-error">処理を完了できませんでした。入力内容は保持しています。</p>
+            <p id="recording-error-recovery" class="screen-helper">再試行するか、4区分の手入力へ切り替えてください。</p>
+            <div class="screen-actions">
+              <button id="recording-error-retry" class="button button-primary" type="button">再試行</button>
+              <button class="button button-secondary" type="button" data-open-manual>手入力へ切替</button>
+              <button id="recording-error-reset" class="button button-quiet" type="button">設定へ戻る</button>
+            </div>
+          </section>
+        </section>
+
+        <details id="manual-fallback" class="manual-fallback">
+          <summary>4区分で手入力</summary>
+          <div class="manual-fallback-body">
+            <div class="manual-fallback-toolbar">
+              <div>
+                <strong>録音を使わない入力</strong>
+                <p>連絡事項 → 事務所 → レストラン → 農園の順で入力します。旧13状態を保持しています。</p>
+              </div>
+              <button id="return-to-recording" class="button button-secondary" type="button">録音デモへ戻る</button>
+            </div>
 
         <section class="sections-grid" aria-label="議事録の箇条書き入力">
           <article class="minutes-section panel" data-section-key="notices">
@@ -222,6 +430,8 @@
             <div id="save-error" class="compact-message is-error" role="status" aria-live="polite" hidden></div>
           </div>
         </section>
+          </div>
+        </details>
       </main>
     </div>
 

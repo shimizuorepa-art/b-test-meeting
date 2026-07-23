@@ -2,6 +2,28 @@ const STORAGE_KEY = "bsystem.minutes.mock.v1";
 const STORAGE_VERSION = 1;
 const DEMO_DATE = "2026-07-21";
 const CONTACT_FORM_URL = "https://northern-hearing-e36.notion.site/ebd//55559c2fd62e828c8c318163c97e7d62";
+const RECORDING_REVIEW_FIXTURES = [
+  {
+    id: "decision-1",
+    kind: "決定事項",
+    text: "各部署の夏期運営の注意点を次回朝礼で確認する",
+    sourceTime: "00:18",
+    sourceExcerpt: "来週の朝礼までに、各部署から夏期運営の注意点を持ち寄りましょう。",
+    owner: "未割当",
+    department: "未割当",
+    due: "期限未確認",
+  },
+  {
+    id: "task-1",
+    kind: "task",
+    text: "各部署の注意点を整理する",
+    sourceTime: "00:42",
+    sourceExcerpt: "担当と期限はこの場では決めず、次回確認します。",
+    owner: "未割当",
+    department: "未割当",
+    due: "期限未確認",
+  },
+];
 
 const MEETING_TYPE_CONFIG = {
   cutoffHour: 12,
@@ -62,6 +84,31 @@ const state = {
   participantSearch: "",
 };
 
+function createReviewSuggestions() {
+  return RECORDING_REVIEW_FIXTURES.map((fixture) => ({
+    ...fixture,
+    status: "pending",
+    provenance: "固定文字起こし",
+    editing: false,
+    editValue: fixture.text,
+  }));
+}
+
+const recordingDemo = {
+  screen: "setup",
+  capture: "idle",
+  permission: "required",
+  consent: "required",
+  offline: false,
+  elapsedSeconds: 0,
+  timerId: null,
+  processingTimers: [],
+  processingStep: "prepare",
+  errorKind: "",
+  draft: "idle",
+  suggestions: createReviewSuggestions(),
+};
+
 const elements = {
   appShell: document.querySelector(".app-shell"),
   mobileMenuTrigger: document.querySelector("#mobile-menu-trigger"),
@@ -76,6 +123,10 @@ const elements = {
   qaDisclosure: document.querySelector("#qa-disclosure"),
   failNextGeneration: document.querySelector("#fail-next-generation"),
   failNextSave: document.querySelector("#fail-next-save"),
+  recordingScenarioSelect: document.querySelector("#recording-scenario-select"),
+  recordingScenarioApply: document.querySelector("#recording-scenario-apply"),
+  recordingOfflineToggle: document.querySelector("#recording-offline-toggle"),
+  participantsPanel: document.querySelector(".participants-panel"),
   participantTrigger: document.querySelector("#participant-trigger"),
   participantMenu: document.querySelector("#participant-menu"),
   participantClose: document.querySelector("#participant-close"),
@@ -85,6 +136,48 @@ const elements = {
   participantSearchEmpty: document.querySelector("#participant-search-empty"),
   participantChips: document.querySelector("#participant-chips"),
   participantCount: document.querySelector("#participant-count"),
+  recordingWorkflow: document.querySelector("#recording-workflow"),
+  recordingWorkflowStatus: document.querySelector("#recording-workflow-status"),
+  recordingDemoStatus: document.querySelector("#recording-demo-status"),
+  recordingSteps: [...document.querySelectorAll("[data-recording-step]")],
+  recordingScreens: [...document.querySelectorAll("[data-recording-screen]")],
+  recordingMeetingSummary: document.querySelector("#recording-meeting-summary"),
+  recordingParticipantSummary: document.querySelector("#recording-participant-summary"),
+  recordingEnterConsent: document.querySelector("#recording-enter-consent"),
+  devicePermissionStatus: document.querySelector("#device-permission-status"),
+  demoDeviceCheck: document.querySelector("#demo-device-check"),
+  participantConsentCheck: document.querySelector("#participant-consent-check"),
+  participantConsentNote: document.querySelector("#participant-consent-note"),
+  recordingConsentReady: document.querySelector("#recording-consent-ready"),
+  recordingConsentBack: document.querySelector("#recording-consent-back"),
+  recordingStartDemo: document.querySelector("#recording-start-demo"),
+  recordingReadyBack: document.querySelector("#recording-ready-back"),
+  captureStateLabel: document.querySelector("#capture-state-label"),
+  captureMeetingLabel: document.querySelector("#capture-meeting-label"),
+  recordingTimer: document.querySelector("#recording-timer"),
+  recordingNetworkState: document.querySelector("#recording-network-state"),
+  recordingQuickNote: document.querySelector("#recording-quick-note"),
+  recordingStop: document.querySelector("#recording-stop"),
+  recordingPause: document.querySelector("#recording-pause"),
+  recordingInterrupt: document.querySelector("#recording-interrupt"),
+  recordingInterruptionReason: document.querySelector("#recording-interruption-reason"),
+  recordingResumeInterrupted: document.querySelector("#recording-resume-interrupted"),
+  recordingProcessInterrupted: document.querySelector("#recording-process-interrupted"),
+  processingScreen: document.querySelector(".processing-screen"),
+  processingSteps: [...document.querySelectorAll("[data-processing-step]")],
+  processingStatus: document.querySelector("#processing-status"),
+  reviewPendingCount: document.querySelector("#review-pending-count"),
+  reviewSuggestionList: document.querySelector("#review-suggestion-list"),
+  recordingDraftStatus: document.querySelector("#recording-draft-status"),
+  recordingSaveDraft: document.querySelector("#recording-save-draft"),
+  recordingErrorTitle: document.querySelector("#recording-error-title"),
+  recordingErrorMessage: document.querySelector("#recording-error-message"),
+  recordingErrorRecovery: document.querySelector("#recording-error-recovery"),
+  recordingErrorRetry: document.querySelector("#recording-error-retry"),
+  recordingErrorReset: document.querySelector("#recording-error-reset"),
+  manualFallback: document.querySelector("#manual-fallback"),
+  openManualButtons: [...document.querySelectorAll("[data-open-manual]")],
+  returnToRecording: document.querySelector("#return-to-recording"),
   sectionInputs: [...document.querySelectorAll("[data-section-input]")],
   generationError: document.querySelector("#generation-error"),
   resultPanel: document.querySelector("#result-panel"),
@@ -347,6 +440,7 @@ function renderParticipants() {
   });
   elements.participantChips.replaceChildren(fragment);
   elements.participantCount.textContent = `${participants.length}名`;
+  updateRecordingSummary();
 }
 
 function switchParticipantCategory(categoryId, { focus = true, resetSearch = true } = {}) {
@@ -363,6 +457,453 @@ function switchParticipantCategory(categoryId, { focus = true, resetSearch = tru
   });
   renderParticipantOptions();
   if (focus) elements.participantCategoryTabs.querySelector(`[data-participant-category="${categoryId}"]`)?.focus({ preventScroll: true });
+}
+
+function updateRecordingSummary() {
+  const names = getSelectedParticipantNames();
+  elements.recordingMeetingSummary.textContent = meetingTypeLabel(getSelectedMeetingType());
+  elements.captureMeetingLabel.textContent = meetingTypeLabel(getSelectedMeetingType());
+  elements.recordingParticipantSummary.textContent = names.length
+    ? `${names.length}名・${names.join("、")}`
+    : "0名・未選択";
+}
+
+function formatRecordingTime(seconds) {
+  const safeSeconds = Math.max(0, Number(seconds) || 0);
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainder = safeSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+}
+
+function updateRecordingTimer() {
+  elements.recordingTimer.textContent = formatRecordingTime(recordingDemo.elapsedSeconds);
+  elements.recordingTimer.setAttribute("aria-label", `録音経過時間 ${Math.floor(recordingDemo.elapsedSeconds / 60)}分${recordingDemo.elapsedSeconds % 60}秒`);
+}
+
+function stopCaptureTimer() {
+  window.clearInterval(recordingDemo.timerId);
+  recordingDemo.timerId = null;
+}
+
+function startCaptureTimer() {
+  stopCaptureTimer();
+  recordingDemo.timerId = window.setInterval(() => {
+    if (recordingDemo.capture !== "recording") return;
+    recordingDemo.elapsedSeconds += 1;
+    updateRecordingTimer();
+  }, 1000);
+}
+
+function stopProcessingDemo() {
+  recordingDemo.processingTimers.forEach((timerId) => window.clearTimeout(timerId));
+  recordingDemo.processingTimers = [];
+}
+
+function currentRecordingStep() {
+  if (recordingDemo.screen === "capture" || recordingDemo.screen === "interrupted") return "capture";
+  if (recordingDemo.screen === "processing") return "processing";
+  if (recordingDemo.screen === "review") return "review";
+  if (recordingDemo.screen === "error" && recordingDemo.errorKind === "processing-error") return "processing";
+  return "setup";
+}
+
+function createReviewButton(label, action, suggestion, className = "button button-secondary") {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = className;
+  button.textContent = label;
+  button.dataset.reviewAction = action;
+  button.dataset.suggestionId = suggestion.id;
+  button.setAttribute("aria-label", `${suggestion.kind}「${suggestion.text}」を${label}`);
+  return button;
+}
+
+function renderReviewSuggestions() {
+  const fragment = document.createDocumentFragment();
+  recordingDemo.suggestions.forEach((suggestion) => {
+    const article = document.createElement("article");
+    article.className = `review-suggestion is-${suggestion.status}`;
+    article.dataset.suggestionId = suggestion.id;
+
+    const header = document.createElement("header");
+    const title = document.createElement("h4");
+    title.textContent = suggestion.kind;
+    const status = document.createElement("span");
+    status.className = `state-label ${
+      suggestion.status === "confirmed"
+        ? "is-success"
+        : suggestion.status === "rejected"
+          ? "is-neutral"
+          : "is-warning"
+    }`;
+    status.textContent =
+      suggestion.status === "confirmed"
+        ? "確認済み"
+        : suggestion.status === "rejected"
+          ? "却下"
+          : suggestion.editing
+            ? "人が編集中"
+            : "AI生成・未確認";
+    header.append(title, status);
+
+    const content = document.createElement("div");
+    content.className = "review-suggestion-content";
+    if (suggestion.editing) {
+      const label = document.createElement("label");
+      label.textContent = `${suggestion.kind}の編集`;
+      const textarea = document.createElement("textarea");
+      textarea.rows = 3;
+      textarea.value = suggestion.editValue;
+      textarea.dataset.reviewEditField = suggestion.id;
+      label.append(textarea);
+      content.append(label);
+    } else {
+      const text = document.createElement("p");
+      text.className = "review-suggestion-text";
+      text.textContent = suggestion.text;
+      content.append(text);
+    }
+
+    const source = document.createElement("p");
+    source.className = "review-source";
+    const time = document.createElement("time");
+    time.textContent = suggestion.sourceTime;
+    time.dateTime = suggestion.sourceTime === "00:18" ? "PT18S" : "PT42S";
+    source.append(time, document.createTextNode(` 根拠: 「${suggestion.sourceExcerpt}」`));
+
+    const metadata = document.createElement("dl");
+    metadata.className = "review-metadata";
+    [
+      ["担当", suggestion.owner],
+      ["部署", suggestion.department],
+      ["期限", suggestion.due],
+      ["由来", suggestion.provenance],
+    ].forEach(([term, value]) => {
+      const row = document.createElement("div");
+      const dt = document.createElement("dt");
+      const dd = document.createElement("dd");
+      dt.textContent = term;
+      dd.textContent = value;
+      row.append(dt, dd);
+      metadata.append(row);
+    });
+
+    const actions = document.createElement("div");
+    actions.className = "review-item-actions";
+    if (suggestion.editing) {
+      actions.append(
+        createReviewButton("編集を反映", "save-edit", suggestion),
+        createReviewButton("編集を中止", "cancel-edit", suggestion, "button button-quiet"),
+      );
+    } else {
+      const confirmButton = createReviewButton("確認", "confirm", suggestion);
+      confirmButton.disabled = suggestion.status === "confirmed";
+      actions.append(
+        confirmButton,
+        createReviewButton("編集", "edit", suggestion, "button button-quiet"),
+        createReviewButton("却下", "reject", suggestion, "button button-quiet is-danger-text"),
+      );
+    }
+
+    article.append(header, content, source, metadata, actions);
+    fragment.append(article);
+  });
+  elements.reviewSuggestionList.replaceChildren(fragment);
+
+  const pending = recordingDemo.suggestions.filter(({ status }) => status === "pending").length;
+  const confirmed = recordingDemo.suggestions.filter(({ status }) => status === "confirmed").length;
+  const rejected = recordingDemo.suggestions.filter(({ status }) => status === "rejected").length;
+  elements.reviewPendingCount.textContent = `未確認 ${pending}件・確認済み ${confirmed}件・却下 ${rejected}件`;
+}
+
+function renderRecordingError() {
+  const errors = {
+    "permission-denied": {
+      title: "端末利用が拒否されました",
+      message: "デモ上で端末利用不可を再現しています。実際の権限要求は行っていません。",
+      recovery: "設定方法を確認して再試行するか、4区分の手入力へ切り替えてください。",
+      retry: "同意確認へ戻る",
+    },
+    unsupported: {
+      title: "この環境では利用できません",
+      message: "録音機能を利用できない環境を想定したデモです。音声データはありません。",
+      recovery: "4区分の手入力なら、このまま議事録を作成できます。",
+      retry: "設定へ戻る",
+    },
+    "processing-error": {
+      title: "デモ処理を完了できませんでした",
+      message: "固定文字起こしからAI提案を準備できない状態を再現しています。簡易メモは保持しています。",
+      recovery: "同じ固定サンプルで再試行するか、4区分の手入力へ切り替えてください。",
+      retry: "処理を再試行",
+    },
+  };
+  const detail = errors[recordingDemo.errorKind] ?? errors["processing-error"];
+  elements.recordingErrorTitle.textContent = detail.title;
+  elements.recordingErrorMessage.textContent = detail.message;
+  elements.recordingErrorRecovery.textContent = detail.recovery;
+  elements.recordingErrorRetry.textContent = detail.retry;
+}
+
+function renderRecordingDemo(message = "") {
+  const visibleScreen = recordingDemo.screen;
+  elements.recordingScreens.forEach((screen) => {
+    screen.hidden = screen.dataset.recordingScreen !== visibleScreen;
+  });
+
+  const step = currentRecordingStep();
+  const stepOrder = ["setup", "capture", "processing", "review"];
+  const currentIndex = stepOrder.indexOf(step);
+  elements.recordingSteps.forEach((item) => {
+    const itemIndex = stepOrder.indexOf(item.dataset.recordingStep);
+    item.dataset.status = itemIndex < currentIndex ? "complete" : itemIndex === currentIndex ? "current" : "upcoming";
+    if (itemIndex === currentIndex) item.setAttribute("aria-current", "step");
+    else item.removeAttribute("aria-current");
+  });
+
+  const statusByScreen = {
+    setup: ["準備前", "is-neutral", "会議設定と参加者を確認してください"],
+    consent: ["録音前確認", "is-warning", "端末状態と参加者同意を別々に確認してください"],
+    ready: ["準備完了", "is-success", "デモ録音を開始できます"],
+    capture:
+      recordingDemo.capture === "paused"
+        ? ["一時停止", "is-warning", "録音デモを一時停止しています"]
+        : ["録音中", "is-danger", "録音中です。停止が主操作です"],
+    interrupted: ["録音中断", "is-warning", "明示的な再開または手入力への切替が必要です"],
+    processing: ["デモ処理中", "is-progress", "固定サンプルを処理しています"],
+    review: ["人による確認", "is-warning", "AI提案を1件ずつ確認してください"],
+    error: ["デモエラー", "is-danger", "再試行または手入力へ切り替えてください"],
+  };
+  const [statusText, statusClass, helper] = statusByScreen[visibleScreen];
+  elements.recordingDemoStatus.className = `state-label ${statusClass}`;
+  elements.recordingDemoStatus.textContent = statusText;
+  elements.recordingWorkflowStatus.textContent = message || helper;
+
+  updateRecordingSummary();
+  updateRecordingTimer();
+  elements.participantsPanel.hidden = !["setup", "consent", "ready"].includes(visibleScreen) && document.body.dataset.minutesMode !== "manual";
+
+  elements.devicePermissionStatus.className = `state-label ${
+    recordingDemo.permission === "supported"
+      ? "is-success"
+      : recordingDemo.permission === "denied"
+        ? "is-danger"
+        : "is-neutral"
+  }`;
+  elements.devicePermissionStatus.textContent =
+    recordingDemo.permission === "supported"
+      ? "デモ上で利用可能"
+      : recordingDemo.permission === "denied"
+        ? "利用不可"
+        : "未確認";
+  elements.participantConsentCheck.checked = recordingDemo.consent === "confirmed";
+  elements.participantConsentNote.textContent =
+    recordingDemo.consent === "stale"
+      ? "参加者または会議設定が変わりました。録音開始前に同意を再確認してください。"
+      : "参加者の選択だけでは同意済みになりません。参加者が変わると再確認が必要です。";
+  elements.participantConsentNote.classList.toggle("is-stale", recordingDemo.consent === "stale");
+  elements.recordingConsentReady.disabled = !(recordingDemo.permission === "supported" && recordingDemo.consent === "confirmed");
+
+  const isPaused = recordingDemo.capture === "paused";
+  elements.captureStateLabel.className = `state-label ${isPaused ? "is-warning" : "is-danger"}`;
+  elements.captureStateLabel.textContent = isPaused ? "一時停止" : "録音中";
+  elements.recordingPause.textContent = isPaused ? "録音を再開" : "一時停止";
+  elements.recordingNetworkState.textContent = recordingDemo.offline
+    ? "オフライン想定・録音デモは継続・送信待ちデータなし"
+    : "オンライン想定・音声データなし";
+  elements.recordingNetworkState.classList.toggle("is-offline", recordingDemo.offline);
+  elements.processingSteps.forEach((item) => {
+    const order = ["prepare", "transcript", "extract"];
+    const itemIndex = order.indexOf(item.dataset.processingStep);
+    const activeIndex = order.indexOf(recordingDemo.processingStep);
+    item.dataset.status = itemIndex < activeIndex ? "complete" : itemIndex === activeIndex ? "current" : "upcoming";
+  });
+  elements.processingStatus.textContent =
+    recordingDemo.processingStep === "prepare"
+      ? "音声準備を再現しています"
+      : recordingDemo.processingStep === "transcript"
+        ? "固定文字起こしを準備しています"
+        : "決定事項とtaskの提案を準備しています";
+  elements.processingScreen.setAttribute("aria-busy", String(visibleScreen === "processing"));
+
+  if (visibleScreen === "review") renderReviewSuggestions();
+  elements.recordingDraftStatus.textContent =
+    recordingDemo.draft === "saved"
+      ? "このページを開いている間だけ、デモ下書きを保持しています"
+      : "デモ下書きはまだ保持していません";
+  elements.recordingSaveDraft.disabled = recordingDemo.draft === "saved";
+  elements.recordingSaveDraft.textContent = recordingDemo.draft === "saved" ? "デモ下書き保持中" : "デモ下書きを保持";
+  if (visibleScreen === "error") renderRecordingError();
+
+  if (document.body.dataset.minutesMode !== "manual") {
+    elements.inputStatus.className = `status-pill recording-header-status ${statusClass}`;
+    elements.inputStatus.querySelector("span:last-child").textContent = statusText;
+  }
+}
+
+function setRecordingScreen(screen, { focus = true, message = "" } = {}) {
+  if (recordingDemo.screen === "processing" && screen !== "processing") stopProcessingDemo();
+  if (screen !== "capture") stopCaptureTimer();
+  recordingDemo.screen = screen;
+  renderRecordingDemo(message);
+  if (!focus) return;
+  window.requestAnimationFrame(() => {
+    const heading = elements.recordingScreens
+      .find((candidate) => candidate.dataset.recordingScreen === screen)
+      ?.querySelector("h3");
+    heading?.focus({ preventScroll: false });
+  });
+}
+
+function beginRecordingDemo({ resetElapsed = true } = {}) {
+  stopProcessingDemo();
+  if (resetElapsed) recordingDemo.elapsedSeconds = 0;
+  recordingDemo.capture = "recording";
+  recordingDemo.errorKind = "";
+  setRecordingScreen("capture", { message: "録音中です。停止が主操作です" });
+  startCaptureTimer();
+}
+
+function toggleRecordingPause() {
+  if (recordingDemo.capture === "paused") {
+    recordingDemo.capture = "recording";
+    startCaptureTimer();
+    renderRecordingDemo("録音デモを再開しました");
+    return;
+  }
+  recordingDemo.capture = "paused";
+  stopCaptureTimer();
+  renderRecordingDemo("録音デモを一時停止しました");
+}
+
+function interruptRecordingDemo(reason = "着信や画面ロックを想定したデモ中断です。取得済み音声はありません。") {
+  stopCaptureTimer();
+  recordingDemo.capture = "interrupted";
+  elements.recordingInterruptionReason.textContent = reason;
+  setRecordingScreen("interrupted", { message: "録音デモを中断しました。自動では再開しません" });
+}
+
+function runProcessingDemo({ autoAdvance = true } = {}) {
+  stopCaptureTimer();
+  stopProcessingDemo();
+  recordingDemo.capture = "stopped";
+  recordingDemo.processingStep = "prepare";
+  recordingDemo.errorKind = "";
+  setRecordingScreen("processing", { message: "固定サンプルの処理を開始しました" });
+  if (!autoAdvance) return;
+  recordingDemo.processingTimers.push(
+    window.setTimeout(() => {
+      recordingDemo.processingStep = "transcript";
+      renderRecordingDemo();
+    }, 450),
+    window.setTimeout(() => {
+      recordingDemo.processingStep = "extract";
+      renderRecordingDemo();
+    }, 900),
+    window.setTimeout(() => {
+      recordingDemo.suggestions = createReviewSuggestions();
+      recordingDemo.draft = "idle";
+      setRecordingScreen("review", { message: "AI提案を人が確認してください" });
+    }, 1400),
+  );
+}
+
+function showRecordingError(kind) {
+  stopCaptureTimer();
+  stopProcessingDemo();
+  recordingDemo.errorKind = kind;
+  recordingDemo.permission = kind === "permission-denied" ? "denied" : recordingDemo.permission;
+  setRecordingScreen("error", { message: "録音デモを続けられません" });
+}
+
+function resetRecordingDemo() {
+  stopCaptureTimer();
+  stopProcessingDemo();
+  recordingDemo.capture = "idle";
+  recordingDemo.permission = "required";
+  recordingDemo.consent = "required";
+  recordingDemo.elapsedSeconds = 0;
+  recordingDemo.processingStep = "prepare";
+  recordingDemo.errorKind = "";
+  recordingDemo.draft = "idle";
+  recordingDemo.suggestions = createReviewSuggestions();
+  elements.participantConsentCheck.checked = false;
+  setRecordingScreen("setup", { message: "会議設定と参加者を確認してください" });
+}
+
+function openManualFallback() {
+  if (recordingDemo.capture === "recording" || recordingDemo.capture === "paused") {
+    interruptRecordingDemo("手入力へ切り替えたため録音デモを中断しました。取得済み音声はありません。");
+  }
+  stopProcessingDemo();
+  document.body.dataset.minutesMode = "manual";
+  elements.manualFallback.open = true;
+  elements.participantsPanel.hidden = false;
+  renderState("4区分の手入力へ切り替えました");
+  window.requestAnimationFrame(() => {
+    elements.sectionInputs[0]?.focus({ preventScroll: false });
+  });
+}
+
+function returnToRecordingDemo() {
+  document.body.dataset.minutesMode = "recording";
+  elements.manualFallback.open = false;
+  renderRecordingDemo("録音デモへ戻りました");
+  window.requestAnimationFrame(() => elements.recordingWorkflow.focus?.({ preventScroll: false }));
+}
+
+function handleRecordingContextChange() {
+  updateRecordingSummary();
+  if (recordingDemo.consent !== "confirmed") return;
+  recordingDemo.consent = "stale";
+  elements.participantConsentCheck.checked = false;
+  if (recordingDemo.capture === "recording" || recordingDemo.capture === "paused") {
+    interruptRecordingDemo("参加者または会議設定が変わったため中断しました。同意を再確認してください。");
+    return;
+  }
+  if (!["setup", "consent"].includes(recordingDemo.screen)) {
+    setRecordingScreen("consent", { message: "参加者または会議設定が変わりました。同意を再確認してください" });
+  } else {
+    renderRecordingDemo("参加者または会議設定が変わりました。同意を再確認してください");
+  }
+}
+
+function applyRecordingScenario(scenario) {
+  document.body.dataset.minutesMode = "recording";
+  elements.manualFallback.open = false;
+  stopCaptureTimer();
+  stopProcessingDemo();
+  recordingDemo.errorKind = "";
+  recordingDemo.elapsedSeconds = 83;
+  recordingDemo.permission = "supported";
+  recordingDemo.consent = "confirmed";
+  recordingDemo.capture = "idle";
+  recordingDemo.processingStep = "prepare";
+  if (scenario === "setup") {
+    resetRecordingDemo();
+  } else if (scenario === "consent") {
+    recordingDemo.permission = "required";
+    recordingDemo.consent = "required";
+    setRecordingScreen("consent");
+  } else if (scenario === "ready") {
+    setRecordingScreen("ready");
+  } else if (scenario === "recording") {
+    beginRecordingDemo({ resetElapsed: false });
+  } else if (scenario === "paused") {
+    recordingDemo.capture = "paused";
+    setRecordingScreen("capture");
+  } else if (scenario === "interrupted") {
+    interruptRecordingDemo();
+  } else if (scenario === "processing") {
+    runProcessingDemo({ autoAdvance: false });
+  } else if (scenario === "review") {
+    recordingDemo.suggestions = createReviewSuggestions();
+    recordingDemo.draft = "idle";
+    setRecordingScreen("review");
+  } else if (scenario === "permission-denied") {
+    showRecordingError("permission-denied");
+  } else if (scenario === "processing-error") {
+    showRecordingError("processing-error");
+  }
 }
 
 function renderState(actionMessage = "") {
@@ -444,12 +985,12 @@ function renderState(actionMessage = "") {
   elements.saveStatus.className = "save-status";
   if (state.save === "saving") {
     elements.saveStatus.classList.add("is-saving");
-    elements.saveStatus.textContent = "この端末に保存中";
+    elements.saveStatus.textContent = "このタブに一時保存中";
   } else if (state.save === "saved") {
     elements.saveStatus.classList.add("is-saved");
     elements.saveStatus.textContent = isSourceStage
-      ? "入力内容を保存しました（この端末に保存）"
-      : "清書を保存しました（この端末に保存）";
+      ? "入力内容を保存しました（このタブを閉じると消えます）"
+      : "清書を保存しました（このタブを閉じると消えます）";
   } else if (state.save === "save-error") {
     elements.saveStatus.classList.add("is-error");
     elements.saveStatus.textContent = isSourceStage ? "入力未保存・内容は保持しています" : "清書未保存・内容は保持しています";
@@ -568,7 +1109,7 @@ async function handleSave() {
   if ((!state.generatedText && state.resultStage !== "source") || (state.resultStage === "source" && !hasSourceContent()) || state.stale) return;
   state.save = "saving";
   elements.saveError.hidden = true;
-  renderState("この端末に保存中");
+  renderState("このタブに一時保存中");
   await wait(420);
 
   if (state.failNextSave) {
@@ -585,7 +1126,7 @@ async function handleSave() {
     writeStoredRecord(createRecord("saved"));
     state.save = "saved";
     state.input = "pristine";
-    renderState(state.resultStage === "source" ? "入力内容を保存しました。AI清書を実行できます" : "保存しました（この端末に保存）");
+    renderState(state.resultStage === "source" ? "入力内容を一時保存しました。AI清書を実行できます" : "このタブに一時保存しました");
   } catch {
     state.save = "save-error";
     elements.saveError.hidden = false;
@@ -826,6 +1367,97 @@ function trapContactDialogFocus(event) {
 
 function bindEvents() {
   bindInfoAffordances();
+  elements.recordingEnterConsent.addEventListener("click", () => {
+    setRecordingScreen("consent", { message: "端末状態と参加者同意を確認してください" });
+  });
+  elements.demoDeviceCheck.addEventListener("click", () => {
+    recordingDemo.permission = "supported";
+    renderRecordingDemo("端末利用可否をデモ上で確認しました");
+  });
+  elements.participantConsentCheck.addEventListener("change", () => {
+    recordingDemo.consent = elements.participantConsentCheck.checked ? "confirmed" : "required";
+    renderRecordingDemo(elements.participantConsentCheck.checked ? "参加者の録音同意を確認しました" : "参加者の録音同意が未確認です");
+  });
+  elements.recordingConsentReady.addEventListener("click", () => {
+    if (recordingDemo.permission !== "supported" || recordingDemo.consent !== "confirmed") return;
+    setRecordingScreen("ready", { message: "録音デモの準備が完了しました" });
+  });
+  elements.recordingConsentBack.addEventListener("click", () => setRecordingScreen("setup"));
+  elements.recordingReadyBack.addEventListener("click", () => setRecordingScreen("consent"));
+  elements.recordingStartDemo.addEventListener("click", () => beginRecordingDemo());
+  elements.recordingPause.addEventListener("click", toggleRecordingPause);
+  elements.recordingStop.addEventListener("click", () => runProcessingDemo());
+  elements.recordingInterrupt.addEventListener("click", () => interruptRecordingDemo());
+  elements.recordingResumeInterrupted.addEventListener("click", () => beginRecordingDemo({ resetElapsed: false }));
+  elements.recordingProcessInterrupted.addEventListener("click", () => runProcessingDemo());
+  elements.recordingQuickNote.addEventListener("input", () => {
+    elements.recordingWorkflowStatus.textContent = "簡易メモをこのページ内に保持しています";
+  });
+  elements.recordingSaveDraft.addEventListener("click", () => {
+    recordingDemo.draft = "saved";
+    renderRecordingDemo("デモ下書きをこのページ内に保持しました");
+  });
+  elements.reviewSuggestionList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-review-action]");
+    if (!button) return;
+    const suggestion = recordingDemo.suggestions.find(({ id }) => id === button.dataset.suggestionId);
+    if (!suggestion) return;
+    if (button.dataset.reviewAction === "confirm") {
+      suggestion.status = "confirmed";
+      suggestion.editing = false;
+      suggestion.provenance = suggestion.provenance === "人が編集" ? "人が編集・確認" : "人が確認";
+    } else if (button.dataset.reviewAction === "reject") {
+      suggestion.status = "rejected";
+      suggestion.editing = false;
+      suggestion.provenance = "人が却下";
+    } else if (button.dataset.reviewAction === "edit") {
+      suggestion.editing = true;
+      suggestion.editValue = suggestion.text;
+    } else if (button.dataset.reviewAction === "save-edit") {
+      const field = elements.reviewSuggestionList.querySelector(`[data-review-edit-field="${suggestion.id}"]`);
+      const nextText = field?.value.trim();
+      if (nextText) suggestion.text = nextText;
+      suggestion.editValue = suggestion.text;
+      suggestion.status = "pending";
+      suggestion.editing = false;
+      suggestion.provenance = "人が編集";
+    } else if (button.dataset.reviewAction === "cancel-edit") {
+      suggestion.editing = false;
+      suggestion.editValue = suggestion.text;
+    }
+    recordingDemo.draft = "idle";
+    renderRecordingDemo(`${suggestion.kind}の確認状態を更新しました`);
+    window.requestAnimationFrame(() => {
+      elements.reviewSuggestionList
+        .querySelector(`[data-suggestion-id="${suggestion.id}"] [data-review-action]`)
+        ?.focus({ preventScroll: true });
+    });
+  });
+  elements.recordingErrorRetry.addEventListener("click", () => {
+    if (recordingDemo.errorKind === "processing-error") runProcessingDemo();
+    else {
+      recordingDemo.permission = "required";
+      recordingDemo.consent = "required";
+      setRecordingScreen(recordingDemo.errorKind === "unsupported" ? "setup" : "consent");
+    }
+  });
+  elements.recordingErrorReset.addEventListener("click", resetRecordingDemo);
+  elements.openManualButtons.forEach((button) => button.addEventListener("click", openManualFallback));
+  elements.returnToRecording.addEventListener("click", returnToRecordingDemo);
+  elements.manualFallback.addEventListener("toggle", () => {
+    if (elements.manualFallback.open && document.body.dataset.minutesMode !== "manual") {
+      openManualFallback();
+    } else if (!elements.manualFallback.open && document.body.dataset.minutesMode === "manual") {
+      returnToRecordingDemo();
+    }
+  });
+  elements.recordingScenarioApply.addEventListener("click", () => applyRecordingScenario(elements.recordingScenarioSelect.value));
+  elements.recordingOfflineToggle.addEventListener("click", () => {
+    recordingDemo.offline = !recordingDemo.offline;
+    elements.recordingOfflineToggle.setAttribute("aria-pressed", String(recordingDemo.offline));
+    elements.recordingOfflineToggle.textContent = recordingDemo.offline ? "オンラインへ戻す" : "オフラインを再現";
+    renderRecordingDemo(recordingDemo.offline ? "オフライン状態を再現しています" : "オンライン想定へ戻しました");
+  });
   elements.mobileMenuTrigger.addEventListener("click", () => {
     setMobileMenu(elements.mobileMenuTrigger.getAttribute("aria-expanded") !== "true");
   });
@@ -870,6 +1502,7 @@ function bindEvents() {
 
   elements.meetingTypeSelect.addEventListener("change", () => {
     markSourceDirty(`${meetingTypeLabel(elements.meetingTypeSelect.value)}へ切り替えました`);
+    handleRecordingContextChange();
   });
 
   elements.sectionInputs.forEach((input) => {
@@ -890,6 +1523,7 @@ function bindEvents() {
     else state.selectedParticipantIds.delete(event.target.value);
     renderParticipants();
     markSourceDirty("参加者を更新しました");
+    handleRecordingContextChange();
   });
 
   elements.participantChips.addEventListener("click", (event) => {
@@ -899,6 +1533,7 @@ function bindEvents() {
     renderParticipantOptions();
     renderParticipants();
     markSourceDirty("参加者を外しました");
+    handleRecordingContextChange();
   });
 
   elements.participantCategoryTabs.addEventListener("click", (event) => {
@@ -959,6 +1594,7 @@ function bindEvents() {
 }
 
 function initialize() {
+  document.body.dataset.minutesMode = "recording";
   renderMeetingTypeOptions();
   renderParticipantCategoryTabs();
   renderParticipantOptions();
@@ -981,6 +1617,10 @@ function initialize() {
       ? `${meetingTypeLabel(getSelectedMeetingType())}の保存内容を復元しました`
       : `${meetingTypeLabel(getSelectedMeetingType())}を${MEETING_TYPE_CONFIG.cutoffHour}:00を境に初期設定しました`,
   );
+  const searchParams = new URLSearchParams(window.location.search);
+  const legacyQaRequested = [...searchParams.keys()].some((key) => key.startsWith("density-v4"));
+  if (legacyQaRequested) openManualFallback();
+  else renderRecordingDemo("会議設定と参加者を確認してください");
 }
 
 initialize();
