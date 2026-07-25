@@ -290,7 +290,7 @@
 
           <section class="recording-screen review-screen" data-recording-screen="review" aria-labelledby="recording-review-title" hidden>
             <div class="recording-screen-heading">
-              <span class="state-label is-warning">AI生成・未確認</span>
+              <span id="review-state-label" class="state-label is-warning">AI生成・未確認</span>
               <h3 id="recording-review-title" tabindex="-1">提案を1件ずつ人が確認</h3>
             </div>
             <details class="transcript-disclosure">
@@ -301,11 +301,12 @@
               </div>
             </details>
             <div class="review-summary">
-              <span id="review-pending-count">未確認 2件</span>
-              <span>担当・部署は未割当、期限は未確認</span>
+              <span id="review-pending-count">1 / 2件目・未確認 2件</span>
+              <span>確認後に次の提案へ進みます</span>
             </div>
-            <div id="review-suggestion-list" class="review-suggestion-list" aria-label="AI提案一覧"></div>
-            <div class="review-save-area">
+            <div id="review-suggestion-list" class="review-suggestion-list" aria-label="現在確認するAI提案"></div>
+            <div id="review-completed-summary" class="review-completed-summary" aria-live="polite"></div>
+            <div id="review-save-area" class="review-save-area" hidden>
               <p id="recording-draft-status" role="status" aria-live="polite">デモ下書きはまだ保持していません</p>
               <div class="screen-actions">
                 <button id="recording-save-draft" class="button button-primary" type="button">デモ下書きを保持</button>
@@ -337,13 +338,22 @@
             <div class="manual-fallback-toolbar">
               <div>
                 <strong>録音を使わない入力</strong>
-                <p>連絡事項 → 事務所 → レストラン → 農園の順で入力します。旧13状態を保持しています。</p>
+                <p>1区分ずつ入力し、4区分を確認してから清書へ進みます。入力と確認は別画面です。</p>
               </div>
               <button id="return-to-recording" class="button button-secondary" type="button">録音デモへ戻る</button>
             </div>
 
-        <section class="sections-grid" aria-label="議事録の箇条書き入力">
-          <article class="minutes-section panel" data-section-key="notices">
+            <section id="manual-entry-view" class="manual-entry-view" aria-labelledby="manual-step-title" hidden>
+              <header class="manual-step-header">
+                <div>
+                  <span id="manual-step-count" class="state-label is-progress">1 / 4</span>
+                  <h2 id="manual-step-title" tabindex="-1">連絡事項</h2>
+                </div>
+                <p id="manual-step-helper">連絡事項を1行ずつ入力してください。</p>
+              </header>
+
+        <section class="sections-grid manual-sections-grid" aria-label="議事録の箇条書き入力">
+          <article class="minutes-section panel" data-section-key="notices" data-manual-step="0">
             <div class="section-heading">
               <div>
                 <h2>連絡事項</h2>
@@ -354,7 +364,7 @@
             </div>
           </article>
 
-          <article class="minutes-section panel" data-section-key="office">
+          <article class="minutes-section panel" data-section-key="office" data-manual-step="1" hidden>
             <div class="section-heading">
               <div>
                 <h2>事務所</h2>
@@ -365,7 +375,7 @@
             </div>
           </article>
 
-          <article class="minutes-section panel" data-section-key="restaurant">
+          <article class="minutes-section panel" data-section-key="restaurant" data-manual-step="2" hidden>
             <div class="section-heading">
               <div>
                 <h2>レストラン</h2>
@@ -376,7 +386,7 @@
             </div>
           </article>
 
-          <article class="minutes-section panel" data-section-key="farm">
+          <article class="minutes-section panel" data-section-key="farm" data-manual-step="3" hidden>
             <div class="section-heading">
               <div>
                 <h2>農園（園の状況・予定）</h2>
@@ -387,6 +397,23 @@
             </div>
           </article>
         </section>
+
+              <div class="manual-step-actions">
+                <button id="manual-step-back" class="button button-secondary" type="button" disabled>前の区分</button>
+                <button id="manual-step-next" class="button button-primary" type="button">次の区分</button>
+                <button id="manual-open-preview" class="button button-primary" type="button" hidden>4区分を確認</button>
+              </div>
+            </section>
+
+            <section id="manual-preview-view" class="manual-preview-view" aria-labelledby="manual-preview-title" hidden>
+              <header class="manual-step-header">
+                <div>
+                  <span class="state-label is-success">入力確認</span>
+                  <h2 id="manual-preview-title" tabindex="-1">4区分を確認</h2>
+                </div>
+                <p>入力内容を確認し、必要なら戻って修正してください。</p>
+              </header>
+              <button id="manual-return-to-entry" class="button button-secondary" type="button">入力へ戻る</button>
 
         <section id="generation-error" class="compact-message is-error" role="status" aria-live="polite" hidden></section>
         <p id="action-status" class="sr-only" role="status" aria-live="polite"></p>
@@ -430,6 +457,7 @@
             <div id="save-error" class="compact-message is-error" role="status" aria-live="polite" hidden></div>
           </div>
         </section>
+            </section>
           </div>
         </details>
       </main>

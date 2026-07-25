@@ -109,6 +109,11 @@ const recordingDemo = {
   suggestions: createReviewSuggestions(),
 };
 
+const manualFlow = {
+  step: 0,
+  view: "entry",
+};
+
 const elements = {
   appShell: document.querySelector(".app-shell"),
   mobileMenuTrigger: document.querySelector("#mobile-menu-trigger"),
@@ -166,8 +171,12 @@ const elements = {
   processingScreen: document.querySelector(".processing-screen"),
   processingSteps: [...document.querySelectorAll("[data-processing-step]")],
   processingStatus: document.querySelector("#processing-status"),
+  recordingReviewTitle: document.querySelector("#recording-review-title"),
+  reviewStateLabel: document.querySelector("#review-state-label"),
   reviewPendingCount: document.querySelector("#review-pending-count"),
   reviewSuggestionList: document.querySelector("#review-suggestion-list"),
+  reviewCompletedSummary: document.querySelector("#review-completed-summary"),
+  reviewSaveArea: document.querySelector("#review-save-area"),
   recordingDraftStatus: document.querySelector("#recording-draft-status"),
   recordingSaveDraft: document.querySelector("#recording-save-draft"),
   recordingErrorTitle: document.querySelector("#recording-error-title"),
@@ -178,6 +187,17 @@ const elements = {
   manualFallback: document.querySelector("#manual-fallback"),
   openManualButtons: [...document.querySelectorAll("[data-open-manual]")],
   returnToRecording: document.querySelector("#return-to-recording"),
+  manualEntryView: document.querySelector("#manual-entry-view"),
+  manualPreviewView: document.querySelector("#manual-preview-view"),
+  manualStepCount: document.querySelector("#manual-step-count"),
+  manualStepTitle: document.querySelector("#manual-step-title"),
+  manualStepHelper: document.querySelector("#manual-step-helper"),
+  manualStepPanels: [...document.querySelectorAll("[data-manual-step]")],
+  manualStepBack: document.querySelector("#manual-step-back"),
+  manualStepNext: document.querySelector("#manual-step-next"),
+  manualOpenPreview: document.querySelector("#manual-open-preview"),
+  manualReturnToEntry: document.querySelector("#manual-return-to-entry"),
+  manualPreviewTitle: document.querySelector("#manual-preview-title"),
   sectionInputs: [...document.querySelectorAll("[data-section-input]")],
   generationError: document.querySelector("#generation-error"),
   resultPanel: document.querySelector("#result-panel"),
@@ -520,7 +540,13 @@ function createReviewButton(label, action, suggestion, className = "button butto
 
 function renderReviewSuggestions() {
   const fragment = document.createDocumentFragment();
-  recordingDemo.suggestions.forEach((suggestion) => {
+  const activeSuggestion =
+    recordingDemo.suggestions.find(({ editing }) => editing) ??
+    recordingDemo.suggestions.find(({ status }) => status === "pending");
+  const activeIndex = activeSuggestion ? recordingDemo.suggestions.findIndex(({ id }) => id === activeSuggestion.id) : -1;
+
+  if (activeSuggestion) {
+    const suggestion = activeSuggestion;
     const article = document.createElement("article");
     article.className = `review-suggestion is-${suggestion.status}`;
     article.dataset.suggestionId = suggestion.id;
@@ -574,16 +600,25 @@ function renderReviewSuggestions() {
     const metadata = document.createElement("dl");
     metadata.className = "review-metadata";
     [
-      ["担当", suggestion.owner],
-      ["部署", suggestion.department],
-      ["期限", suggestion.due],
-      ["由来", suggestion.provenance],
-    ].forEach(([term, value]) => {
+      ["担当", "owner", suggestion.owner],
+      ["部署", "department", suggestion.department],
+      ["期限", "due", suggestion.due],
+      ["由来", "provenance", suggestion.provenance],
+    ].forEach(([term, property, value]) => {
       const row = document.createElement("div");
       const dt = document.createElement("dt");
       const dd = document.createElement("dd");
       dt.textContent = term;
-      dd.textContent = value;
+      if (suggestion.editing && property !== "provenance") {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.value = value;
+        input.dataset.reviewMetadataField = property;
+        input.setAttribute("aria-label", `${suggestion.kind}の${term}`);
+        dd.append(input);
+      } else {
+        dd.textContent = value;
+      }
       row.append(dt, dd);
       metadata.append(row);
     });
@@ -592,11 +627,11 @@ function renderReviewSuggestions() {
     actions.className = "review-item-actions";
     if (suggestion.editing) {
       actions.append(
-        createReviewButton("編集を反映", "save-edit", suggestion),
+        createReviewButton("編集を反映", "save-edit", suggestion, "button button-primary"),
         createReviewButton("編集を中止", "cancel-edit", suggestion, "button button-quiet"),
       );
     } else {
-      const confirmButton = createReviewButton("確認", "confirm", suggestion);
+      const confirmButton = createReviewButton("確認して次へ", "confirm", suggestion, "button button-primary");
       confirmButton.disabled = suggestion.status === "confirmed";
       actions.append(
         confirmButton,
@@ -607,13 +642,24 @@ function renderReviewSuggestions() {
 
     article.append(header, content, source, metadata, actions);
     fragment.append(article);
-  });
+  }
   elements.reviewSuggestionList.replaceChildren(fragment);
 
   const pending = recordingDemo.suggestions.filter(({ status }) => status === "pending").length;
   const confirmed = recordingDemo.suggestions.filter(({ status }) => status === "confirmed").length;
   const rejected = recordingDemo.suggestions.filter(({ status }) => status === "rejected").length;
-  elements.reviewPendingCount.textContent = `未確認 ${pending}件・確認済み ${confirmed}件・却下 ${rejected}件`;
+  const processed = confirmed + rejected;
+  elements.reviewPendingCount.textContent = activeSuggestion
+    ? `${activeIndex + 1} / ${recordingDemo.suggestions.length}件目・未確認 ${pending}件`
+    : `${recordingDemo.suggestions.length} / ${recordingDemo.suggestions.length}件・確認完了`;
+  elements.reviewCompletedSummary.textContent = processed
+    ? `確認済み ${confirmed}件・却下 ${rejected}件`
+    : "確認済みの提案はまだありません";
+  elements.reviewCompletedSummary.classList.toggle("is-complete", pending === 0);
+  elements.reviewSaveArea.hidden = pending > 0;
+  elements.reviewStateLabel.className = `state-label ${pending === 0 ? "is-success" : "is-warning"}`;
+  elements.reviewStateLabel.textContent = pending === 0 ? "確認完了" : "AI生成・未確認";
+  elements.recordingReviewTitle.textContent = pending === 0 ? "提案をすべて確認しました" : "提案を1件ずつ人が確認";
 }
 
 function renderRecordingError() {
@@ -646,6 +692,7 @@ function renderRecordingError() {
 
 function renderRecordingDemo(message = "") {
   const visibleScreen = recordingDemo.screen;
+  document.body.dataset.recordingScreen = visibleScreen;
   elements.recordingScreens.forEach((screen) => {
     screen.hidden = screen.dataset.recordingScreen !== visibleScreen;
   });
@@ -830,6 +877,46 @@ function resetRecordingDemo() {
   setRecordingScreen("setup", { message: "会議設定と参加者を確認してください" });
 }
 
+function renderManualFlow({ focus = false } = {}) {
+  const step = Math.max(0, Math.min(SECTION_CONFIG.length - 1, manualFlow.step));
+  manualFlow.step = step;
+  const section = SECTION_CONFIG[step];
+  const isEntry = manualFlow.view === "entry";
+  document.body.dataset.manualView = manualFlow.view;
+  elements.manualEntryView.hidden = !isEntry;
+  elements.manualPreviewView.hidden = isEntry;
+  elements.manualStepPanels.forEach((panel, index) => {
+    panel.hidden = !isEntry || index !== step;
+  });
+  elements.manualStepCount.textContent = `${step + 1} / ${SECTION_CONFIG.length}`;
+  elements.manualStepTitle.textContent = section.label;
+  elements.manualStepHelper.textContent = `${section.label}を1行ずつ入力してください。未入力でも次へ進めます。`;
+  elements.manualStepBack.disabled = step === 0;
+  elements.manualStepNext.hidden = step === SECTION_CONFIG.length - 1;
+  elements.manualOpenPreview.hidden = step !== SECTION_CONFIG.length - 1;
+  if (!focus) return;
+  window.requestAnimationFrame(() => {
+    if (isEntry) {
+      elements.manualStepTitle.focus({ preventScroll: false });
+    } else {
+      elements.manualPreviewTitle.focus({ preventScroll: false });
+    }
+  });
+}
+
+function showManualStep(step, { focus = true } = {}) {
+  manualFlow.view = "entry";
+  manualFlow.step = step;
+  renderManualFlow({ focus });
+}
+
+function showManualPreview() {
+  manualFlow.view = "preview";
+  syncSourceDraft();
+  renderState("4区分の入力確認へ進みました");
+  renderManualFlow({ focus: true });
+}
+
 function openManualFallback() {
   if (recordingDemo.capture === "recording" || recordingDemo.capture === "paused") {
     interruptRecordingDemo("手入力へ切り替えたため録音デモを中断しました。取得済み音声はありません。");
@@ -837,15 +924,15 @@ function openManualFallback() {
   stopProcessingDemo();
   document.body.dataset.minutesMode = "manual";
   elements.manualFallback.open = true;
-  elements.participantsPanel.hidden = false;
+  elements.participantsPanel.hidden = true;
+  manualFlow.view = "entry";
   renderState("4区分の手入力へ切り替えました");
-  window.requestAnimationFrame(() => {
-    elements.sectionInputs[0]?.focus({ preventScroll: false });
-  });
+  renderManualFlow({ focus: true });
 }
 
 function returnToRecordingDemo() {
   document.body.dataset.minutesMode = "recording";
+  delete document.body.dataset.manualView;
   elements.manualFallback.open = false;
   renderRecordingDemo("録音デモへ戻りました");
   window.requestAnimationFrame(() => elements.recordingWorkflow.focus?.({ preventScroll: false }));
@@ -1417,6 +1504,11 @@ function bindEvents() {
       const field = elements.reviewSuggestionList.querySelector(`[data-review-edit-field="${suggestion.id}"]`);
       const nextText = field?.value.trim();
       if (nextText) suggestion.text = nextText;
+      ["owner", "department", "due"].forEach((property) => {
+        const metadataField = elements.reviewSuggestionList.querySelector(`[data-review-metadata-field="${property}"]`);
+        const nextValue = metadataField?.value.trim();
+        if (nextValue) suggestion[property] = nextValue;
+      });
       suggestion.editValue = suggestion.text;
       suggestion.status = "pending";
       suggestion.editing = false;
@@ -1428,9 +1520,9 @@ function bindEvents() {
     recordingDemo.draft = "idle";
     renderRecordingDemo(`${suggestion.kind}の確認状態を更新しました`);
     window.requestAnimationFrame(() => {
-      elements.reviewSuggestionList
-        .querySelector(`[data-suggestion-id="${suggestion.id}"] [data-review-action]`)
-        ?.focus({ preventScroll: true });
+      const nextAction = elements.reviewSuggestionList.querySelector("[data-review-action]");
+      if (nextAction) nextAction.focus({ preventScroll: true });
+      else elements.recordingSaveDraft.focus({ preventScroll: true });
     });
   });
   elements.recordingErrorRetry.addEventListener("click", () => {
@@ -1444,6 +1536,10 @@ function bindEvents() {
   elements.recordingErrorReset.addEventListener("click", resetRecordingDemo);
   elements.openManualButtons.forEach((button) => button.addEventListener("click", openManualFallback));
   elements.returnToRecording.addEventListener("click", returnToRecordingDemo);
+  elements.manualStepBack.addEventListener("click", () => showManualStep(manualFlow.step - 1));
+  elements.manualStepNext.addEventListener("click", () => showManualStep(manualFlow.step + 1));
+  elements.manualOpenPreview.addEventListener("click", showManualPreview);
+  elements.manualReturnToEntry.addEventListener("click", () => showManualStep(manualFlow.step));
   elements.manualFallback.addEventListener("toggle", () => {
     if (elements.manualFallback.open && document.body.dataset.minutesMode !== "manual") {
       openManualFallback();
