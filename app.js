@@ -348,6 +348,7 @@ const elements = {
   mobileMenuDrawer: document.querySelector("#mobile-menu-drawer"),
   mobileMenuClose: document.querySelector("[data-mobile-menu-close]"),
   mobileMenuCurrent: document.querySelector("[data-mobile-menu-current]"),
+  minutesHomeLinks: [...document.querySelectorAll("[data-minutes-home]")],
   contactTriggers: [...document.querySelectorAll("[data-contact-trigger]")],
   contactDialog: document.querySelector("#contact-dialog"),
   contactDialogTitle: document.querySelector("#contact-dialog-title"),
@@ -1168,6 +1169,12 @@ function handleContextChange(reason) {
 }
 
 function bindEvents() {
+  for (const link of elements.minutesHomeLinks) {
+    link.addEventListener("click", () => {
+      if (!elements.mobileMenuDrawer.hidden) setMobileMenu(false, { restoreFocus: false });
+      setAppView("create");
+    });
+  }
   elements.historyViewTrigger.addEventListener("click", () => setAppView(state.view === "history" ? "create" : "history"));
   elements.historyCreateMinutes.addEventListener("click", () => setAppView("create"));
   for (const button of elements.historyCategoryButtons) {
@@ -1231,7 +1238,6 @@ function bindEvents() {
   elements.mobileMenuTrigger.addEventListener("click", () => setMobileMenu(true));
   elements.mobileMenuClose.addEventListener("click", () => setMobileMenu(false));
   elements.mobileMenuScrim.addEventListener("click", () => setMobileMenu(false));
-  elements.mobileMenuCurrent.addEventListener("click", () => setMobileMenu(false));
   mobileMenuMedia.addEventListener("change", ({ matches }) => {
     if (!matches && !elements.mobileMenuDrawer.hidden) setMobileMenu(false, { restoreFocus: false });
   });
