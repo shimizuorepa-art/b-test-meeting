@@ -1,49 +1,13 @@
-const STORAGE_KEY = "bsystem.minutes.mock.v1";
-const STORAGE_VERSION = 1;
+const HISTORY_STORAGE_KEY = "bsystem.minutes.recording-history.v1";
+const HISTORY_LIMIT = 100;
 const DEMO_DATE = "2026-07-21";
 const CONTACT_FORM_URL = "https://northern-hearing-e36.notion.site/ebd//55559c2fd62e828c8c318163c97e7d62";
-const RECORDING_REVIEW_FIXTURES = [
-  {
-    id: "decision-1",
-    kind: "決定事項",
-    text: "各部署の夏期運営の注意点を次回朝礼で確認する",
-    sourceTime: "00:18",
-    sourceExcerpt: "来週の朝礼までに、各部署から夏期運営の注意点を持ち寄りましょう。",
-    owner: "未割当",
-    department: "未割当",
-    due: "期限未確認",
-  },
-  {
-    id: "task-1",
-    kind: "task",
-    text: "各部署の注意点を整理する",
-    sourceTime: "00:42",
-    sourceExcerpt: "担当と期限はこの場では決めず、次回確認します。",
-    owner: "未割当",
-    department: "未割当",
-    due: "期限未確認",
-  },
+
+const MEETING_TYPES = [
+  { id: "morning", label: "朝礼" },
+  { id: "evening", label: "夕礼" },
+  { id: "meeting", label: "ミーティング" },
 ];
-
-const MEETING_TYPE_CONFIG = {
-  cutoffHour: 12,
-  options: [
-    { id: "morning", label: "朝礼" },
-    { id: "evening", label: "夕礼" },
-    { id: "meeting", label: "ミーティング" },
-  ],
-};
-
-const SECTION_CONFIG = [
-  { key: "notices", label: "連絡事項", resultLabel: "連絡事項" },
-  { key: "office", label: "事務所", resultLabel: "事務所" },
-  { key: "restaurant", label: "レストラン", resultLabel: "レストラン" },
-  { key: "farm", label: "農園（園の状況・予定）", resultLabel: "農園" },
-];
-
-const SECTION_ORDER = SECTION_CONFIG.map(({ key }) => key);
-const SECTION_LABELS = Object.fromEntries(SECTION_CONFIG.map(({ key, label }) => [key, label]));
-const RESULT_SECTION_LABELS = Object.fromEntries(SECTION_CONFIG.map(({ key, resultLabel }) => [key, resultLabel]));
 
 const PARTICIPANT_CATEGORIES = [
   { id: "office", label: "事務所" },
@@ -67,70 +31,258 @@ const PARTICIPANTS = [
   { id: "management-yamada", name: "山田", category: "management" },
 ];
 
-const CURRENT_ACCOUNT = Object.freeze({ id: "office-tanaka", name: "田中" });
+const REVIEW_FIXTURES = [
+  {
+    id: "decision-1",
+    kind: "決定事項",
+    text: "各部署の夏期運営の注意点を次回朝礼で確認する",
+    sourceTime: "00:18",
+    sourceExcerpt: "来週の朝礼までに、各部署から夏期運営の注意点を持ち寄りましょう。",
+    owner: "未割当",
+    due: "期限未確認",
+  },
+  {
+    id: "task-1",
+    kind: "タスク",
+    text: "各部署の注意点を整理する",
+    sourceTime: "00:42",
+    sourceExcerpt: "担当と期限はこの場では決めず、次回確認します。",
+    owner: "未割当",
+    due: "期限未確認",
+  },
+];
+
+const TRANSCRIPT = [
+  { time: "00:18", text: "来週の朝礼までに、各部署から夏期運営の注意点を持ち寄りましょう。" },
+  { time: "00:42", text: "担当と期限はこの場では決めず、次回確認します。" },
+];
+
+const DEMO_HISTORY = [
+  {
+    id: "demo-01",
+    savedAt: "2026-07-26T09:12:00+09:00",
+    meetingDate: "2026-07-26",
+    meetingType: "morning",
+    meetingLabel: "朝礼",
+    author: "田中",
+    participants: ["田中", "佐藤", "高橋"],
+    durationSeconds: 732,
+    quickNote: "週初めの準備状況を確認",
+    suggestions: [
+      { kind: "決定事項", text: "各部署の週次予定を午前中に共有する", owner: "各部署", due: "本日中" },
+      { kind: "確認事項", text: "夏期運営の注意点を次回朝礼で確認する", owner: "田中", due: "次回朝礼" },
+    ],
+    transcript: [
+      { time: "01:05", text: "今週の予定と注意点を部署ごとに共有しました。" },
+      { time: "08:40", text: "夏期運営の確認事項は次回も継続して扱います。" },
+    ],
+    isSample: true,
+  },
+  {
+    id: "demo-02",
+    savedAt: "2026-07-25T17:38:00+09:00",
+    meetingDate: "2026-07-25",
+    meetingType: "evening",
+    meetingLabel: "夕礼",
+    author: "佐藤",
+    participants: ["佐藤", "伊藤", "山本"],
+    durationSeconds: 615,
+    quickNote: "週末の申し送り",
+    suggestions: [
+      { kind: "申し送り", text: "週末対応の引き継ぎ事項を共有する", owner: "佐藤", due: "本日中" },
+      { kind: "確認事項", text: "設備点検の結果を月曜日に確認する", owner: "山本", due: "7月27日" },
+    ],
+    transcript: [{ time: "03:12", text: "週末対応と設備点検の申し送りを行いました。" }],
+    isSample: true,
+  },
+  {
+    id: "demo-03",
+    savedAt: "2026-07-24T14:05:00+09:00",
+    meetingDate: "2026-07-24",
+    meetingType: "meeting",
+    meetingLabel: "ミーティング",
+    author: "田中",
+    participants: ["田中", "高橋", "中村", "加藤"],
+    durationSeconds: 2840,
+    quickNote: "8月の運営計画",
+    suggestions: [
+      { kind: "決定事項", text: "8月の運営計画案を部署別に作成する", owner: "各部署", due: "7月31日" },
+      { kind: "タスク", text: "全体案を取りまとめる", owner: "加藤", due: "8月3日" },
+    ],
+    transcript: [{ time: "12:20", text: "8月の運営計画について、部署別の作業を確認しました。" }],
+    isSample: true,
+  },
+  {
+    id: "demo-04",
+    savedAt: "2026-07-23T08:58:00+09:00",
+    meetingDate: "2026-07-23",
+    meetingType: "morning",
+    meetingLabel: "朝礼",
+    author: "高橋",
+    participants: ["高橋", "伊藤", "渡辺"],
+    durationSeconds: 488,
+    quickNote: "レストラン予約状況",
+    suggestions: [
+      { kind: "確認事項", text: "団体予約の席配置を確認する", owner: "高橋", due: "本日12時" },
+      { kind: "タスク", text: "仕込み数量を予約数に合わせて調整する", owner: "伊藤", due: "本日中" },
+    ],
+    transcript: [{ time: "02:42", text: "団体予約と仕込み数量について確認しました。" }],
+    isSample: true,
+  },
+  {
+    id: "demo-05",
+    savedAt: "2026-07-22T17:22:00+09:00",
+    meetingDate: "2026-07-22",
+    meetingType: "evening",
+    meetingLabel: "夕礼",
+    author: "山本",
+    participants: ["山本", "中村", "小林"],
+    durationSeconds: 544,
+    quickNote: "農園の作業進捗",
+    suggestions: [
+      { kind: "申し送り", text: "翌日の収穫区画と担当を共有する", owner: "山本", due: "翌朝" },
+      { kind: "確認事項", text: "資材の在庫数を確認する", owner: "小林", due: "7月23日" },
+    ],
+    transcript: [{ time: "04:18", text: "収穫区画、担当、資材在庫について申し送りました。" }],
+    isSample: true,
+  },
+  {
+    id: "demo-06",
+    savedAt: "2026-07-21T13:45:00+09:00",
+    meetingDate: "2026-07-21",
+    meetingType: "meeting",
+    meetingLabel: "ミーティング",
+    author: "加藤",
+    participants: ["田中", "佐藤", "加藤", "吉田"],
+    durationSeconds: 2215,
+    quickNote: "業務改善案の確認",
+    suggestions: [
+      { kind: "決定事項", text: "改善案を試行し、1週間後に結果を確認する", owner: "吉田", due: "7月28日" },
+      { kind: "タスク", text: "試行対象の手順を整理する", owner: "田中", due: "7月22日" },
+    ],
+    transcript: [{ time: "10:36", text: "業務改善案の試行範囲と確認日を決定しました。" }],
+    isSample: true,
+  },
+  {
+    id: "demo-07",
+    savedAt: "2026-07-20T09:06:00+09:00",
+    meetingDate: "2026-07-20",
+    meetingType: "morning",
+    meetingLabel: "朝礼",
+    author: "田中",
+    participants: ["田中", "鈴木", "渡辺", "小林"],
+    durationSeconds: 679,
+    quickNote: "連休明けの確認",
+    suggestions: [
+      { kind: "確認事項", text: "各部署の当日予定を共有する", owner: "各部署", due: "朝礼後" },
+      { kind: "申し送り", text: "来客予定を受付へ共有する", owner: "鈴木", due: "本日9時30分" },
+    ],
+    transcript: [{ time: "01:28", text: "連休明けの予定と来客対応を確認しました。" }],
+    isSample: true,
+  },
+  {
+    id: "demo-08",
+    savedAt: "2026-07-18T17:14:00+09:00",
+    meetingDate: "2026-07-18",
+    meetingType: "evening",
+    meetingLabel: "夕礼",
+    author: "伊藤",
+    participants: ["高橋", "伊藤", "渡辺"],
+    durationSeconds: 431,
+    quickNote: "営業終了後の共有",
+    suggestions: [
+      { kind: "申し送り", text: "翌日の予約変更を担当者へ共有する", owner: "伊藤", due: "本日中" },
+      { kind: "確認事項", text: "清掃箇所の最終確認を行う", owner: "渡辺", due: "退勤前" },
+    ],
+    transcript: [{ time: "02:55", text: "予約変更と清掃状況を確認しました。" }],
+    isSample: true,
+  },
+  {
+    id: "demo-09",
+    savedAt: "2026-07-17T15:30:00+09:00",
+    meetingDate: "2026-07-17",
+    meetingType: "meeting",
+    meetingLabel: "ミーティング",
+    author: "吉田",
+    participants: ["加藤", "吉田", "山田"],
+    durationSeconds: 1962,
+    quickNote: "安全管理の定例確認",
+    suggestions: [
+      { kind: "決定事項", text: "安全確認表の運用を継続する", owner: "吉田", due: "継続" },
+      { kind: "タスク", text: "次回の点検対象を一覧化する", owner: "山田", due: "7月24日" },
+    ],
+    transcript: [{ time: "08:14", text: "安全確認表と次回点検について確認しました。" }],
+    isSample: true,
+  },
+  {
+    id: "demo-10",
+    savedAt: "2026-07-16T09:20:00+09:00",
+    meetingDate: "2026-07-16",
+    meetingType: "morning",
+    meetingLabel: "朝礼",
+    author: "佐藤",
+    participants: ["田中", "佐藤", "中村"],
+    durationSeconds: 805,
+    quickNote: "天候対応と作業順",
+    suggestions: [
+      { kind: "決定事項", text: "天候を確認して屋外作業の順番を調整する", owner: "中村", due: "本日中" },
+      { kind: "確認事項", text: "変更後の予定を全体へ共有する", owner: "佐藤", due: "朝礼後" },
+    ],
+    transcript: [{ time: "05:08", text: "天候に合わせた作業順の変更を確認しました。" }],
+    isSample: true,
+  },
+];
 
 const state = {
-  input: "pristine",
-  generation: "idle",
-  save: "idle",
-  stale: false,
-  generatedText: "",
-  resultStage: "source",
-  savedEntries: [],
-  failNextGeneration: false,
-  failNextSave: false,
+  view: "create",
   selectedParticipantIds: new Set(),
   participantCategory: PARTICIPANT_CATEGORIES[0].id,
   participantSearch: "",
+  history: [],
+  selectedHistoryId: null,
+  historyFilters: {
+    category: "all",
+    keyword: "",
+    period: "all",
+    dateFrom: "",
+    dateTo: "",
+    sort: "newest",
+  },
 };
 
-function createReviewSuggestions() {
-  return RECORDING_REVIEW_FIXTURES.map((fixture) => ({
-    ...fixture,
+function createSuggestions() {
+  return REVIEW_FIXTURES.map((item) => ({
+    ...item,
     status: "pending",
-    provenance: "固定文字起こし",
     editing: false,
-    editValue: fixture.text,
+    editValue: item.text,
   }));
 }
 
-const recordingDemo = {
+const recording = {
   screen: "setup",
   capture: "idle",
-  permission: "required",
-  consent: "required",
-  offline: false,
   elapsedSeconds: 0,
   timerId: null,
   processingTimers: [],
   processingStep: "prepare",
-  errorKind: "",
   draft: "idle",
-  suggestions: createReviewSuggestions(),
-};
-
-const manualFlow = {
-  step: 0,
-  view: "entry",
+  suggestions: createSuggestions(),
 };
 
 const elements = {
   appShell: document.querySelector(".app-shell"),
-  mobileMenuTrigger: document.querySelector("#mobile-menu-trigger"),
-  mobileMenuScrim: document.querySelector("#mobile-menu-scrim"),
-  mobileMenuDrawer: document.querySelector("#mobile-menu-drawer"),
-  mobileMenuClose: document.querySelector("[data-mobile-menu-close]"),
-  mobileMenuCurrent: document.querySelector("[data-mobile-menu-current]"),
+  pageTitle: document.querySelector("#page-title"),
+  creationWorkspace: document.querySelector("#creation-workspace"),
+  historyWorkspace: document.querySelector("#history-workspace"),
+  historyViewTrigger: document.querySelector("#history-view-trigger"),
+  historyViewTriggerLabel: document.querySelector("#history-view-trigger-label"),
+  historyCreateMinutes: document.querySelector("#history-create-minutes"),
+  historyPageHeading: document.querySelector("#history-page-heading"),
   inputStatus: document.querySelector("#input-status"),
   authorOutput: document.querySelector("#author-output"),
   meetingDateLabel: document.querySelector("#meeting-date-label"),
   meetingTypeSelect: document.querySelector("#meeting-type-select"),
-  qaDisclosure: document.querySelector("#qa-disclosure"),
-  failNextGeneration: document.querySelector("#fail-next-generation"),
-  failNextSave: document.querySelector("#fail-next-save"),
-  recordingScenarioSelect: document.querySelector("#recording-scenario-select"),
-  recordingScenarioApply: document.querySelector("#recording-scenario-apply"),
-  recordingOfflineToggle: document.querySelector("#recording-offline-toggle"),
   participantsPanel: document.querySelector(".participants-panel"),
   participantTrigger: document.querySelector("#participant-trigger"),
   participantMenu: document.querySelector("#participant-menu"),
@@ -148,15 +300,8 @@ const elements = {
   recordingScreens: [...document.querySelectorAll("[data-recording-screen]")],
   recordingMeetingSummary: document.querySelector("#recording-meeting-summary"),
   recordingParticipantSummary: document.querySelector("#recording-participant-summary"),
-  recordingEnterConsent: document.querySelector("#recording-enter-consent"),
-  devicePermissionStatus: document.querySelector("#device-permission-status"),
-  demoDeviceCheck: document.querySelector("#demo-device-check"),
-  participantConsentCheck: document.querySelector("#participant-consent-check"),
-  participantConsentNote: document.querySelector("#participant-consent-note"),
-  recordingConsentReady: document.querySelector("#recording-consent-ready"),
-  recordingConsentBack: document.querySelector("#recording-consent-back"),
   recordingStartDemo: document.querySelector("#recording-start-demo"),
-  recordingReadyBack: document.querySelector("#recording-ready-back"),
+  recordingStartReason: document.querySelector("#recording-start-reason"),
   captureStateLabel: document.querySelector("#capture-state-label"),
   captureMeetingLabel: document.querySelector("#capture-meeting-label"),
   recordingTimer: document.querySelector("#recording-timer"),
@@ -164,11 +309,11 @@ const elements = {
   recordingQuickNote: document.querySelector("#recording-quick-note"),
   recordingStop: document.querySelector("#recording-stop"),
   recordingPause: document.querySelector("#recording-pause"),
-  recordingInterrupt: document.querySelector("#recording-interrupt"),
+  recordingPauseIcon: document.querySelector("#recording-pause-icon"),
+  recordingPauseLabel: document.querySelector("#recording-pause-label"),
   recordingInterruptionReason: document.querySelector("#recording-interruption-reason"),
   recordingResumeInterrupted: document.querySelector("#recording-resume-interrupted"),
   recordingProcessInterrupted: document.querySelector("#recording-process-interrupted"),
-  processingScreen: document.querySelector(".processing-screen"),
   processingSteps: [...document.querySelectorAll("[data-processing-step]")],
   processingStatus: document.querySelector("#processing-status"),
   recordingReviewTitle: document.querySelector("#recording-review-title"),
@@ -179,40 +324,30 @@ const elements = {
   reviewSaveArea: document.querySelector("#review-save-area"),
   recordingDraftStatus: document.querySelector("#recording-draft-status"),
   recordingSaveDraft: document.querySelector("#recording-save-draft"),
-  recordingErrorTitle: document.querySelector("#recording-error-title"),
-  recordingErrorMessage: document.querySelector("#recording-error-message"),
-  recordingErrorRecovery: document.querySelector("#recording-error-recovery"),
   recordingErrorRetry: document.querySelector("#recording-error-retry"),
   recordingErrorReset: document.querySelector("#recording-error-reset"),
-  manualFallback: document.querySelector("#manual-fallback"),
-  openManualButtons: [...document.querySelectorAll("[data-open-manual]")],
-  returnToRecording: document.querySelector("#return-to-recording"),
-  manualEntryView: document.querySelector("#manual-entry-view"),
-  manualPreviewView: document.querySelector("#manual-preview-view"),
-  manualStepCount: document.querySelector("#manual-step-count"),
-  manualStepTitle: document.querySelector("#manual-step-title"),
-  manualStepHelper: document.querySelector("#manual-step-helper"),
-  manualStepPanels: [...document.querySelectorAll("[data-manual-step]")],
-  manualStepBack: document.querySelector("#manual-step-back"),
-  manualStepNext: document.querySelector("#manual-step-next"),
-  manualOpenPreview: document.querySelector("#manual-open-preview"),
-  manualReturnToEntry: document.querySelector("#manual-return-to-entry"),
-  manualPreviewTitle: document.querySelector("#manual-preview-title"),
-  sectionInputs: [...document.querySelectorAll("[data-section-input]")],
-  generationError: document.querySelector("#generation-error"),
-  resultPanel: document.querySelector("#result-panel"),
-  generatedLabel: document.querySelector("#generated-label"),
-  generatedText: document.querySelector("#generated-text"),
-  resultFlowNote: document.querySelector("#result-flow-note"),
-  generationBadge: document.querySelector("#generation-badge"),
-  editResultButton: document.querySelector("#edit-result-button"),
-  overwriteNote: document.querySelector("#overwrite-note"),
-  saveButton: document.querySelector("#save-button"),
-  saveStatus: document.querySelector("#save-status"),
-  saveError: document.querySelector("#save-error"),
-  actionStatus: document.querySelector("#action-status"),
-  generateButton: document.querySelector("#generate-button"),
+  historyCount: document.querySelector("#recording-history-count"),
+  historyEmpty: document.querySelector("#recording-history-empty"),
+  historyList: document.querySelector("#recording-history-list"),
+  historyListView: document.querySelector("#recording-history-list-view"),
+  historyDetail: document.querySelector("#recording-history-detail"),
+  historyDetailTitle: document.querySelector("#recording-history-detail-title"),
+  historyDetailContent: document.querySelector("#recording-history-detail-content"),
+  historyBack: document.querySelector("#recording-history-back"),
+  historyCategoryButtons: [...document.querySelectorAll("[data-history-category]")],
+  historyKeyword: document.querySelector("#history-keyword"),
+  historyPeriod: document.querySelector("#history-period"),
+  historyDateFrom: document.querySelector("#history-date-from"),
+  historyDateTo: document.querySelector("#history-date-to"),
+  historySort: document.querySelector("#history-sort"),
+  historyFilterReset: document.querySelector("#history-filter-reset"),
+  historyFilterStatus: document.querySelector("#history-filter-status"),
   infoTriggers: [...document.querySelectorAll("[data-info-trigger]")],
+  mobileMenuTrigger: document.querySelector("#mobile-menu-trigger"),
+  mobileMenuScrim: document.querySelector("#mobile-menu-scrim"),
+  mobileMenuDrawer: document.querySelector("#mobile-menu-drawer"),
+  mobileMenuClose: document.querySelector("[data-mobile-menu-close]"),
+  mobileMenuCurrent: document.querySelector("[data-mobile-menu-current]"),
   contactTriggers: [...document.querySelectorAll("[data-contact-trigger]")],
   contactDialog: document.querySelector("#contact-dialog"),
   contactDialogTitle: document.querySelector("#contact-dialog-title"),
@@ -223,1500 +358,909 @@ const elements = {
 
 const mobileMenuMedia = window.matchMedia("(max-width: 47.999rem)");
 let lastContactTrigger = null;
-let restoreMobileMenuAfterContact = false;
+let restoreMenuAfterContact = false;
 let activeInfoTrigger = null;
-let infoOpenTimer = null;
-let infoCloseTimer = null;
-let suppressInfoFocusOpen = false;
 
-function textToItems(value) {
-  return value
-    .split(/\r?\n/u)
-    .map((item) => item.trim().replace(/^[・●•\-]\s*/u, ""))
-    .filter(Boolean);
+function meetingTypeLabel() {
+  return MEETING_TYPES.find(({ id }) => id === elements.meetingTypeSelect.value)?.label ?? "朝礼";
 }
 
-function itemsToText(items) {
-  return Array.isArray(items) ? items.filter((item) => typeof item === "string" && item.trim()).join("\n") : "";
+function selectedParticipants() {
+  return PARTICIPANTS.filter(({ id }) => state.selectedParticipantIds.has(id));
 }
 
-function formatDateWithWeekday(dateValue) {
-  const [year, month, day] = dateValue.split("-").map(Number);
-  const localDate = new Date(year, month - 1, day);
-  const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
-  return `${year}/${String(month).padStart(2, "0")}/${String(day).padStart(2, "0")}(${weekdays[localDate.getDay()]})`;
+function formatDuration(seconds) {
+  const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const remainder = (seconds % 60).toString().padStart(2, "0");
+  return `${minutes}:${remainder}`;
 }
 
-function meetingTypeLabel(meetingType) {
-  return MEETING_TYPE_CONFIG.options.find(({ id }) => id === meetingType)?.label ?? MEETING_TYPE_CONFIG.options[0].label;
+function formatSavedDate(isoString) {
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return "日時不明";
+  return new Intl.DateTimeFormat("ja-JP", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }
 
-function normalizeDraftInput(input) {
-  const sections = {};
-  SECTION_ORDER.forEach((key) => {
-    sections[key] = Array.isArray(input.sections?.[key])
-      ? input.sections[key].map((item) => String(item).trim()).filter(Boolean)
-      : [];
-  });
-  const validMeetingType = MEETING_TYPE_CONFIG.options.some(({ id }) => id === input.meetingType)
-    ? input.meetingType
-    : MEETING_TYPE_CONFIG.options[0].id;
-  return {
-    date: String(input.date),
-    meetingType: validMeetingType,
-    author: String(input.author).trim(),
-    participants: Array.isArray(input.participants)
-      ? input.participants.map((item) => String(item).trim()).filter(Boolean)
-      : [],
-    sections,
-  };
+function formatMeetingDate(dateString) {
+  const date = new Date(`${dateString}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return "日付不明";
+  return new Intl.DateTimeFormat("ja-JP", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+  }).format(date);
 }
 
-export async function generateMinutesDraft(input) {
-  const normalized = normalizeDraftInput(input);
-  const lines = [
-    "Solution.News",
-    `${formatDateWithWeekday(normalized.date)} ${meetingTypeLabel(normalized.meetingType)}`,
-    `記入者: ${normalized.author}`,
-    `参加者: ${normalized.participants.length ? normalized.participants.join("、") : "未選択"}`,
-    "",
-  ];
-
-  SECTION_ORDER.forEach((key, index) => {
-    lines.push(`【${RESULT_SECTION_LABELS[key]}】`);
-    const items = normalized.sections[key];
-    if (items.length === 0) {
-      lines.push("・特になし");
-    } else {
-      items.forEach((item) => lines.push(`・${item}`));
-    }
-    if (index < SECTION_ORDER.length - 1) lines.push("");
-  });
-
-  return lines.join("\n");
+function renderMeetingTypes() {
+  const now = new Date();
+  const suggested = now.getHours() < 12 ? "morning" : "evening";
+  for (const option of MEETING_TYPES) {
+    const node = document.createElement("option");
+    node.value = option.id;
+    node.textContent = option.label;
+    elements.meetingTypeSelect.append(node);
+  }
+  elements.meetingTypeSelect.value = suggested;
+  elements.meetingDateLabel.textContent = "2026/07/21(火)";
+  elements.meetingDateLabel.dateTime = DEMO_DATE;
+  elements.authorOutput.textContent = "田中";
 }
 
-function composeSourceDraft(input) {
-  const normalized = normalizeDraftInput(input);
-  return SECTION_ORDER
-    .map((key) => [`【${RESULT_SECTION_LABELS[key]}】`, ...normalized.sections[key]].join("\n"))
-    .join("\n\n");
-}
-
-function renderMeetingTypeOptions() {
-  const fragment = document.createDocumentFragment();
-  MEETING_TYPE_CONFIG.options.forEach((meetingType) => {
-    const option = document.createElement("option");
-    option.value = meetingType.id;
-    option.textContent = meetingType.label;
-    fragment.append(option);
-  });
-  elements.meetingTypeSelect.replaceChildren(fragment);
-}
-
-function getSelectedMeetingType() {
-  return elements.meetingTypeSelect.value || MEETING_TYPE_CONFIG.options[0].id;
-}
-
-function getCurrentAccount() {
-  return CURRENT_ACCOUNT;
-}
-
-function getAuthor() {
-  return getCurrentAccount().name;
-}
-
-function renderAuthor() {
-  const author = getAuthor();
-  elements.authorOutput.textContent = author;
-  elements.authorOutput.setAttribute("aria-label", `記入者：${author}`);
-}
-
-function getSelectedParticipantIds() {
-  return [...state.selectedParticipantIds];
-}
-
-function getSelectedParticipantNames() {
-  return PARTICIPANTS.filter((participant) => state.selectedParticipantIds.has(participant.id)).map((participant) => participant.name);
-}
-
-function getSectionsFromInputs() {
-  return Object.fromEntries(
-    SECTION_ORDER.map((key) => {
-      const input = elements.sectionInputs.find((candidate) => candidate.dataset.sectionInput === key);
-      return [key, textToItems(input?.value ?? "")];
-    }),
-  );
-}
-
-function collectDraftInput() {
-  return {
-    date: DEMO_DATE,
-    meetingType: getSelectedMeetingType(),
-    author: getAuthor(),
-    participants: getSelectedParticipantNames(),
-    sections: getSectionsFromInputs(),
-  };
-}
-
-function createRecord(status) {
-  const input = collectDraftInput();
-  return {
-    date: input.date,
-    meetingType: input.meetingType,
-    author: input.author,
-    participants: [...input.participants],
-    sections: Object.fromEntries(SECTION_ORDER.map((key) => [key, [...input.sections[key]]])),
-    generatedText: state.generatedText,
-    resultStage: state.resultStage,
-    status,
-  };
-}
-
-function hasSourceContent() {
-  return Object.values(getSectionsFromInputs()).some((items) => items.length > 0);
-}
-
-function syncSourceDraft() {
-  state.generatedText = composeSourceDraft(collectDraftInput());
-  state.resultStage = "source";
-  state.generation = "source";
-  state.stale = false;
-}
-
-function markSourceDirty(message = "入力が変わりました") {
-  const returnedFromFinishedResult = state.resultStage !== "source";
-  state.input = "dirty";
-  state.save = "idle";
-  elements.saveError.hidden = true;
-  syncSourceDraft();
-  renderState(returnedFromFinishedResult ? `${message}。清書欄を最新の入力内容へ戻しました` : message);
-}
-
-function setParticipantsByIds(ids, markDirty = true) {
-  const validIds = new Set(PARTICIPANTS.map(({ id }) => id));
-  state.selectedParticipantIds = new Set(ids.filter((id) => validIds.has(id)));
-  renderParticipantOptions();
-  renderParticipants();
-  if (markDirty) markSourceDirty("参加者を更新しました");
-}
-
-function renderParticipantCategoryTabs() {
-  const fragment = document.createDocumentFragment();
-  PARTICIPANT_CATEGORIES.forEach((category) => {
+function renderParticipantCategories() {
+  elements.participantCategoryTabs.replaceChildren();
+  for (const category of PARTICIPANT_CATEGORIES) {
     const button = document.createElement("button");
-    const isSelected = category.id === state.participantCategory;
     button.type = "button";
-    button.id = `participant-category-${category.id}`;
+    button.role = "tab";
     button.dataset.participantCategory = category.id;
-    button.setAttribute("role", "tab");
-    button.setAttribute("aria-selected", String(isSelected));
-    button.setAttribute("aria-controls", "participant-options");
-    button.tabIndex = isSelected ? 0 : -1;
     button.textContent = category.label;
-    fragment.append(button);
-  });
-  elements.participantCategoryTabs.replaceChildren(fragment);
+    button.setAttribute("aria-selected", String(category.id === state.participantCategory));
+    button.tabIndex = category.id === state.participantCategory ? 0 : -1;
+    elements.participantCategoryTabs.append(button);
+  }
 }
 
 function renderParticipantOptions() {
-  const query = state.participantSearch.trim().toLocaleLowerCase("ja-JP");
-  const visibleParticipants = PARTICIPANTS.filter(
-    (participant) => participant.category === state.participantCategory && participant.name.toLocaleLowerCase("ja-JP").includes(query),
+  const query = state.participantSearch.trim().toLocaleLowerCase("ja");
+  const matches = PARTICIPANTS.filter(
+    ({ category, name }) => category === state.participantCategory && name.toLocaleLowerCase("ja").includes(query),
   );
-  const fragment = document.createDocumentFragment();
-  visibleParticipants.forEach((participant) => {
+  elements.participantOptions.replaceChildren();
+  elements.participantSearchEmpty.hidden = matches.length > 0;
+
+  for (const participant of matches) {
     const label = document.createElement("label");
     label.className = "participant-option";
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.value = participant.id;
-    input.checked = state.selectedParticipantIds.has(participant.id);
-    input.dataset.participantName = participant.name;
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = participant.id;
+    checkbox.checked = state.selectedParticipantIds.has(participant.id);
+    checkbox.dataset.participantId = participant.id;
     const name = document.createElement("span");
     name.textContent = participant.name;
-    label.append(input, name);
-    fragment.append(label);
-  });
-  elements.participantOptions.replaceChildren(fragment);
-  elements.participantSearchEmpty.hidden = visibleParticipants.length > 0;
+    label.append(checkbox, name);
+    elements.participantOptions.append(label);
+  }
 }
 
 function renderParticipants() {
-  const participants = PARTICIPANTS.filter((participant) => state.selectedParticipantIds.has(participant.id));
-  const fragment = document.createDocumentFragment();
-  participants.forEach((participant) => {
-    const chip = document.createElement("span");
-    chip.className = "participant-chip";
-    const label = document.createElement("span");
-    label.textContent = participant.name;
-    const removeButton = document.createElement("button");
-    removeButton.type = "button";
-    removeButton.textContent = "×";
-    removeButton.dataset.removeParticipant = participant.id;
-    removeButton.setAttribute("aria-label", `${participant.name}を参加者から外す`);
-    chip.append(label, removeButton);
-    fragment.append(chip);
-  });
-  elements.participantChips.replaceChildren(fragment);
-  elements.participantCount.textContent = `${participants.length}名`;
-  updateRecordingSummary();
-}
+  const selected = selectedParticipants();
+  elements.participantCount.textContent = `${selected.length}名`;
+  elements.participantChips.replaceChildren();
 
-function switchParticipantCategory(categoryId, { focus = true, resetSearch = true } = {}) {
-  if (!PARTICIPANT_CATEGORIES.some(({ id }) => id === categoryId)) return;
-  state.participantCategory = categoryId;
-  if (resetSearch) {
-    state.participantSearch = "";
-    elements.participantSearch.value = "";
+  if (!selected.length) {
+    const empty = document.createElement("p");
+    empty.className = "participant-empty";
+    empty.textContent = "参加者はまだ選択されていません。";
+    elements.participantChips.append(empty);
+  } else {
+    for (const participant of selected) {
+      const chip = document.createElement("span");
+      chip.className = "participant-chip";
+      chip.textContent = participant.name;
+      elements.participantChips.append(chip);
+    }
   }
-  elements.participantCategoryTabs.querySelectorAll("[data-participant-category]").forEach((tab) => {
-    const isSelected = tab.dataset.participantCategory === categoryId;
-    tab.setAttribute("aria-selected", String(isSelected));
-    tab.tabIndex = isSelected ? 0 : -1;
-  });
-  renderParticipantOptions();
-  if (focus) elements.participantCategoryTabs.querySelector(`[data-participant-category="${categoryId}"]`)?.focus({ preventScroll: true });
-}
 
-function updateRecordingSummary() {
-  const names = getSelectedParticipantNames();
-  elements.recordingMeetingSummary.textContent = meetingTypeLabel(getSelectedMeetingType());
-  elements.captureMeetingLabel.textContent = meetingTypeLabel(getSelectedMeetingType());
-  elements.recordingParticipantSummary.textContent = names.length
-    ? `${names.length}名・${names.join("、")}`
+  elements.recordingParticipantSummary.textContent = selected.length
+    ? `${selected.length}名・${selected.map(({ name }) => name).join("、")}`
     : "0名・未選択";
+  renderParticipantOptions();
+  renderRecording();
 }
 
-function formatRecordingTime(seconds) {
-  const safeSeconds = Math.max(0, Number(seconds) || 0);
-  const minutes = Math.floor(safeSeconds / 60);
-  const remainder = safeSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+function setParticipantMenu(open) {
+  const wasOpen = !elements.participantMenu.hidden;
+  elements.participantMenu.hidden = !open;
+  elements.participantTrigger.setAttribute("aria-expanded", String(open));
+  if (open) {
+    elements.participantSearch.focus();
+  } else if (wasOpen && !elements.creationWorkspace.hidden) {
+    elements.participantTrigger.focus();
+  }
 }
 
-function updateRecordingTimer() {
-  elements.recordingTimer.textContent = formatRecordingTime(recordingDemo.elapsedSeconds);
-  elements.recordingTimer.setAttribute("aria-label", `録音経過時間 ${Math.floor(recordingDemo.elapsedSeconds / 60)}分${recordingDemo.elapsedSeconds % 60}秒`);
-}
-
-function stopCaptureTimer() {
-  window.clearInterval(recordingDemo.timerId);
-  recordingDemo.timerId = null;
+function clearCaptureTimer() {
+  if (recording.timerId) {
+    window.clearInterval(recording.timerId);
+    recording.timerId = null;
+  }
 }
 
 function startCaptureTimer() {
-  stopCaptureTimer();
-  recordingDemo.timerId = window.setInterval(() => {
-    if (recordingDemo.capture !== "recording") return;
-    recordingDemo.elapsedSeconds += 1;
-    updateRecordingTimer();
+  clearCaptureTimer();
+  recording.timerId = window.setInterval(() => {
+    recording.elapsedSeconds += 1;
+    elements.recordingTimer.textContent = formatDuration(recording.elapsedSeconds);
   }, 1000);
 }
 
-function stopProcessingDemo() {
-  recordingDemo.processingTimers.forEach((timerId) => window.clearTimeout(timerId));
-  recordingDemo.processingTimers = [];
+function clearProcessingTimers() {
+  for (const timer of recording.processingTimers) window.clearTimeout(timer);
+  recording.processingTimers = [];
 }
 
-function currentRecordingStep() {
-  if (recordingDemo.screen === "capture" || recordingDemo.screen === "interrupted") return "capture";
-  if (recordingDemo.screen === "processing") return "processing";
-  if (recordingDemo.screen === "review") return "review";
-  if (recordingDemo.screen === "error" && recordingDemo.errorKind === "processing-error") return "processing";
-  return "setup";
+function activeRecordingStep() {
+  if (["setup", "capture", "interrupted"].includes(recording.screen)) return "capture";
+  if (recording.screen === "processing") return "processing";
+  return "review";
 }
 
-function createReviewButton(label, action, suggestion, className = "button button-secondary") {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = className;
-  button.textContent = label;
-  button.dataset.reviewAction = action;
-  button.dataset.suggestionId = suggestion.id;
-  button.setAttribute("aria-label", `${suggestion.kind}「${suggestion.text}」を${label}`);
-  return button;
+function setHeaderStatus(label, tone) {
+  const text = elements.inputStatus.querySelector("span:last-child");
+  text.textContent = label;
+  elements.inputStatus.className = `status-pill recording-header-status ${tone}`;
 }
 
-function renderReviewSuggestions() {
-  const fragment = document.createDocumentFragment();
-  const activeSuggestion =
-    recordingDemo.suggestions.find(({ editing }) => editing) ??
-    recordingDemo.suggestions.find(({ status }) => status === "pending");
-  const activeIndex = activeSuggestion ? recordingDemo.suggestions.findIndex(({ id }) => id === activeSuggestion.id) : -1;
+function renderRecordingSteps() {
+  const order = ["capture", "processing", "review"];
+  const active = activeRecordingStep();
+  const activeIndex = order.indexOf(active);
+  for (const step of elements.recordingSteps) {
+    const index = order.indexOf(step.dataset.recordingStep);
+    const status = index < activeIndex ? "complete" : index === activeIndex ? "current" : "upcoming";
+    step.dataset.status = status;
+    if (status === "current") step.setAttribute("aria-current", "step");
+    else step.removeAttribute("aria-current");
+  }
+}
 
-  if (activeSuggestion) {
-    const suggestion = activeSuggestion;
+function renderProcessing() {
+  const order = ["prepare", "transcript", "extract"];
+  const activeIndex = order.indexOf(recording.processingStep);
+  for (const item of elements.processingSteps) {
+    const index = order.indexOf(item.dataset.processingStep);
+    item.dataset.status = index < activeIndex ? "complete" : index === activeIndex ? "current" : "upcoming";
+  }
+  const copy = {
+    prepare: "録音内容をまとめています",
+    transcript: "要点を抽出しています",
+    extract: "保存できる形に整えています",
+  };
+  elements.processingStatus.textContent = copy[recording.processingStep];
+}
+
+function suggestionStatusLabel(status) {
+  if (status === "confirmed") return "採用";
+  if (status === "rejected") return "見送り";
+  return "未確認";
+}
+
+function renderReview() {
+  const pending = recording.suggestions.filter(({ status }) => status === "pending");
+  const reviewed = recording.suggestions.filter(({ status }) => status !== "pending");
+  const current = pending[0];
+  elements.reviewSuggestionList.replaceChildren();
+
+  if (current) {
     const article = document.createElement("article");
-    article.className = `review-suggestion is-${suggestion.status}`;
-    article.dataset.suggestionId = suggestion.id;
+    article.className = "review-suggestion";
+    article.dataset.suggestionId = current.id;
 
     const header = document.createElement("header");
     const title = document.createElement("h4");
-    title.textContent = suggestion.kind;
-    const status = document.createElement("span");
-    status.className = `state-label ${
-      suggestion.status === "confirmed"
-        ? "is-success"
-        : suggestion.status === "rejected"
-          ? "is-neutral"
-          : "is-warning"
-    }`;
-    status.textContent =
-      suggestion.status === "confirmed"
-        ? "確認済み"
-        : suggestion.status === "rejected"
-          ? "却下"
-          : suggestion.editing
-            ? "人が編集中"
-            : "AI生成・未確認";
-    header.append(title, status);
+    title.textContent = current.kind;
+    const badge = document.createElement("span");
+    badge.className = "state-label is-warning";
+    badge.textContent = "未確認";
+    header.append(title, badge);
 
     const content = document.createElement("div");
     content.className = "review-suggestion-content";
-    if (suggestion.editing) {
+    if (current.editing) {
       const label = document.createElement("label");
-      label.textContent = `${suggestion.kind}の編集`;
+      label.textContent = "内容を編集";
       const textarea = document.createElement("textarea");
-      textarea.rows = 3;
-      textarea.value = suggestion.editValue;
-      textarea.dataset.reviewEditField = suggestion.id;
+      textarea.value = current.editValue;
+      textarea.dataset.suggestionEdit = current.id;
       label.append(textarea);
       content.append(label);
     } else {
       const text = document.createElement("p");
       text.className = "review-suggestion-text";
-      text.textContent = suggestion.text;
+      text.textContent = current.text;
       content.append(text);
     }
 
     const source = document.createElement("p");
     source.className = "review-source";
-    const time = document.createElement("time");
-    time.textContent = suggestion.sourceTime;
-    time.dateTime = suggestion.sourceTime === "00:18" ? "PT18S" : "PT42S";
-    source.append(time, document.createTextNode(` 根拠: 「${suggestion.sourceExcerpt}」`));
+    const sourceTime = document.createElement("time");
+    sourceTime.textContent = current.sourceTime;
+    source.append(sourceTime, ` 「${current.sourceExcerpt}」`);
 
     const metadata = document.createElement("dl");
     metadata.className = "review-metadata";
-    [
-      ["担当", "owner", suggestion.owner],
-      ["部署", "department", suggestion.department],
-      ["期限", "due", suggestion.due],
-      ["由来", "provenance", suggestion.provenance],
-    ].forEach(([term, property, value]) => {
+    for (const [label, value] of [["担当", current.owner], ["期限", current.due]]) {
       const row = document.createElement("div");
-      const dt = document.createElement("dt");
-      const dd = document.createElement("dd");
-      dt.textContent = term;
-      if (suggestion.editing && property !== "provenance") {
-        const input = document.createElement("input");
-        input.type = "text";
-        input.value = value;
-        input.dataset.reviewMetadataField = property;
-        input.setAttribute("aria-label", `${suggestion.kind}の${term}`);
-        dd.append(input);
-      } else {
-        dd.textContent = value;
-      }
-      row.append(dt, dd);
+      const term = document.createElement("dt");
+      term.textContent = label;
+      const description = document.createElement("dd");
+      description.textContent = value;
+      row.append(term, description);
       metadata.append(row);
-    });
+    }
 
     const actions = document.createElement("div");
     actions.className = "review-item-actions";
-    if (suggestion.editing) {
+    if (current.editing) {
       actions.append(
-        createReviewButton("編集を反映", "save-edit", suggestion, "button button-primary"),
-        createReviewButton("編集を中止", "cancel-edit", suggestion, "button button-quiet"),
+        makeReviewButton("修正を反映", "button-primary", "apply", current.id),
+        makeReviewButton("戻す", "button-secondary", "cancel", current.id),
       );
     } else {
-      const confirmButton = createReviewButton("確認して次へ", "confirm", suggestion, "button button-primary");
-      confirmButton.disabled = suggestion.status === "confirmed";
       actions.append(
-        confirmButton,
-        createReviewButton("編集", "edit", suggestion, "button button-quiet"),
-        createReviewButton("却下", "reject", suggestion, "button button-quiet is-danger-text"),
+        makeReviewButton("採用", "button-primary", "confirm", current.id),
+        makeReviewButton("編集", "button-secondary", "edit", current.id),
+        makeReviewButton("見送り", "button-quiet", "reject", current.id),
       );
     }
 
     article.append(header, content, source, metadata, actions);
-    fragment.append(article);
+    elements.reviewSuggestionList.append(article);
   }
-  elements.reviewSuggestionList.replaceChildren(fragment);
 
-  const pending = recordingDemo.suggestions.filter(({ status }) => status === "pending").length;
-  const confirmed = recordingDemo.suggestions.filter(({ status }) => status === "confirmed").length;
-  const rejected = recordingDemo.suggestions.filter(({ status }) => status === "rejected").length;
-  const processed = confirmed + rejected;
-  elements.reviewPendingCount.textContent = activeSuggestion
-    ? `${activeIndex + 1} / ${recordingDemo.suggestions.length}件目・未確認 ${pending}件`
-    : `${recordingDemo.suggestions.length} / ${recordingDemo.suggestions.length}件・確認完了`;
-  elements.reviewCompletedSummary.textContent = processed
-    ? `確認済み ${confirmed}件・却下 ${rejected}件`
-    : "確認済みの提案はまだありません";
-  elements.reviewCompletedSummary.classList.toggle("is-complete", pending === 0);
-  elements.reviewSaveArea.hidden = pending > 0;
-  elements.reviewStateLabel.className = `state-label ${pending === 0 ? "is-success" : "is-warning"}`;
-  elements.reviewStateLabel.textContent = pending === 0 ? "確認完了" : "AI生成・未確認";
-  elements.recordingReviewTitle.textContent = pending === 0 ? "提案をすべて確認しました" : "提案を1件ずつ人が確認";
+  elements.reviewPendingCount.textContent = pending.length
+    ? `${reviewed.length + 1} / ${recording.suggestions.length}件目・未確認 ${pending.length}件`
+    : `${recording.suggestions.length}件すべて確認済み`;
+  elements.reviewCompletedSummary.textContent = reviewed.length
+    ? `確認済み：${reviewed.map(({ kind, status }) => `${kind}（${suggestionStatusLabel(status)}）`).join("、")}`
+    : "AIの提案を1件ずつ確認してください。";
+  elements.reviewCompletedSummary.classList.toggle("is-complete", pending.length === 0);
+  elements.reviewSaveArea.hidden = pending.length > 0;
+  elements.reviewStateLabel.textContent = pending.length ? "保存前確認" : "確認完了";
+  elements.reviewStateLabel.className = `state-label ${pending.length ? "is-warning" : "is-success"}`;
+  elements.recordingSaveDraft.disabled = recording.draft === "saved";
+  elements.recordingSaveDraft.textContent = recording.draft === "saved" ? "保存済み" : "保存";
+  elements.recordingDraftStatus.textContent = recording.draft === "saved"
+    ? "保存しました。下の保存済み議事録からいつでも開けます。"
+    : "保存前の確認が完了しました";
 }
 
-function renderRecordingError() {
-  const errors = {
-    "permission-denied": {
-      title: "端末利用が拒否されました",
-      message: "デモ上で端末利用不可を再現しています。実際の権限要求は行っていません。",
-      recovery: "設定方法を確認して再試行するか、4区分の手入力へ切り替えてください。",
-      retry: "同意確認へ戻る",
-    },
-    unsupported: {
-      title: "この環境では利用できません",
-      message: "録音機能を利用できない環境を想定したデモです。音声データはありません。",
-      recovery: "4区分の手入力なら、このまま議事録を作成できます。",
-      retry: "設定へ戻る",
-    },
-    "processing-error": {
-      title: "デモ処理を完了できませんでした",
-      message: "固定文字起こしからAI提案を準備できない状態を再現しています。簡易メモは保持しています。",
-      recovery: "同じ固定サンプルで再試行するか、4区分の手入力へ切り替えてください。",
-      retry: "処理を再試行",
-    },
-  };
-  const detail = errors[recordingDemo.errorKind] ?? errors["processing-error"];
-  elements.recordingErrorTitle.textContent = detail.title;
-  elements.recordingErrorMessage.textContent = detail.message;
-  elements.recordingErrorRecovery.textContent = detail.recovery;
-  elements.recordingErrorRetry.textContent = detail.retry;
+function makeReviewButton(label, className, action, id) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = `button ${className}`;
+  button.textContent = label;
+  button.dataset.reviewAction = action;
+  button.dataset.suggestionId = id;
+  return button;
 }
 
-function renderRecordingDemo(message = "") {
-  const visibleScreen = recordingDemo.screen;
-  document.body.dataset.recordingScreen = visibleScreen;
-  elements.recordingScreens.forEach((screen) => {
-    screen.hidden = screen.dataset.recordingScreen !== visibleScreen;
-  });
+function renderRecording() {
+  const selected = selectedParticipants();
+  const screen = recording.screen;
+  document.body.dataset.minutesMode = "recording";
+  document.body.dataset.recordingScreen = screen;
+  document.body.dataset.captureState = recording.capture;
+  elements.participantsPanel.hidden = screen !== "setup";
+  for (const panel of elements.recordingScreens) panel.hidden = panel.dataset.recordingScreen !== screen;
 
-  const step = currentRecordingStep();
-  const stepOrder = ["setup", "capture", "processing", "review"];
-  const currentIndex = stepOrder.indexOf(step);
-  elements.recordingSteps.forEach((item) => {
-    const itemIndex = stepOrder.indexOf(item.dataset.recordingStep);
-    item.dataset.status = itemIndex < currentIndex ? "complete" : itemIndex === currentIndex ? "current" : "upcoming";
-    if (itemIndex === currentIndex) item.setAttribute("aria-current", "step");
-    else item.removeAttribute("aria-current");
-  });
+  elements.recordingMeetingSummary.textContent = meetingTypeLabel();
+  elements.captureMeetingLabel.textContent = meetingTypeLabel();
+  elements.recordingStartDemo.disabled = selected.length === 0;
+  elements.recordingStartReason.textContent = selected.length
+    ? `${selected.length}名を登録済みです。録音を開始できます。`
+    : "上の「参加者を選ぶ」から1名以上登録してください。";
 
-  const statusByScreen = {
-    setup: ["準備前", "is-neutral", "会議設定と参加者を確認してください"],
-    consent: ["録音前確認", "is-warning", "端末状態と参加者同意を別々に確認してください"],
-    ready: ["準備完了", "is-success", "デモ録音を開始できます"],
-    capture:
-      recordingDemo.capture === "paused"
-        ? ["一時停止", "is-warning", "録音デモを一時停止しています"]
-        : ["録音中", "is-danger", "録音中です。停止が主操作です"],
-    interrupted: ["録音中断", "is-warning", "明示的な再開または手入力への切替が必要です"],
-    processing: ["デモ処理中", "is-progress", "固定サンプルを処理しています"],
-    review: ["人による確認", "is-warning", "AI提案を1件ずつ確認してください"],
-    error: ["デモエラー", "is-danger", "再試行または手入力へ切り替えてください"],
-  };
-  const [statusText, statusClass, helper] = statusByScreen[visibleScreen];
-  elements.recordingDemoStatus.className = `state-label ${statusClass}`;
-  elements.recordingDemoStatus.textContent = statusText;
-  elements.recordingWorkflowStatus.textContent = message || helper;
-
-  updateRecordingSummary();
-  updateRecordingTimer();
-  elements.participantsPanel.hidden = !["setup", "consent", "ready"].includes(visibleScreen) && document.body.dataset.minutesMode !== "manual";
-
-  elements.devicePermissionStatus.className = `state-label ${
-    recordingDemo.permission === "supported"
-      ? "is-success"
-      : recordingDemo.permission === "denied"
-        ? "is-danger"
-        : "is-neutral"
-  }`;
-  elements.devicePermissionStatus.textContent =
-    recordingDemo.permission === "supported"
-      ? "デモ上で利用可能"
-      : recordingDemo.permission === "denied"
-        ? "利用不可"
-        : "未確認";
-  elements.participantConsentCheck.checked = recordingDemo.consent === "confirmed";
-  elements.participantConsentNote.textContent =
-    recordingDemo.consent === "stale"
-      ? "参加者または会議設定が変わりました。録音開始前に同意を再確認してください。"
-      : "参加者の選択だけでは同意済みになりません。参加者が変わると再確認が必要です。";
-  elements.participantConsentNote.classList.toggle("is-stale", recordingDemo.consent === "stale");
-  elements.recordingConsentReady.disabled = !(recordingDemo.permission === "supported" && recordingDemo.consent === "confirmed");
-
-  const isPaused = recordingDemo.capture === "paused";
-  elements.captureStateLabel.className = `state-label ${isPaused ? "is-warning" : "is-danger"}`;
-  elements.captureStateLabel.textContent = isPaused ? "一時停止" : "録音中";
-  elements.recordingPause.textContent = isPaused ? "録音を再開" : "一時停止";
-  elements.recordingNetworkState.textContent = recordingDemo.offline
-    ? "オフライン想定・録音デモは継続・送信待ちデータなし"
-    : "オンライン想定・音声データなし";
-  elements.recordingNetworkState.classList.toggle("is-offline", recordingDemo.offline);
-  elements.processingSteps.forEach((item) => {
-    const order = ["prepare", "transcript", "extract"];
-    const itemIndex = order.indexOf(item.dataset.processingStep);
-    const activeIndex = order.indexOf(recordingDemo.processingStep);
-    item.dataset.status = itemIndex < activeIndex ? "complete" : itemIndex === activeIndex ? "current" : "upcoming";
-  });
-  elements.processingStatus.textContent =
-    recordingDemo.processingStep === "prepare"
-      ? "音声準備を再現しています"
-      : recordingDemo.processingStep === "transcript"
-        ? "固定文字起こしを準備しています"
-        : "決定事項とtaskの提案を準備しています";
-  elements.processingScreen.setAttribute("aria-busy", String(visibleScreen === "processing"));
-
-  if (visibleScreen === "review") renderReviewSuggestions();
-  elements.recordingDraftStatus.textContent =
-    recordingDemo.draft === "saved"
-      ? "このページを開いている間だけ、デモ下書きを保持しています"
-      : "デモ下書きはまだ保持していません";
-  elements.recordingSaveDraft.disabled = recordingDemo.draft === "saved";
-  elements.recordingSaveDraft.textContent = recordingDemo.draft === "saved" ? "デモ下書き保持中" : "デモ下書きを保持";
-  if (visibleScreen === "error") renderRecordingError();
-
-  if (document.body.dataset.minutesMode !== "manual") {
-    elements.inputStatus.className = `status-pill recording-header-status ${statusClass}`;
-    elements.inputStatus.querySelector("span:last-child").textContent = statusText;
+  if (screen === "setup") {
+    elements.recordingWorkflowStatus.textContent = selected.length ? "録音を開始できます" : "参加者を選ぶと録音を開始できます";
+    elements.recordingDemoStatus.textContent = selected.length ? "開始できます" : "参加者未選択";
+    elements.recordingDemoStatus.className = `state-label ${selected.length ? "is-progress" : "is-neutral"}`;
+    setHeaderStatus(selected.length ? "録音準備完了" : "参加者未選択", selected.length ? "is-progress" : "is-neutral");
+  } else if (screen === "capture") {
+    const paused = recording.capture === "paused";
+    elements.recordingWorkflowStatus.textContent = paused ? "録音を一時停止しています" : "録音中です";
+    elements.recordingDemoStatus.textContent = paused ? "一時停止中" : "録音中";
+    elements.recordingDemoStatus.className = `state-label ${paused ? "is-warning" : "is-danger"}`;
+    elements.captureStateLabel.textContent = paused ? "一時停止中" : "録音中";
+    elements.captureStateLabel.className = `state-label ${paused ? "is-warning" : "is-danger"}`;
+    elements.recordingNetworkState.textContent = paused ? "録音は止まっています。再開するとタイマーも進みます" : "録音中です。停止後にAIが内容を整理します";
+    elements.recordingPauseLabel.textContent = paused ? "録音を再開" : "一時停止";
+    elements.recordingPauseIcon.className = `recording-control-icon ${paused ? "is-play" : "is-pause"}`;
+    elements.recordingTimer.textContent = formatDuration(recording.elapsedSeconds);
+    setHeaderStatus(paused ? "一時停止中" : "録音中", paused ? "is-warning" : "is-danger");
+  } else if (screen === "interrupted") {
+    elements.recordingWorkflowStatus.textContent = "設定変更により録音を中断しました";
+    elements.recordingDemoStatus.textContent = "録音中断";
+    elements.recordingDemoStatus.className = "state-label is-warning";
+    setHeaderStatus("録音中断", "is-warning");
+  } else if (screen === "processing") {
+    elements.recordingWorkflowStatus.textContent = "AIが録音内容を整理しています";
+    elements.recordingDemoStatus.textContent = "AI整理中";
+    elements.recordingDemoStatus.className = "state-label is-progress";
+    setHeaderStatus("AI整理中", "is-progress");
+    renderProcessing();
+  } else if (screen === "review") {
+    elements.recordingWorkflowStatus.textContent = "内容を確認して保存してください";
+    elements.recordingDemoStatus.textContent = recording.draft === "saved" ? "保存済み" : "保存前確認";
+    elements.recordingDemoStatus.className = `state-label ${recording.draft === "saved" ? "is-success" : "is-warning"}`;
+    setHeaderStatus(recording.draft === "saved" ? "保存済み" : "保存前確認", recording.draft === "saved" ? "is-success" : "is-warning");
+    renderReview();
+  } else {
+    elements.recordingWorkflowStatus.textContent = "処理を続けられません";
+    elements.recordingDemoStatus.textContent = "エラー";
+    elements.recordingDemoStatus.className = "state-label is-danger";
+    setHeaderStatus("エラー", "is-danger");
   }
+  renderRecordingSteps();
 }
 
-function setRecordingScreen(screen, { focus = true, message = "" } = {}) {
-  if (recordingDemo.screen === "processing" && screen !== "processing") stopProcessingDemo();
-  if (screen !== "capture") stopCaptureTimer();
-  recordingDemo.screen = screen;
-  renderRecordingDemo(message);
-  if (!focus) return;
-  window.requestAnimationFrame(() => {
-    const heading = elements.recordingScreens
-      .find((candidate) => candidate.dataset.recordingScreen === screen)
-      ?.querySelector("h3");
-    heading?.focus({ preventScroll: false });
-  });
-}
-
-function beginRecordingDemo({ resetElapsed = true } = {}) {
-  stopProcessingDemo();
-  if (resetElapsed) recordingDemo.elapsedSeconds = 0;
-  recordingDemo.capture = "recording";
-  recordingDemo.errorKind = "";
-  setRecordingScreen("capture", { message: "録音中です。停止が主操作です" });
+function beginRecording() {
+  if (!selectedParticipants().length) return;
+  recording.screen = "capture";
+  recording.capture = "recording";
+  recording.elapsedSeconds = 0;
+  recording.draft = "idle";
+  recording.suggestions = createSuggestions();
+  elements.recordingQuickNote.value = "";
   startCaptureTimer();
+  renderRecording();
+  document.querySelector("#recording-capture-title").focus();
 }
 
 function toggleRecordingPause() {
-  if (recordingDemo.capture === "paused") {
-    recordingDemo.capture = "recording";
+  if (recording.capture === "recording") {
+    recording.capture = "paused";
+    clearCaptureTimer();
+  } else {
+    recording.capture = "recording";
     startCaptureTimer();
-    renderRecordingDemo("録音デモを再開しました");
-    return;
   }
-  recordingDemo.capture = "paused";
-  stopCaptureTimer();
-  renderRecordingDemo("録音デモを一時停止しました");
+  renderRecording();
 }
 
-function interruptRecordingDemo(reason = "着信や画面ロックを想定したデモ中断です。取得済み音声はありません。") {
-  stopCaptureTimer();
-  recordingDemo.capture = "interrupted";
+function interruptRecording(reason) {
+  if (recording.screen !== "capture") return;
+  clearCaptureTimer();
+  recording.capture = "interrupted";
+  recording.screen = "interrupted";
   elements.recordingInterruptionReason.textContent = reason;
-  setRecordingScreen("interrupted", { message: "録音デモを中断しました。自動では再開しません" });
+  renderRecording();
+  document.querySelector("#recording-interrupted-title").focus();
 }
 
-function runProcessingDemo({ autoAdvance = true } = {}) {
-  stopCaptureTimer();
-  stopProcessingDemo();
-  recordingDemo.capture = "stopped";
-  recordingDemo.processingStep = "prepare";
-  recordingDemo.errorKind = "";
-  setRecordingScreen("processing", { message: "固定サンプルの処理を開始しました" });
-  if (!autoAdvance) return;
-  recordingDemo.processingTimers.push(
-    window.setTimeout(() => {
-      recordingDemo.processingStep = "transcript";
-      renderRecordingDemo();
-    }, 450),
-    window.setTimeout(() => {
-      recordingDemo.processingStep = "extract";
-      renderRecordingDemo();
-    }, 900),
-    window.setTimeout(() => {
-      recordingDemo.suggestions = createReviewSuggestions();
-      recordingDemo.draft = "idle";
-      setRecordingScreen("review", { message: "AI提案を人が確認してください" });
-    }, 1400),
-  );
+function startProcessing() {
+  clearCaptureTimer();
+  clearProcessingTimers();
+  recording.capture = "idle";
+  recording.screen = "processing";
+  recording.processingStep = "prepare";
+  renderRecording();
+  document.querySelector("#recording-processing-title").focus();
+
+  const advance = (delay, step) => {
+    recording.processingTimers.push(window.setTimeout(() => {
+      recording.processingStep = step;
+      renderRecording();
+    }, delay));
+  };
+  advance(500, "transcript");
+  advance(1000, "extract");
+  recording.processingTimers.push(window.setTimeout(() => {
+    recording.screen = "review";
+    renderRecording();
+    elements.recordingReviewTitle.focus();
+  }, 1500));
 }
 
-function showRecordingError(kind) {
-  stopCaptureTimer();
-  stopProcessingDemo();
-  recordingDemo.errorKind = kind;
-  recordingDemo.permission = kind === "permission-denied" ? "denied" : recordingDemo.permission;
-  setRecordingScreen("error", { message: "録音デモを続けられません" });
+function resumeInterrupted() {
+  recording.screen = "capture";
+  recording.capture = "recording";
+  startCaptureTimer();
+  renderRecording();
+  document.querySelector("#recording-capture-title").focus();
 }
 
-function resetRecordingDemo() {
-  stopCaptureTimer();
-  stopProcessingDemo();
-  recordingDemo.capture = "idle";
-  recordingDemo.permission = "required";
-  recordingDemo.consent = "required";
-  recordingDemo.elapsedSeconds = 0;
-  recordingDemo.processingStep = "prepare";
-  recordingDemo.errorKind = "";
-  recordingDemo.draft = "idle";
-  recordingDemo.suggestions = createReviewSuggestions();
-  elements.participantConsentCheck.checked = false;
-  setRecordingScreen("setup", { message: "会議設定と参加者を確認してください" });
+function resetRecording() {
+  clearCaptureTimer();
+  clearProcessingTimers();
+  recording.screen = "setup";
+  recording.capture = "idle";
+  recording.elapsedSeconds = 0;
+  recording.processingStep = "prepare";
+  recording.draft = "idle";
+  recording.suggestions = createSuggestions();
+  elements.recordingQuickNote.value = "";
+  renderRecording();
+  elements.recordingWorkflow.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function renderManualFlow({ focus = false } = {}) {
-  const step = Math.max(0, Math.min(SECTION_CONFIG.length - 1, manualFlow.step));
-  manualFlow.step = step;
-  const section = SECTION_CONFIG[step];
-  const isEntry = manualFlow.view === "entry";
-  document.body.dataset.manualView = manualFlow.view;
-  elements.manualEntryView.hidden = !isEntry;
-  elements.manualPreviewView.hidden = isEntry;
-  elements.manualStepPanels.forEach((panel, index) => {
-    panel.hidden = !isEntry || index !== step;
-  });
-  elements.manualStepCount.textContent = `${step + 1} / ${SECTION_CONFIG.length}`;
-  elements.manualStepTitle.textContent = section.label;
-  elements.manualStepHelper.textContent = `${section.label}を1行ずつ入力してください。未入力でも次へ進めます。`;
-  elements.manualStepBack.disabled = step === 0;
-  elements.manualStepNext.hidden = step === SECTION_CONFIG.length - 1;
-  elements.manualOpenPreview.hidden = step !== SECTION_CONFIG.length - 1;
-  if (!focus) return;
-  window.requestAnimationFrame(() => {
-    if (isEntry) {
-      elements.manualStepTitle.focus({ preventScroll: false });
-    } else {
-      elements.manualPreviewTitle.focus({ preventScroll: false });
+function handleReviewAction(button) {
+  const suggestion = recording.suggestions.find(({ id }) => id === button.dataset.suggestionId);
+  if (!suggestion) return;
+  const action = button.dataset.reviewAction;
+  if (action === "edit") {
+    suggestion.editing = true;
+    suggestion.editValue = suggestion.text;
+  } else if (action === "cancel") {
+    suggestion.editing = false;
+    suggestion.editValue = suggestion.text;
+  } else if (action === "apply") {
+    const field = elements.reviewSuggestionList.querySelector(`[data-suggestion-edit="${suggestion.id}"]`);
+    const value = field?.value.trim();
+    if (!value) {
+      field?.focus();
+      return;
     }
-  });
-}
-
-function showManualStep(step, { focus = true } = {}) {
-  manualFlow.view = "entry";
-  manualFlow.step = step;
-  renderManualFlow({ focus });
-}
-
-function showManualPreview() {
-  manualFlow.view = "preview";
-  syncSourceDraft();
-  renderState("4区分の入力確認へ進みました");
-  renderManualFlow({ focus: true });
-}
-
-function openManualFallback() {
-  if (recordingDemo.capture === "recording" || recordingDemo.capture === "paused") {
-    interruptRecordingDemo("手入力へ切り替えたため録音デモを中断しました。取得済み音声はありません。");
+    suggestion.text = value;
+    suggestion.editValue = value;
+    suggestion.editing = false;
+    suggestion.status = "confirmed";
+  } else if (action === "confirm") {
+    suggestion.status = "confirmed";
+  } else if (action === "reject") {
+    suggestion.status = "rejected";
   }
-  stopProcessingDemo();
-  document.body.dataset.minutesMode = "manual";
-  elements.manualFallback.open = true;
-  elements.participantsPanel.hidden = true;
-  manualFlow.view = "entry";
-  renderState("4区分の手入力へ切り替えました");
-  renderManualFlow({ focus: true });
+  renderRecording();
+  elements.reviewSuggestionList.querySelector("button")?.focus();
 }
 
-function returnToRecordingDemo() {
-  document.body.dataset.minutesMode = "recording";
-  delete document.body.dataset.manualView;
-  elements.manualFallback.open = false;
-  renderRecordingDemo("録音デモへ戻りました");
-  window.requestAnimationFrame(() => elements.recordingWorkflow.focus?.({ preventScroll: false }));
-}
-
-function handleRecordingContextChange() {
-  updateRecordingSummary();
-  if (recordingDemo.consent !== "confirmed") return;
-  recordingDemo.consent = "stale";
-  elements.participantConsentCheck.checked = false;
-  if (recordingDemo.capture === "recording" || recordingDemo.capture === "paused") {
-    interruptRecordingDemo("参加者または会議設定が変わったため中断しました。同意を再確認してください。");
-    return;
-  }
-  if (!["setup", "consent"].includes(recordingDemo.screen)) {
-    setRecordingScreen("consent", { message: "参加者または会議設定が変わりました。同意を再確認してください" });
-  } else {
-    renderRecordingDemo("参加者または会議設定が変わりました。同意を再確認してください");
+function loadHistory() {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(HISTORY_STORAGE_KEY) ?? "[]");
+    state.history = Array.isArray(parsed) ? parsed.filter((item) => item && item.id && item.savedAt) : [];
+  } catch {
+    state.history = [];
   }
 }
 
-function applyRecordingScenario(scenario) {
-  document.body.dataset.minutesMode = "recording";
-  elements.manualFallback.open = false;
-  stopCaptureTimer();
-  stopProcessingDemo();
-  recordingDemo.errorKind = "";
-  recordingDemo.elapsedSeconds = 83;
-  recordingDemo.permission = "supported";
-  recordingDemo.consent = "confirmed";
-  recordingDemo.capture = "idle";
-  recordingDemo.processingStep = "prepare";
-  if (scenario === "setup") {
-    resetRecordingDemo();
-  } else if (scenario === "consent") {
-    recordingDemo.permission = "required";
-    recordingDemo.consent = "required";
-    setRecordingScreen("consent");
-  } else if (scenario === "ready") {
-    setRecordingScreen("ready");
-  } else if (scenario === "recording") {
-    beginRecordingDemo({ resetElapsed: false });
-  } else if (scenario === "paused") {
-    recordingDemo.capture = "paused";
-    setRecordingScreen("capture");
-  } else if (scenario === "interrupted") {
-    interruptRecordingDemo();
-  } else if (scenario === "processing") {
-    runProcessingDemo({ autoAdvance: false });
-  } else if (scenario === "review") {
-    recordingDemo.suggestions = createReviewSuggestions();
-    recordingDemo.draft = "idle";
-    setRecordingScreen("review");
-  } else if (scenario === "permission-denied") {
-    showRecordingError("permission-denied");
-  } else if (scenario === "processing-error") {
-    showRecordingError("processing-error");
-  }
+function persistHistory() {
+  window.localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(state.history.slice(0, HISTORY_LIMIT)));
 }
 
-function renderState(actionMessage = "") {
-  const isGenerating = state.generation === "generating";
-  const isSaving = state.save === "saving";
-  const hasResult = Boolean(state.generatedText);
-  const sourceHasContent = hasSourceContent();
-  const isSourceStage = state.resultStage === "source";
-  const sourceReadyForAi = isSourceStage && sourceHasContent && state.save === "saved";
-  const isEditing = state.generation === "editing";
-  let resultState = "idle";
-  if (state.stale) resultState = "stale";
-  else if (isGenerating) resultState = "generating";
-  else if (isSaving) resultState = "saving";
-  else if (state.generation === "generation-error") resultState = "generation-error";
-  else if (state.save === "save-error") resultState = "save-error";
-  else if (state.generation === "editing") resultState = "editing";
-  else if (isSourceStage) resultState = "source";
-  else if (state.save === "saved") resultState = "saved";
-  else if (hasResult) resultState = "generated";
-
-  elements.resultPanel.dataset.state = resultState;
-  elements.resultPanel.dataset.resultStage = state.resultStage;
-
-  elements.inputStatus.className = `status-pill is-${state.input}`;
-  elements.inputStatus.querySelector("span:last-child").textContent = state.input === "dirty" ? "未保存" : "未変更";
-
-  elements.generateButton.disabled = isGenerating || isSaving || (isSourceStage && !sourceReadyForAi);
-  elements.generateButton.classList.toggle("is-loading", isGenerating);
-  elements.generateButton.setAttribute("aria-busy", String(isGenerating));
-
-  elements.saveButton.disabled = (isSourceStage ? !sourceHasContent : !hasResult) || state.stale || state.save === "saved" || isGenerating || isSaving || isEditing;
-  elements.saveButton.classList.toggle("is-loading", isSaving);
-  elements.saveButton.setAttribute("aria-busy", String(isSaving));
-  elements.editResultButton.disabled = isSourceStage || !hasResult || state.stale || isGenerating || isSaving;
-  elements.meetingTypeSelect.disabled = isGenerating || isSaving;
-  if (elements.generatedText.value !== state.generatedText) elements.generatedText.value = state.generatedText;
-  elements.generatedText.readOnly = !isEditing;
-  elements.editResultButton.textContent = isEditing ? "編集を終了" : "編集";
-  elements.editResultButton.classList.toggle("button-primary", isEditing);
-  elements.editResultButton.classList.toggle("button-secondary", !isEditing);
-  elements.saveButton.textContent = isSourceStage ? "入力を保存" : "清書を保存";
-  elements.overwriteNote.hidden = isSourceStage || !hasResult;
-
-  if (state.stale) {
-    elements.generationBadge.textContent = "要再清書";
-    elements.overwriteNote.textContent = "入力が変わりました。保存前に再清書してください。再清書すると現在の清書を上書きします。";
-    elements.resultFlowNote.textContent = "記入者が変わりました。再清書が必要です";
-  } else if (state.generation === "generating") {
-    elements.generationBadge.textContent = "清書中";
-    elements.resultFlowNote.textContent = "AI清書中です";
-  } else if (state.generation === "generation-error") {
-    elements.generationBadge.textContent = "清書エラー";
-    elements.resultFlowNote.textContent = "AI清書を再試行できます";
-  } else if (state.generation === "editing") {
-    elements.generationBadge.textContent = "手動編集中";
-    elements.overwriteNote.textContent = "再清書すると、現在の手動編集を上書きします。";
-    elements.resultFlowNote.textContent = "直接編集できます";
-  } else if (isSourceStage) {
-    elements.generationBadge.textContent = sourceHasContent ? "入力内容" : "入力待ち";
-    elements.resultFlowNote.textContent = sourceReadyForAi
-      ? "入力保存済み。AI清書できます"
-      : sourceHasContent
-        ? "入力内容を保存してください"
-        : "4区分へ入力して保存してください";
-  } else if (state.resultStage === "manual") {
-    elements.generationBadge.textContent = "手動編集済み";
-    elements.overwriteNote.textContent = "再清書すると、現在の手動編集を上書きします。";
-    elements.resultFlowNote.textContent = "手動編集済みです";
-  } else if (state.generation === "generated") {
-    elements.generationBadge.textContent = "清書済み";
-    elements.overwriteNote.textContent = "再清書すると、現在の清書を上書きします。";
-    elements.resultFlowNote.textContent = "清書済み。必要なら編集できます";
-  } else {
-    elements.generationBadge.textContent = "清書前";
-    elements.resultFlowNote.textContent = "4区分を保存してください";
-  }
-
-  elements.saveStatus.className = "save-status";
-  if (state.save === "saving") {
-    elements.saveStatus.classList.add("is-saving");
-    elements.saveStatus.textContent = "このタブに一時保存中";
-  } else if (state.save === "saved") {
-    elements.saveStatus.classList.add("is-saved");
-    elements.saveStatus.textContent = isSourceStage
-      ? "入力内容を保存しました（このタブを閉じると消えます）"
-      : "清書を保存しました（このタブを閉じると消えます）";
-  } else if (state.save === "save-error") {
-    elements.saveStatus.classList.add("is-error");
-    elements.saveStatus.textContent = isSourceStage ? "入力未保存・内容は保持しています" : "清書未保存・内容は保持しています";
-  } else {
-    elements.saveStatus.textContent = state.stale
-      ? "再清書後に保存できます"
-      : isSourceStage
-      ? sourceHasContent
-        ? "入力内容を保存するとAI清書できます"
-        : "4区分へ入力すると保存できます"
-      : hasResult
-        ? "清書後の内容はまだ保存していません"
-        : "清書後に保存できます";
-  }
-
-  if (actionMessage) elements.actionStatus.textContent = actionMessage;
+function createHistoryRecord() {
+  return {
+    id: window.crypto?.randomUUID?.() ?? `minutes-${Date.now()}`,
+    savedAt: new Date().toISOString(),
+    meetingDate: DEMO_DATE,
+    meetingType: elements.meetingTypeSelect.value,
+    meetingLabel: meetingTypeLabel(),
+    author: "田中",
+    participants: selectedParticipants().map(({ name }) => name),
+    durationSeconds: recording.elapsedSeconds,
+    quickNote: elements.recordingQuickNote.value.trim(),
+    transcript: TRANSCRIPT.map((item) => ({ ...item })),
+    suggestions: recording.suggestions
+      .filter(({ status }) => status === "confirmed")
+      .map(({ kind, text, owner, due }) => ({ kind, text, owner, due })),
+  };
 }
 
-function hydrateRecord(record) {
-  if (!record || typeof record !== "object") return false;
-  if (MEETING_TYPE_CONFIG.options.some(({ id }) => id === record.meetingType)) {
-    elements.meetingTypeSelect.value = record.meetingType;
-  }
-  renderAuthor();
-  const participantIds = PARTICIPANTS
-    .filter((participant) => Array.isArray(record.participants) && record.participants.includes(participant.name))
-    .map((participant) => participant.id);
-  setParticipantsByIds(participantIds, false);
-  SECTION_ORDER.forEach((key) => {
-    const input = elements.sectionInputs.find((candidate) => candidate.dataset.sectionInput === key);
-    if (input) input.value = itemsToText(record.sections?.[key] ?? []);
-  });
-  state.generatedText = typeof record.generatedText === "string" ? record.generatedText : "";
-  const hasGeneratedText = Boolean(state.generatedText);
-  const storedResultStage = ["source", "generated", "manual"].includes(record.resultStage)
-    ? record.resultStage
-    : hasGeneratedText
-      ? "generated"
-      : "source";
-  const authorMismatch = String(record.author ?? "").trim() !== getAuthor();
-  const needsAuthorRefresh = hasGeneratedText && authorMismatch;
-  state.resultStage = storedResultStage;
-  state.generation = storedResultStage === "source" ? "source" : hasGeneratedText ? "generated" : "idle";
-  state.save = hasGeneratedText && !authorMismatch ? "saved" : "idle";
-  state.input = needsAuthorRefresh ? "dirty" : "pristine";
-  state.stale = needsAuthorRefresh && storedResultStage !== "source";
+function saveCurrentMinutes() {
+  if (recording.draft === "saved") return;
+  const item = createHistoryRecord();
+  state.history = [item, ...state.history].slice(0, HISTORY_LIMIT);
+  persistHistory();
+  recording.draft = "saved";
+  renderRecording();
+  renderHistory();
+}
+
+function allHistoryItems() {
+  return [...state.history, ...DEMO_HISTORY];
+}
+
+function itemSearchText(item) {
+  return [
+    item.meetingLabel,
+    item.author,
+    ...(item.participants ?? []),
+    item.quickNote,
+    ...(item.suggestions ?? []).flatMap(({ kind, text, owner, due }) => [kind, text, owner, due]),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLocaleLowerCase("ja");
+}
+
+function dateMatchesPeriod(dateString, period) {
+  if (period === "all") return true;
+  const itemDate = new Date(`${dateString}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const differenceInDays = Math.round((today.getTime() - itemDate.getTime()) / 86400000);
+  if (period === "yesterday") return differenceInDays === 1;
+  if (period === "7days") return differenceInDays >= 0 && differenceInDays <= 6;
+  if (period === "30days") return differenceInDays >= 0 && differenceInDays <= 29;
   return true;
 }
 
-function loadStoredEntries() {
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    const parsed = JSON.parse(raw);
-    if (parsed?.version !== STORAGE_VERSION || !Array.isArray(parsed.entries)) {
-      throw new Error("保存形式が一致しません");
+function filteredHistoryItems() {
+  const filters = state.historyFilters;
+  const keyword = filters.keyword.trim().toLocaleLowerCase("ja");
+  return allHistoryItems()
+    .filter((item) => filters.category === "all" || item.meetingType === filters.category)
+    .filter((item) => !keyword || itemSearchText(item).includes(keyword))
+    .filter((item) => dateMatchesPeriod(item.meetingDate, filters.period))
+    .filter((item) => !filters.dateFrom || item.meetingDate >= filters.dateFrom)
+    .filter((item) => !filters.dateTo || item.meetingDate <= filters.dateTo)
+    .sort((first, second) => {
+      const dateOrder = first.meetingDate.localeCompare(second.meetingDate);
+      const savedOrder = first.savedAt.localeCompare(second.savedAt);
+      return filters.sort === "oldest" ? dateOrder || savedOrder : -(dateOrder || savedOrder);
+    });
+}
+
+function renderHistoryFilters() {
+  for (const button of elements.historyCategoryButtons) {
+    const selected = button.dataset.historyCategory === state.historyFilters.category;
+    button.classList.toggle("is-selected", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  }
+  elements.historyKeyword.value = state.historyFilters.keyword;
+  elements.historyPeriod.value = state.historyFilters.period;
+  elements.historyDateFrom.value = state.historyFilters.dateFrom;
+  elements.historyDateTo.value = state.historyFilters.dateTo;
+  elements.historySort.value = state.historyFilters.sort;
+}
+
+function renderHistory() {
+  const items = filteredHistoryItems();
+  elements.historyCount.textContent = `${items.length}件`;
+  elements.historyEmpty.hidden = items.length > 0;
+  elements.historyList.replaceChildren();
+  elements.historyFilterStatus.textContent = `${items.length}件・${state.historyFilters.sort === "newest" ? "日付の新しい順" : "日付の古い順"}`;
+
+  for (const item of items) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "recording-history-item";
+    button.dataset.historyId = item.id;
+    button.setAttribute("aria-label", `${item.meetingLabel}、${formatMeetingDate(item.meetingDate)}の議事録を開く`);
+
+    const main = document.createElement("span");
+    main.className = "history-item-main";
+    const heading = document.createElement("span");
+    heading.className = "history-item-heading";
+    const title = document.createElement("strong");
+    title.textContent = item.meetingLabel || "議事録";
+    heading.append(title);
+    if (item.isSample) {
+      const sample = document.createElement("small");
+      sample.className = "history-sample-label";
+      sample.textContent = "サンプル";
+      heading.append(sample);
     }
-    state.savedEntries = parsed.entries.filter((entry) => entry && typeof entry === "object" && entry.record);
-    if (state.savedEntries[0]) hydrateRecord(state.savedEntries[0].record);
-  } catch {
-    state.savedEntries = [];
-    elements.saveError.hidden = false;
-    elements.saveError.textContent = "保存データを読み込めませんでした。現在の入力はそのまま続けられます。次回保存で復旧を試します。";
-    state.save = "save-error";
+    const participants = document.createElement("span");
+    participants.textContent = item.participants?.length ? item.participants.join("、") : "参加者未登録";
+    const summary = document.createElement("span");
+    summary.textContent = item.suggestions?.[0]?.text || item.quickNote || "議事録";
+    main.append(heading, summary, participants);
+
+    const meta = document.createElement("span");
+    meta.className = "history-item-meta";
+    const meetingDate = document.createElement("time");
+    meetingDate.dateTime = item.meetingDate;
+    meetingDate.textContent = formatMeetingDate(item.meetingDate);
+    const duration = document.createElement("span");
+    duration.textContent = `録音 ${formatDuration(Number(item.durationSeconds) || 0)}`;
+    meta.append(meetingDate, duration);
+    button.append(main, meta);
+    elements.historyList.append(button);
+  }
+
+  if (state.selectedHistoryId && allHistoryItems().some(({ id }) => id === state.selectedHistoryId)) {
+    renderHistoryDetail();
+  } else {
+    state.selectedHistoryId = null;
+    elements.historyListView.hidden = false;
+    elements.historyDetail.hidden = true;
   }
 }
 
-function writeStoredRecord(record) {
-  const entry = { savedAt: new Date().toISOString(), record };
-  const nextEntries = [entry, ...state.savedEntries].slice(0, 20);
-  const payload = { version: STORAGE_VERSION, entries: nextEntries };
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  state.savedEntries = nextEntries;
+function appendDetailRow(list, termText, valueText) {
+  const row = document.createElement("div");
+  const term = document.createElement("dt");
+  term.textContent = termText;
+  const value = document.createElement("dd");
+  value.textContent = valueText;
+  row.append(term, value);
+  list.append(row);
 }
 
-function wait(milliseconds) {
-  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
-}
+function renderHistoryDetail() {
+  const item = allHistoryItems().find(({ id }) => id === state.selectedHistoryId);
+  if (!item) return;
+  elements.historyListView.hidden = true;
+  elements.historyDetail.hidden = false;
+  elements.historyDetailTitle.textContent = `${item.meetingLabel || "議事録"}の議事録`;
+  elements.historyDetailContent.replaceChildren();
 
-async function handleGenerate() {
-  if (state.resultStage === "source" && state.save !== "saved") return;
-  state.generation = "generating";
-  elements.generationError.hidden = true;
-  elements.saveError.hidden = true;
-  renderState("AI清書中");
-  await wait(500);
+  const metadata = document.createElement("dl");
+  metadata.className = "history-detail-metadata";
+  appendDetailRow(metadata, "実施日", formatMeetingDate(item.meetingDate));
+  appendDetailRow(metadata, "会議種別", item.meetingLabel || "未設定");
+  appendDetailRow(metadata, "保存日時", formatSavedDate(item.savedAt));
+  appendDetailRow(metadata, "参加者", item.participants?.length ? item.participants.join("、") : "未登録");
+  appendDetailRow(metadata, "録音時間", formatDuration(Number(item.durationSeconds) || 0));
+  elements.historyDetailContent.append(metadata);
 
-  if (state.failNextGeneration) {
-    state.failNextGeneration = false;
-    elements.failNextGeneration.setAttribute("aria-pressed", "false");
-    state.generation = "generation-error";
-    elements.generationError.hidden = false;
-    elements.generationError.textContent = "AI清書を完了できませんでした。入力は保持しています。もう一度「AI清書」を押してください。";
-    renderState("清書エラー：入力は保持しています");
-    return;
+  if (item.quickNote) {
+    const section = makeHistorySection("録音中のメモ");
+    const paragraph = document.createElement("p");
+    paragraph.textContent = item.quickNote;
+    section.append(paragraph);
+    elements.historyDetailContent.append(section);
   }
 
-  try {
-    state.generatedText = await generateMinutesDraft(collectDraftInput());
-    state.resultStage = "generated";
-    state.generation = "generated";
-    state.stale = false;
-    state.save = "idle";
-    state.input = "dirty";
-    renderState("AI清書が完了しました。内容を確認してください");
-    elements.resultPanel.focus({ preventScroll: false });
-  } catch {
-    state.generation = "generation-error";
-    elements.generationError.hidden = false;
-    elements.generationError.textContent = "AI清書を完了できませんでした。入力は保持しています。もう一度「AI清書」を押してください。";
-    renderState("清書エラー：入力は保持しています");
+  const suggestions = makeHistorySection("議事録");
+  if (item.suggestions?.length) {
+    const list = document.createElement("ul");
+    for (const suggestion of item.suggestions) {
+      const entry = document.createElement("li");
+      const label = document.createElement("strong");
+      label.textContent = `${suggestion.kind}：`;
+      entry.append(label, suggestion.text);
+      list.append(entry);
+    }
+    suggestions.append(list);
+  } else {
+    const empty = document.createElement("p");
+    empty.textContent = "採用した項目はありません。";
+    suggestions.append(empty);
   }
-}
+  elements.historyDetailContent.append(suggestions);
 
-async function handleSave() {
-  if ((!state.generatedText && state.resultStage !== "source") || (state.resultStage === "source" && !hasSourceContent()) || state.stale) return;
-  state.save = "saving";
-  elements.saveError.hidden = true;
-  renderState("このタブに一時保存中");
-  await wait(420);
-
-  if (state.failNextSave) {
-    state.failNextSave = false;
-    elements.failNextSave.setAttribute("aria-pressed", "false");
-    state.save = "save-error";
-    elements.saveError.hidden = false;
-    elements.saveError.textContent = "保存できませんでした。入力と清書は保持しています。保存を再試行してください。";
-    renderState("保存エラー：入力と清書は保持しています");
-    return;
+  const transcript = makeHistorySection("文字起こし");
+  for (const line of item.transcript ?? []) {
+    const paragraph = document.createElement("p");
+    const time = document.createElement("time");
+    time.textContent = line.time;
+    paragraph.append(time, ` ${line.text}`);
+    transcript.append(paragraph);
   }
-
-  try {
-    writeStoredRecord(createRecord("saved"));
-    state.save = "saved";
-    state.input = "pristine";
-    renderState(state.resultStage === "source" ? "入力内容を一時保存しました。AI清書を実行できます" : "このタブに一時保存しました");
-  } catch {
-    state.save = "save-error";
-    elements.saveError.hidden = false;
-    elements.saveError.textContent = "保存できませんでした。入力と清書は保持しています。保存を再試行してください。";
-    renderState("保存エラー：入力と清書は保持しています");
-  }
+  elements.historyDetailContent.append(transcript);
 }
 
-function toggleParticipantMenu(force, { restoreFocus = false } = {}) {
-  const willOpen = typeof force === "boolean" ? force : elements.participantMenu.hidden;
-  if (!willOpen && restoreFocus) elements.participantTrigger.focus({ preventScroll: true });
-  elements.participantMenu.hidden = !willOpen;
-  elements.participantTrigger.setAttribute("aria-expanded", String(willOpen));
-  if (willOpen) {
-    elements.participantCategoryTabs.querySelector('[aria-selected="true"]')?.focus({ preventScroll: true });
-  }
+function makeHistorySection(titleText) {
+  const section = document.createElement("section");
+  section.className = "history-detail-section";
+  const heading = document.createElement("h4");
+  heading.textContent = titleText;
+  section.append(heading);
+  return section;
 }
 
-function isElementVisible(element) {
-  if (!element?.isConnected) return false;
-  const style = window.getComputedStyle(element);
-  const rect = element.getBoundingClientRect();
-  return style.visibility !== "hidden" && style.display !== "none" && rect.width > 0 && rect.height > 0;
+function openHistory(id) {
+  state.selectedHistoryId = id;
+  renderHistoryDetail();
+  elements.historyDetailTitle.focus();
 }
 
-function getInfoPopover(trigger) {
-  return trigger ? document.getElementById(trigger.getAttribute("aria-controls")) : null;
+function closeHistory() {
+  state.selectedHistoryId = null;
+  elements.historyDetail.hidden = true;
+  elements.historyListView.hidden = false;
+  elements.historyList.querySelector("button")?.focus();
 }
 
-function clearInfoTimers() {
-  window.clearTimeout(infoOpenTimer);
-  window.clearTimeout(infoCloseTimer);
-  infoOpenTimer = null;
-  infoCloseTimer = null;
-}
-
-function positionInfoPopover(trigger, popover) {
-  const viewportGap = 8;
-  const triggerGap = 6;
-  popover.style.visibility = "hidden";
-  popover.hidden = false;
-  const triggerRect = trigger.getBoundingClientRect();
-  const popoverRect = popover.getBoundingClientRect();
-  const left = Math.min(
-    Math.max(viewportGap, triggerRect.left),
-    window.innerWidth - popoverRect.width - viewportGap,
-  );
-  const preferredTop = triggerRect.bottom + triggerGap;
-  const top = preferredTop + popoverRect.height <= window.innerHeight - viewportGap
-    ? preferredTop
-    : Math.max(viewportGap, triggerRect.top - popoverRect.height - triggerGap);
-  popover.style.left = `${Math.round(left)}px`;
-  popover.style.top = `${Math.round(top)}px`;
-  popover.style.visibility = "visible";
-}
-
-function closeInfoPopover({ restoreFocus = false } = {}) {
-  clearInfoTimers();
+function closeInfo() {
   if (!activeInfoTrigger) return;
-  const trigger = activeInfoTrigger;
-  const popover = getInfoPopover(trigger);
-  trigger.setAttribute("aria-expanded", "false");
-  if (popover) {
-    popover.hidden = true;
-    popover.style.removeProperty("left");
-    popover.style.removeProperty("top");
-    popover.style.removeProperty("visibility");
-  }
+  const popover = document.querySelector(`#${activeInfoTrigger.getAttribute("aria-controls")}`);
+  if (popover) popover.hidden = true;
+  activeInfoTrigger.setAttribute("aria-expanded", "false");
   activeInfoTrigger = null;
-  if (restoreFocus) trigger.focus({ preventScroll: true });
 }
 
-function openInfoPopover(trigger) {
-  clearInfoTimers();
-  if (activeInfoTrigger && activeInfoTrigger !== trigger) closeInfoPopover();
-  const popover = getInfoPopover(trigger);
+function toggleInfo(trigger) {
+  const wasOpen = trigger === activeInfoTrigger;
+  closeInfo();
+  if (wasOpen) return;
+  const popover = document.querySelector(`#${trigger.getAttribute("aria-controls")}`);
   if (!popover) return;
-  activeInfoTrigger = trigger;
+  popover.hidden = false;
   trigger.setAttribute("aria-expanded", "true");
-  positionInfoPopover(trigger, popover);
+  activeInfoTrigger = trigger;
 }
 
-function scheduleInfoClose(trigger) {
-  window.clearTimeout(infoCloseTimer);
-  infoCloseTimer = window.setTimeout(() => {
-    const popover = getInfoPopover(trigger);
-    if (document.activeElement !== trigger && !popover?.matches(":hover")) closeInfoPopover();
-  }, 100);
+function setMobileMenu(open, { restoreFocus = true } = {}) {
+  if (!mobileMenuMedia.matches && open) return;
+  elements.mobileMenuDrawer.hidden = !open;
+  elements.mobileMenuScrim.hidden = !open;
+  elements.mobileMenuDrawer.setAttribute("aria-hidden", String(!open));
+  elements.mobileMenuTrigger.setAttribute("aria-expanded", String(open));
+  elements.appShell.inert = open;
+  document.body.classList.toggle("is-mobile-menu-open", open);
+  if (open) elements.mobileMenuDrawer.focus();
+  else if (restoreFocus) elements.mobileMenuTrigger.focus();
 }
 
-function bindInfoAffordances() {
-  elements.infoTriggers.forEach((trigger) => {
-    const popover = getInfoPopover(trigger);
-    trigger.addEventListener("pointerdown", () => {
-      suppressInfoFocusOpen = true;
-    });
-    trigger.addEventListener("click", () => {
-      const isOpen = trigger.getAttribute("aria-expanded") === "true";
-      suppressInfoFocusOpen = false;
-      if (isOpen) closeInfoPopover();
-      else openInfoPopover(trigger);
-    });
-    trigger.addEventListener("focus", () => {
-      if (!suppressInfoFocusOpen) openInfoPopover(trigger);
-    });
-    trigger.addEventListener("blur", () => {
-      suppressInfoFocusOpen = false;
-      scheduleInfoClose(trigger);
-    });
-    trigger.addEventListener("mouseenter", () => {
-      clearInfoTimers();
-      infoOpenTimer = window.setTimeout(() => openInfoPopover(trigger), 800);
-    });
-    trigger.addEventListener("mouseleave", () => scheduleInfoClose(trigger));
-    popover?.addEventListener("mouseenter", clearInfoTimers);
-    popover?.addEventListener("mouseleave", () => scheduleInfoClose(trigger));
-  });
-  document.addEventListener("pointerdown", (event) => {
-    if (event.target.closest(".info-affordance")) return;
-    closeInfoPopover();
-  });
-  document.addEventListener("keydown", (event) => {
-    if (event.key !== "Escape" || !activeInfoTrigger) return;
-    event.preventDefault();
-    closeInfoPopover({ restoreFocus: true });
-  });
-  window.addEventListener("resize", () => closeInfoPopover());
-  window.addEventListener("scroll", () => closeInfoPopover(), { passive: true });
-}
-
-function getMobileMenuFocusableElements() {
-  return [...elements.mobileMenuDrawer.querySelectorAll(
-    'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
-  )].filter(isElementVisible);
-}
-
-function setMobileMenu(open, { restoreFocus = false, focusTarget = null } = {}) {
-  const next = Boolean(open && mobileMenuMedia.matches);
-  if (next && !elements.participantMenu.hidden) toggleParticipantMenu(false);
-  elements.mobileMenuTrigger.setAttribute("aria-expanded", String(next));
-  elements.mobileMenuTrigger.setAttribute("aria-label", next ? "メニューを閉じる" : "メニューを開く");
-  elements.mobileMenuDrawer.setAttribute("aria-hidden", String(!next));
-  elements.mobileMenuDrawer.hidden = !next;
-  elements.mobileMenuScrim.hidden = !next;
-  elements.appShell.inert = next;
-  document.body.classList.toggle("is-mobile-menu-open", next);
-  if (next) {
-    window.requestAnimationFrame(() => {
-      const target = isElementVisible(focusTarget) ? focusTarget : elements.mobileMenuCurrent;
-      target?.focus({ preventScroll: true });
-    });
-  } else if (restoreFocus && isElementVisible(elements.mobileMenuTrigger)) {
-    elements.mobileMenuTrigger.focus({ preventScroll: true });
-  }
-}
-
-function trapMobileMenuFocus(event) {
-  if (event.key === "Escape") {
-    event.preventDefault();
-    event.stopPropagation();
-    setMobileMenu(false, { restoreFocus: true });
-    return;
-  }
-  if (event.key !== "Tab") return;
-  const focusable = getMobileMenuFocusableElements();
-  if (focusable.length === 0) {
-    event.preventDefault();
-    elements.mobileMenuDrawer.focus({ preventScroll: true });
-    return;
-  }
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
-  const activeIndex = focusable.indexOf(document.activeElement);
-  if (activeIndex === -1) {
-    event.preventDefault();
-    (event.shiftKey ? last : first).focus({ preventScroll: true });
-  } else if (event.shiftKey && document.activeElement === first) {
-    event.preventDefault();
-    last.focus({ preventScroll: true });
-  } else if (!event.shiftKey && document.activeElement === last) {
-    event.preventDefault();
-    first.focus({ preventScroll: true });
-  }
-}
-
-function getContactDialogFocusableElements() {
-  return [...elements.contactDialog.querySelectorAll(
-    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), iframe, [tabindex]:not([tabindex="-1"])',
-  )].filter((element) => {
-    const style = window.getComputedStyle(element);
-    const rect = element.getBoundingClientRect();
-    return style.visibility !== "hidden" && style.display !== "none" && rect.width > 0 && rect.height > 0;
-  });
-}
-
-function openContactDialog(trigger) {
-  if (elements.contactDialog.open) return;
-  if (!elements.participantMenu.hidden) toggleParticipantMenu(false);
+function openContact(trigger) {
   lastContactTrigger = trigger;
+  restoreMenuAfterContact = !elements.mobileMenuDrawer.hidden;
+  if (restoreMenuAfterContact) setMobileMenu(false, { restoreFocus: false });
+  if (!elements.contactIframe.src) elements.contactIframe.src = CONTACT_FORM_URL;
   elements.contactFallback.href = CONTACT_FORM_URL;
-  if (!elements.contactIframe.hasAttribute("src")) elements.contactIframe.src = CONTACT_FORM_URL;
-  document.body.classList.add("is-contact-open");
   elements.contactDialog.showModal();
-  window.requestAnimationFrame(() => elements.contactDialogTitle.focus({ preventScroll: true }));
+  elements.contactDialogTitle.focus();
 }
 
-function closeContactDialog() {
-  if (elements.contactDialog.open) elements.contactDialog.close();
+function closeContact() {
+  elements.contactDialog.close();
+  if (restoreMenuAfterContact && mobileMenuMedia.matches) {
+    restoreMenuAfterContact = false;
+    setMobileMenu(true);
+  } else {
+    lastContactTrigger?.focus();
+  }
 }
 
-function trapContactDialogFocus(event) {
-  if (event.key === "Escape") {
-    event.preventDefault();
-    closeContactDialog();
-    return;
+function setAppView(view) {
+  const showHistory = view === "history";
+  if (showHistory && recording.screen === "capture" && recording.capture === "recording") {
+    recording.capture = "paused";
+    clearCaptureTimer();
+    renderRecording();
   }
-  if (event.key !== "Tab") return;
-  const focusable = getContactDialogFocusableElements();
-  if (focusable.length === 0) {
-    event.preventDefault();
-    elements.contactDialogTitle.focus({ preventScroll: true });
-    return;
+  state.view = showHistory ? "history" : "create";
+  document.body.dataset.appView = state.view;
+  elements.creationWorkspace.hidden = showHistory;
+  elements.historyWorkspace.hidden = !showHistory;
+  elements.pageTitle.textContent = showHistory ? "過去の議事録" : "議事録作成";
+  elements.historyViewTriggerLabel.textContent = showHistory ? "議事録作成へ戻る" : "過去の議事録を見る";
+  elements.historyViewTrigger.classList.toggle("is-current", showHistory);
+
+  if (showHistory) {
+    setParticipantMenu(false);
+    closeInfo();
+    state.selectedHistoryId = null;
+    renderHistoryFilters();
+    renderHistory();
+    setHeaderStatus("履歴表示中", "is-progress");
+    elements.historyPageHeading.focus();
+  } else {
+    renderRecording();
+    elements.pageTitle.focus({ preventScroll: true });
   }
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
-  const activeIndex = focusable.indexOf(document.activeElement);
-  if (activeIndex === -1) {
-    event.preventDefault();
-    (event.shiftKey ? last : first).focus({ preventScroll: true });
-  } else if (event.shiftKey && document.activeElement === first) {
-    event.preventDefault();
-    last.focus({ preventScroll: true });
-  } else if (!event.shiftKey && document.activeElement === last) {
-    event.preventDefault();
-    first.focus({ preventScroll: true });
-  }
+}
+
+function applyHistoryFilter(key, value) {
+  state.historyFilters[key] = value;
+  state.selectedHistoryId = null;
+  renderHistory();
+}
+
+function resetHistoryFilters() {
+  state.historyFilters = {
+    category: "all",
+    keyword: "",
+    period: "all",
+    dateFrom: "",
+    dateTo: "",
+    sort: "newest",
+  };
+  state.selectedHistoryId = null;
+  renderHistoryFilters();
+  renderHistory();
+  elements.historyKeyword.focus();
+}
+
+function handleContextChange(reason) {
+  if (recording.screen === "capture") interruptRecording(reason);
+  else renderRecording();
 }
 
 function bindEvents() {
-  bindInfoAffordances();
-  elements.recordingEnterConsent.addEventListener("click", () => {
-    setRecordingScreen("consent", { message: "端末状態と参加者同意を確認してください" });
-  });
-  elements.demoDeviceCheck.addEventListener("click", () => {
-    recordingDemo.permission = "supported";
-    renderRecordingDemo("端末利用可否をデモ上で確認しました");
-  });
-  elements.participantConsentCheck.addEventListener("change", () => {
-    recordingDemo.consent = elements.participantConsentCheck.checked ? "confirmed" : "required";
-    renderRecordingDemo(elements.participantConsentCheck.checked ? "参加者の録音同意を確認しました" : "参加者の録音同意が未確認です");
-  });
-  elements.recordingConsentReady.addEventListener("click", () => {
-    if (recordingDemo.permission !== "supported" || recordingDemo.consent !== "confirmed") return;
-    setRecordingScreen("ready", { message: "録音デモの準備が完了しました" });
-  });
-  elements.recordingConsentBack.addEventListener("click", () => setRecordingScreen("setup"));
-  elements.recordingReadyBack.addEventListener("click", () => setRecordingScreen("consent"));
-  elements.recordingStartDemo.addEventListener("click", () => beginRecordingDemo());
-  elements.recordingPause.addEventListener("click", toggleRecordingPause);
-  elements.recordingStop.addEventListener("click", () => runProcessingDemo());
-  elements.recordingInterrupt.addEventListener("click", () => interruptRecordingDemo());
-  elements.recordingResumeInterrupted.addEventListener("click", () => beginRecordingDemo({ resetElapsed: false }));
-  elements.recordingProcessInterrupted.addEventListener("click", () => runProcessingDemo());
-  elements.recordingQuickNote.addEventListener("input", () => {
-    elements.recordingWorkflowStatus.textContent = "簡易メモをこのページ内に保持しています";
-  });
-  elements.recordingSaveDraft.addEventListener("click", () => {
-    recordingDemo.draft = "saved";
-    renderRecordingDemo("デモ下書きをこのページ内に保持しました");
-  });
-  elements.reviewSuggestionList.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-review-action]");
-    if (!button) return;
-    const suggestion = recordingDemo.suggestions.find(({ id }) => id === button.dataset.suggestionId);
-    if (!suggestion) return;
-    if (button.dataset.reviewAction === "confirm") {
-      suggestion.status = "confirmed";
-      suggestion.editing = false;
-      suggestion.provenance = suggestion.provenance === "人が編集" ? "人が編集・確認" : "人が確認";
-    } else if (button.dataset.reviewAction === "reject") {
-      suggestion.status = "rejected";
-      suggestion.editing = false;
-      suggestion.provenance = "人が却下";
-    } else if (button.dataset.reviewAction === "edit") {
-      suggestion.editing = true;
-      suggestion.editValue = suggestion.text;
-    } else if (button.dataset.reviewAction === "save-edit") {
-      const field = elements.reviewSuggestionList.querySelector(`[data-review-edit-field="${suggestion.id}"]`);
-      const nextText = field?.value.trim();
-      if (nextText) suggestion.text = nextText;
-      ["owner", "department", "due"].forEach((property) => {
-        const metadataField = elements.reviewSuggestionList.querySelector(`[data-review-metadata-field="${property}"]`);
-        const nextValue = metadataField?.value.trim();
-        if (nextValue) suggestion[property] = nextValue;
-      });
-      suggestion.editValue = suggestion.text;
-      suggestion.status = "pending";
-      suggestion.editing = false;
-      suggestion.provenance = "人が編集";
-    } else if (button.dataset.reviewAction === "cancel-edit") {
-      suggestion.editing = false;
-      suggestion.editValue = suggestion.text;
-    }
-    recordingDemo.draft = "idle";
-    renderRecordingDemo(`${suggestion.kind}の確認状態を更新しました`);
-    window.requestAnimationFrame(() => {
-      const nextAction = elements.reviewSuggestionList.querySelector("[data-review-action]");
-      if (nextAction) nextAction.focus({ preventScroll: true });
-      else elements.recordingSaveDraft.focus({ preventScroll: true });
+  elements.historyViewTrigger.addEventListener("click", () => setAppView(state.view === "history" ? "create" : "history"));
+  elements.historyCreateMinutes.addEventListener("click", () => setAppView("create"));
+  for (const button of elements.historyCategoryButtons) {
+    button.addEventListener("click", () => {
+      applyHistoryFilter("category", button.dataset.historyCategory);
+      renderHistoryFilters();
     });
-  });
-  elements.recordingErrorRetry.addEventListener("click", () => {
-    if (recordingDemo.errorKind === "processing-error") runProcessingDemo();
-    else {
-      recordingDemo.permission = "required";
-      recordingDemo.consent = "required";
-      setRecordingScreen(recordingDemo.errorKind === "unsupported" ? "setup" : "consent");
-    }
-  });
-  elements.recordingErrorReset.addEventListener("click", resetRecordingDemo);
-  elements.openManualButtons.forEach((button) => button.addEventListener("click", openManualFallback));
-  elements.returnToRecording.addEventListener("click", returnToRecordingDemo);
-  elements.manualStepBack.addEventListener("click", () => showManualStep(manualFlow.step - 1));
-  elements.manualStepNext.addEventListener("click", () => showManualStep(manualFlow.step + 1));
-  elements.manualOpenPreview.addEventListener("click", showManualPreview);
-  elements.manualReturnToEntry.addEventListener("click", () => showManualStep(manualFlow.step));
-  elements.manualFallback.addEventListener("toggle", () => {
-    if (elements.manualFallback.open && document.body.dataset.minutesMode !== "manual") {
-      openManualFallback();
-    } else if (!elements.manualFallback.open && document.body.dataset.minutesMode === "manual") {
-      returnToRecordingDemo();
-    }
-  });
-  elements.recordingScenarioApply.addEventListener("click", () => applyRecordingScenario(elements.recordingScenarioSelect.value));
-  elements.recordingOfflineToggle.addEventListener("click", () => {
-    recordingDemo.offline = !recordingDemo.offline;
-    elements.recordingOfflineToggle.setAttribute("aria-pressed", String(recordingDemo.offline));
-    elements.recordingOfflineToggle.textContent = recordingDemo.offline ? "オンラインへ戻す" : "オフラインを再現";
-    renderRecordingDemo(recordingDemo.offline ? "オフライン状態を再現しています" : "オンライン想定へ戻しました");
-  });
-  elements.mobileMenuTrigger.addEventListener("click", () => {
-    setMobileMenu(elements.mobileMenuTrigger.getAttribute("aria-expanded") !== "true");
-  });
-  elements.mobileMenuScrim.addEventListener("click", () => setMobileMenu(false, { restoreFocus: true }));
-  elements.mobileMenuClose.addEventListener("click", () => setMobileMenu(false, { restoreFocus: true }));
-  elements.mobileMenuCurrent.addEventListener("click", () => setMobileMenu(false, { restoreFocus: true }));
-  elements.mobileMenuDrawer.addEventListener("keydown", trapMobileMenuFocus);
-  mobileMenuMedia.addEventListener("change", (event) => {
-    if (!event.matches) setMobileMenu(false);
-  });
-  elements.contactTriggers.forEach((trigger) => {
-    trigger.addEventListener("click", () => {
-      restoreMobileMenuAfterContact = Boolean(trigger.closest("#mobile-menu-drawer"));
-      if (restoreMobileMenuAfterContact) setMobileMenu(false);
-      openContactDialog(trigger);
-    });
-  });
-  elements.contactDialogClose.addEventListener("click", closeContactDialog);
-  elements.contactDialog.addEventListener("cancel", (event) => {
-    event.preventDefault();
-    closeContactDialog();
-  });
-  elements.contactDialog.addEventListener("click", (event) => {
-    if (event.target === elements.contactDialog) closeContactDialog();
-  });
-  elements.contactDialog.addEventListener("keydown", trapContactDialogFocus);
-  elements.contactDialog.addEventListener("close", () => {
-    document.body.classList.remove("is-contact-open");
-    const trigger = lastContactTrigger;
-    const shouldRestoreMobileMenu = restoreMobileMenuAfterContact;
-    lastContactTrigger = null;
-    restoreMobileMenuAfterContact = false;
-    window.requestAnimationFrame(() => {
-      if (shouldRestoreMobileMenu && mobileMenuMedia.matches) {
-        setMobileMenu(true, { focusTarget: trigger });
-        return;
-      }
-      const focusTarget = [trigger, ...elements.contactTriggers, elements.mobileMenuTrigger].find(isElementVisible);
-      focusTarget?.focus({ preventScroll: true });
-    });
-  });
-
-  elements.meetingTypeSelect.addEventListener("change", () => {
-    markSourceDirty(`${meetingTypeLabel(elements.meetingTypeSelect.value)}へ切り替えました`);
-    handleRecordingContextChange();
-  });
-
-  elements.sectionInputs.forEach((input) => {
-    input.addEventListener("input", () => markSourceDirty(`${SECTION_LABELS[input.dataset.sectionInput]}を更新しました`));
-  });
-
-  elements.generatedText.addEventListener("input", () => {
-    state.generatedText = elements.generatedText.value;
-    state.resultStage = "manual";
-    state.save = "idle";
-    state.input = "dirty";
-    renderState("清書を手動で編集しました");
-  });
-
-  elements.participantOptions.addEventListener("change", (event) => {
-    if (!event.target.matches('input[type="checkbox"]')) return;
-    if (event.target.checked) state.selectedParticipantIds.add(event.target.value);
-    else state.selectedParticipantIds.delete(event.target.value);
-    renderParticipants();
-    markSourceDirty("参加者を更新しました");
-    handleRecordingContextChange();
-  });
-
-  elements.participantChips.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-remove-participant]");
-    if (!button) return;
-    state.selectedParticipantIds.delete(button.dataset.removeParticipant);
-    renderParticipantOptions();
-    renderParticipants();
-    markSourceDirty("参加者を外しました");
-    handleRecordingContextChange();
-  });
-
+  }
+  elements.historyKeyword.addEventListener("input", () => applyHistoryFilter("keyword", elements.historyKeyword.value));
+  elements.historyPeriod.addEventListener("change", () => applyHistoryFilter("period", elements.historyPeriod.value));
+  elements.historyDateFrom.addEventListener("change", () => applyHistoryFilter("dateFrom", elements.historyDateFrom.value));
+  elements.historyDateTo.addEventListener("change", () => applyHistoryFilter("dateTo", elements.historyDateTo.value));
+  elements.historySort.addEventListener("change", () => applyHistoryFilter("sort", elements.historySort.value));
+  elements.historyFilterReset.addEventListener("click", resetHistoryFilters);
+  elements.participantTrigger.addEventListener("click", () => setParticipantMenu(elements.participantMenu.hidden));
+  elements.participantClose.addEventListener("click", () => setParticipantMenu(false));
   elements.participantCategoryTabs.addEventListener("click", (event) => {
-    const tab = event.target.closest("[data-participant-category]");
-    if (tab) switchParticipantCategory(tab.dataset.participantCategory);
+    const button = event.target.closest("[data-participant-category]");
+    if (!button) return;
+    state.participantCategory = button.dataset.participantCategory;
+    renderParticipantCategories();
+    renderParticipantOptions();
   });
-
-  elements.participantCategoryTabs.addEventListener("keydown", (event) => {
-    const tab = event.target.closest("[data-participant-category]");
-    if (!tab) return;
-    const currentIndex = PARTICIPANT_CATEGORIES.findIndex(({ id }) => id === tab.dataset.participantCategory);
-    let nextIndex = currentIndex;
-    if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % PARTICIPANT_CATEGORIES.length;
-    else if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + PARTICIPANT_CATEGORIES.length) % PARTICIPANT_CATEGORIES.length;
-    else if (event.key === "Home") nextIndex = 0;
-    else if (event.key === "End") nextIndex = PARTICIPANT_CATEGORIES.length - 1;
-    else return;
-    event.preventDefault();
-    switchParticipantCategory(PARTICIPANT_CATEGORIES[nextIndex].id);
+  elements.participantOptions.addEventListener("change", (event) => {
+    const checkbox = event.target.closest("[data-participant-id]");
+    if (!checkbox) return;
+    if (checkbox.checked) state.selectedParticipantIds.add(checkbox.dataset.participantId);
+    else state.selectedParticipantIds.delete(checkbox.dataset.participantId);
+    renderParticipants();
+    handleContextChange("参加者が変更されたため録音を中断しました。");
   });
-
   elements.participantSearch.addEventListener("input", () => {
     state.participantSearch = elements.participantSearch.value;
     renderParticipantOptions();
   });
+  elements.meetingTypeSelect.addEventListener("change", () => handleContextChange("会議種別が変更されたため録音を中断しました。"));
+  elements.recordingStartDemo.addEventListener("click", beginRecording);
+  elements.recordingPause.addEventListener("click", toggleRecordingPause);
+  elements.recordingStop.addEventListener("click", startProcessing);
+  elements.recordingResumeInterrupted.addEventListener("click", resumeInterrupted);
+  elements.recordingProcessInterrupted.addEventListener("click", startProcessing);
+  elements.recordingErrorRetry.addEventListener("click", startProcessing);
+  elements.recordingErrorReset.addEventListener("click", resetRecording);
+  elements.reviewSuggestionList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-review-action]");
+    if (button) handleReviewAction(button);
+  });
+  elements.recordingSaveDraft.addEventListener("click", saveCurrentMinutes);
+  elements.historyList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-history-id]");
+    if (button) openHistory(button.dataset.historyId);
+  });
+  elements.historyBack.addEventListener("click", closeHistory);
 
-  elements.participantTrigger.addEventListener("click", () => toggleParticipantMenu());
-  elements.participantClose.addEventListener("click", () => toggleParticipantMenu(false, { restoreFocus: true }));
-  document.addEventListener("click", (event) => {
-    if (!event.target.closest(".participant-picker") && !elements.participantMenu.hidden) {
-      toggleParticipantMenu(false);
-    }
+  for (const trigger of elements.infoTriggers) trigger.addEventListener("click", () => toggleInfo(trigger));
+  document.addEventListener("pointerdown", (event) => {
+    if (activeInfoTrigger && !event.target.closest(".info-affordance")) closeInfo();
+    if (!elements.participantMenu.hidden && !event.target.closest(".participant-picker")) setParticipantMenu(false);
+  });
+
+  elements.mobileMenuTrigger.addEventListener("click", () => setMobileMenu(true));
+  elements.mobileMenuClose.addEventListener("click", () => setMobileMenu(false));
+  elements.mobileMenuScrim.addEventListener("click", () => setMobileMenu(false));
+  elements.mobileMenuCurrent.addEventListener("click", () => setMobileMenu(false));
+  mobileMenuMedia.addEventListener("change", ({ matches }) => {
+    if (!matches && !elements.mobileMenuDrawer.hidden) setMobileMenu(false, { restoreFocus: false });
+  });
+  for (const trigger of elements.contactTriggers) trigger.addEventListener("click", () => openContact(trigger));
+  elements.contactDialogClose.addEventListener("click", closeContact);
+  elements.contactDialog.addEventListener("click", (event) => {
+    if (event.target === elements.contactDialog) closeContact();
+  });
+  elements.contactDialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeContact();
   });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && !elements.participantMenu.hidden) {
-      event.preventDefault();
-      toggleParticipantMenu(false, { restoreFocus: true });
-    }
-  });
-
-  elements.generateButton.addEventListener("click", handleGenerate);
-  elements.saveButton.addEventListener("click", handleSave);
-
-  elements.editResultButton.addEventListener("click", () => {
-    state.generation = state.generation === "editing" ? "generated" : "editing";
-    renderState(state.generation === "editing" ? "清書を手動編集できます" : "手動編集を終了しました");
-    if (state.generation === "editing") elements.generatedText.focus();
-  });
-
-  elements.failNextGeneration.addEventListener("click", () => {
-    state.failNextGeneration = !state.failNextGeneration;
-    elements.failNextGeneration.setAttribute("aria-pressed", String(state.failNextGeneration));
-  });
-  elements.failNextSave.addEventListener("click", () => {
-    state.failNextSave = !state.failNextSave;
-    elements.failNextSave.setAttribute("aria-pressed", String(state.failNextSave));
+    if (event.key !== "Escape") return;
+    if (!elements.participantMenu.hidden) setParticipantMenu(false);
+    else if (activeInfoTrigger) closeInfo();
+    else if (!elements.mobileMenuDrawer.hidden) setMobileMenu(false);
   });
 }
 
 function initialize() {
-  document.body.dataset.minutesMode = "recording";
-  renderMeetingTypeOptions();
-  renderParticipantCategoryTabs();
-  renderParticipantOptions();
-  elements.qaDisclosure.hidden = new URLSearchParams(window.location.search).get("dev") !== "1";
-  elements.contactFallback.href = CONTACT_FORM_URL;
-  const formattedDate = formatDateWithWeekday(DEMO_DATE);
-  elements.meetingDateLabel.textContent = formattedDate;
-  elements.meetingDateLabel.dateTime = DEMO_DATE;
-  elements.meetingDateLabel.setAttribute("aria-label", `実施日：${formattedDate}`);
-  const inferredType = new Date().getHours() < MEETING_TYPE_CONFIG.cutoffHour ? "morning" : "evening";
-  elements.meetingTypeSelect.value = inferredType;
-  renderAuthor();
+  document.body.dataset.appView = state.view;
+  renderMeetingTypes();
+  renderParticipantCategories();
+  loadHistory();
   renderParticipants();
-  loadStoredEntries();
-  const restoredSavedEntry = Boolean(state.savedEntries[0]);
-  if (!restoredSavedEntry) syncSourceDraft();
+  renderHistoryFilters();
+  renderHistory();
   bindEvents();
-  renderState(
-    restoredSavedEntry
-      ? `${meetingTypeLabel(getSelectedMeetingType())}の保存内容を復元しました`
-      : `${meetingTypeLabel(getSelectedMeetingType())}を${MEETING_TYPE_CONFIG.cutoffHour}:00を境に初期設定しました`,
-  );
-  const searchParams = new URLSearchParams(window.location.search);
-  const legacyQaRequested = [...searchParams.keys()].some((key) => key.startsWith("density-v4"));
-  if (legacyQaRequested) openManualFallback();
-  else renderRecordingDemo("会議設定と参加者を確認してください");
 }
 
 initialize();
