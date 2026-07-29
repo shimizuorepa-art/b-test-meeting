@@ -23,6 +23,10 @@
             <span class="side-link-mark" aria-hidden="true">議</span>
             <span>議事録作成</span>
           </a>
+          <a class="side-link" href="#vehicle-workspace" data-app-view="vehicle">
+            <span class="side-link-mark" aria-hidden="true">車</span>
+            <span>車両記録</span>
+          </a>
         </nav>
         <button
           id="contact-trigger-desktop"
@@ -56,7 +60,7 @@
             <span class="mobile-brand" aria-hidden="true">B</span>
             <h1 id="page-title" tabindex="-1">議事録作成</h1>
           </div>
-          <div class="header-context" role="group" aria-label="会議情報">
+          <div class="header-context" role="group" aria-label="会議情報" data-meeting-context>
             <time id="meeting-date-label" datetime="2026-07-21" aria-label="実施日：2026/07/21(火)">2026/07/21(火)</time>
             <label class="meeting-type" for="meeting-type-select">
               <span class="sr-only">会議種別</span>
@@ -344,6 +348,155 @@
             </div>
           </section>
         </section>
+
+        <section id="vehicle-workspace" class="vehicle-workspace" aria-labelledby="vehicle-page-heading" hidden>
+          <header class="vehicle-page-header">
+            <div>
+              <h2 id="vehicle-page-heading" tabindex="-1">退勤前の車両チェック</h2>
+              <p>異常がなければ、写真と選択だけで記録を完了できます。</p>
+            </div>
+            <span class="state-label is-neutral">モック</span>
+          </header>
+
+          <form id="vehicle-record-form" class="vehicle-record-form panel" novalidate>
+            <div id="vehicle-form-error" class="vehicle-form-message is-error" role="alert" hidden></div>
+            <div id="vehicle-form-success" class="vehicle-form-message is-success" role="status" aria-live="polite" hidden>
+              車両記録を保存しました。この画面を開いている間だけ保持します。
+            </div>
+
+            <section class="vehicle-form-section" aria-labelledby="vehicle-basic-heading">
+              <div class="vehicle-section-heading">
+                <h3 id="vehicle-basic-heading">車両と利用内容</h3>
+                <span>すべて選択してください</span>
+              </div>
+
+              <fieldset class="vehicle-choice-group" data-required-group="vehicle">
+                <legend>車両</legend>
+                <div class="vehicle-choice-grid">
+                  <label><input type="radio" name="vehicle" value="vehicle-a" /><span>車両A（仮）</span></label>
+                  <label><input type="radio" name="vehicle" value="vehicle-b" /><span>車両B（仮）</span></label>
+                  <label><input type="radio" name="vehicle" value="vehicle-c" /><span>車両C（仮）</span></label>
+                </div>
+              </fieldset>
+
+              <fieldset class="vehicle-choice-group" data-required-group="driver">
+                <legend>使用者</legend>
+                <div class="vehicle-choice-grid">
+                  <label><input type="checkbox" name="driver" value="田中" /><span>田中</span></label>
+                  <label><input type="checkbox" name="driver" value="佐藤" /><span>佐藤</span></label>
+                  <label><input type="checkbox" name="driver" value="山本" /><span>山本</span></label>
+                  <label><input type="checkbox" name="driver" value="その他" /><span>その他</span></label>
+                </div>
+              </fieldset>
+
+              <fieldset class="vehicle-choice-group" data-required-group="purpose">
+                <legend>使用用途</legend>
+                <div class="vehicle-choice-grid">
+                  <label><input type="radio" name="purpose" value="見回り" /><span>見回り</span></label>
+                  <label><input type="radio" name="purpose" value="その他" /><span>その他</span></label>
+                </div>
+              </fieldset>
+            </section>
+
+            <section class="vehicle-form-section" aria-labelledby="vehicle-photo-heading">
+              <div class="vehicle-section-heading">
+                <h3 id="vehicle-photo-heading">車両写真</h3>
+                <span id="vehicle-photo-count">0 / 4枚</span>
+              </div>
+              <p class="vehicle-section-help">枠に車体全体とナンバーが入るよう、同じ距離・高さから撮影します。</p>
+              <div class="vehicle-photo-grid">
+                <button class="vehicle-photo-button" type="button" data-photo-position="front" aria-pressed="false">
+                  <span class="vehicle-photo-guide" aria-hidden="true"></span>
+                  <strong>フロント</strong>
+                  <span data-photo-status>撮影する</span>
+                </button>
+                <button class="vehicle-photo-button" type="button" data-photo-position="back" aria-pressed="false">
+                  <span class="vehicle-photo-guide" aria-hidden="true"></span>
+                  <strong>バック</strong>
+                  <span data-photo-status>撮影する</span>
+                </button>
+                <button class="vehicle-photo-button" type="button" data-photo-position="left" aria-pressed="false">
+                  <span class="vehicle-photo-guide" aria-hidden="true"></span>
+                  <strong>左サイド</strong>
+                  <span data-photo-status>撮影する</span>
+                </button>
+                <button class="vehicle-photo-button" type="button" data-photo-position="right" aria-pressed="false">
+                  <span class="vehicle-photo-guide" aria-hidden="true"></span>
+                  <strong>右サイド</strong>
+                  <span data-photo-status>撮影する</span>
+                </button>
+              </div>
+              <p class="vehicle-photo-note">このモックでは、ボタンを押すと撮影済み状態を確認できます。</p>
+            </section>
+
+            <section class="vehicle-form-section" aria-labelledby="vehicle-check-heading">
+              <div class="vehicle-section-heading">
+                <h3 id="vehicle-check-heading">本日の確認</h3>
+                <span>未回答では保存できません</span>
+              </div>
+
+              <label class="vehicle-number-field" for="vehicle-odometer">
+                <span>最終走行距離</span>
+                <span class="vehicle-number-control"><input id="vehicle-odometer" name="odometer" type="number" inputmode="numeric" min="0" step="1" placeholder="例：45210" /><span>km</span></span>
+              </label>
+
+              <fieldset class="vehicle-choice-group" data-required-group="accident">
+                <legend>事故・接触</legend>
+                <div class="vehicle-choice-grid is-binary">
+                  <label><input type="radio" name="accident" value="none" /><span>なし</span></label>
+                  <label><input type="radio" name="accident" value="yes" /><span>あり</span></label>
+                </div>
+              </fieldset>
+
+              <fieldset class="vehicle-choice-group" data-required-group="condition">
+                <legend>車両状態</legend>
+                <div class="vehicle-choice-grid">
+                  <label><input type="radio" name="condition" value="A" /><span>A・良好</span></label>
+                  <label><input type="radio" name="condition" value="B" /><span>B・走行可</span></label>
+                  <label><input type="radio" name="condition" value="C" /><span>C・要修理</span></label>
+                </div>
+              </fieldset>
+
+              <fieldset class="vehicle-choice-group" data-required-group="maintenance">
+                <legend>整備・修繕</legend>
+                <div class="vehicle-choice-grid is-binary">
+                  <label><input type="radio" name="maintenance" value="none" /><span>なし</span></label>
+                  <label><input type="radio" name="maintenance" value="yes" /><span>あり</span></label>
+                </div>
+              </fieldset>
+            </section>
+
+            <section id="vehicle-exception-section" class="vehicle-form-section vehicle-exception-section" aria-labelledby="vehicle-exception-heading" hidden>
+              <div class="vehicle-section-heading">
+                <h3 id="vehicle-exception-heading">異常・作業内容</h3>
+                <span class="state-label is-warning">追加確認</span>
+              </div>
+
+              <div id="vehicle-accident-fields" class="vehicle-exception-fields" hidden>
+                <label>発生日<input id="vehicle-accident-date" name="accident-date" type="date" /></label>
+                <label>場所<input id="vehicle-accident-place" name="accident-place" type="text" /></label>
+                <label>損傷箇所<input id="vehicle-damage-area" name="damage-area" type="text" /></label>
+                <label class="is-wide">発生状況<textarea id="vehicle-accident-detail" name="accident-detail" rows="3"></textarea></label>
+              </div>
+
+              <label id="vehicle-condition-detail-wrap" class="vehicle-detail-field" for="vehicle-condition-detail" hidden>
+                <span>気になる症状・状態</span>
+                <textarea id="vehicle-condition-detail" name="condition-detail" rows="3"></textarea>
+              </label>
+
+              <label id="vehicle-maintenance-detail-wrap" class="vehicle-detail-field" for="vehicle-maintenance-detail" hidden>
+                <span>整備・修繕内容</span>
+                <textarea id="vehicle-maintenance-detail" name="maintenance-detail" rows="3"></textarea>
+              </label>
+              <p class="vehicle-section-help">実装時は、ここへ音声入力とAI整理を接続する想定です。</p>
+            </section>
+
+            <footer class="vehicle-form-footer">
+              <p id="vehicle-save-help">写真4枚と必須項目を入力すると保存できます。</p>
+              <button id="vehicle-save" class="button button-primary" type="submit">車両記録を保存</button>
+            </footer>
+          </form>
+        </section>
       </main>
     </div>
 
@@ -366,6 +519,10 @@
         <a class="mobile-menu-link is-current" href="#minutes-workspace" aria-current="page" data-mobile-menu-current data-minutes-home>
           <span class="side-link-mark" aria-hidden="true">議</span>
           <span>議事録作成</span>
+        </a>
+        <a class="mobile-menu-link" href="#vehicle-workspace" data-app-view="vehicle">
+          <span class="side-link-mark" aria-hidden="true">車</span>
+          <span>車両記録</span>
         </a>
       </nav>
       <section class="mobile-menu-section" aria-label="意見箱">
@@ -429,6 +586,6 @@
       </div>
     </dialog>
 
-    <script type="module" src="./app.js?v=20260727-3"></script>
+    <script type="module" src="./app.js?v=20260729-1"></script>
   </body>
 </html>
