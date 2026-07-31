@@ -1,0 +1,100 @@
+/* Bsystem design tokens · modern component system · cool paper + Bsystem blue signal */
+:root {
+  --color-canvas: oklch(95.67% 0.0052 247.88);
+  --color-panel: oklch(100% 0 0);
+  --color-panel-subtle: oklch(99.06% 0.0017 247.84);
+  --color-panel-muted: oklch(97.52% 0.0034 247.86);
+  --color-text: oklch(24.30% 0.024 248.84);
+  --color-text-secondary: oklch(43.97% 0.0304 250.31);
+  --color-text-muted: var(--color-text-secondary);
+  --color-text-disabled: oklch(61.73% 0.0218 245.81);
+  --color-line: oklch(84.14% 0.0142 248);
+  --color-line-soft: oklch(88.55% 0.0105 247.95);
+  --color-line-strong: oklch(54.89% 0.0276 248.33);
+  --color-nav: oklch(25.20% 0.0316 252.82);
+  --color-nav-line: oklch(34.31% 0.0396 253.16);
+  --color-nav-text: oklch(86.22% 0.0176 248.03);
+  --color-primary: oklch(46.79% 0.1246 248.63);
+  --color-primary-dark: oklch(39.79% 0.1012 247.10);
+  --color-primary-soft: oklch(95.28% 0.0179 245.39);
+  --color-primary-ink: oklch(100% 0 0);
+  --color-focus: var(--color-primary);
+  --color-focus-soft: var(--color-primary-soft);
+  --color-focus-on-dark: oklch(80.44% 0.1088 241.34);
+  --color-hover: oklch(97.52% 0.0034 247.86);
+  --color-disabled: oklch(96.32% 0.0034 247.86);
+  --color-success: oklch(52.41% 0.1377 149.60);
+  --color-success-soft: oklch(96.87% 0.0157 154.47);
+  --color-warning: oklch(53.94% 0.1562 42.99);
+  --color-warning-soft: oklch(96.61% 0.04 88.20);
+  --color-danger: oklch(50.03% 0.1821 29.51);
+  --color-danger-soft: oklch(95.71% 0.0197 21.36);
+  --color-overlay: oklch(24.30% 0.024 248.84 / 0.24);
+  --color-on-dark-soft: oklch(100% 0 0 / 0.16);
+  --color-on-dark-ring: oklch(100% 0 0 / 0.18);
+
+  --font-display: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", ui-sans-serif, sans-serif;
+  --font-body: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", ui-sans-serif, sans-serif;
+  --font-ui: var(--font-body);
+
+  --text-2xs: 0.625rem;
+  --text-xs: 0.6875rem;
+  --text-sm: 0.75rem;
+  --text-base: 0.8125rem;
+  --text-md: 0.9375rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  --radius: 10px;
+  --radius-card: 10px;
+  --radius-pill: 999px;
+  --radius-field: 7px;
+  --radius-action: 8px;
+  --bs-radius-field: var(--radius-field);
+  --bs-radius-action: var(--radius-action);
+  --bs-radius-group: var(--radius-card);
+  --bs-radius-row: 6px;
+  --bs-radius-tag: var(--radius-pill);
+
+  --rule-thin: 1px;
+  --shadow-card: 0 1px 2px oklch(24.30% 0.024 248.84 / 0.05);
+  --shadow-segment: 0 1px 2px oklch(24.30% 0.024 248.84 / 0.06);
+  --shadow-raised: 0 8px 24px oklch(24.30% 0.024 248.84 / 0.08);
+  --shadow-dock: 0 -8px 24px oklch(24.30% 0.024 248.84 / 0.06);
+  --shadow-modal: 0 18px 48px oklch(24.30% 0.024 248.84 / 0.18);
+
+  --control-mobile: 44px;
+  --action-face-mobile: 36px;
+  --action-face-desktop: 32px;
+  --action-face-icon: 32px;
+  --selection-token-face: 28px;
+  --sidebar-width: 184px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 360ms;
+  --duration-micro: var(--dur-micro);
+  --duration-short: var(--dur-short);
+
+  --z-base: 1;
+  --z-raised: 10;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-tooltip: 600;
+}

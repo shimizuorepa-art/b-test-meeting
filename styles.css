@@ -1,70 +1,4 @@
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · genre: modern-minimal · tone: utilitarian · anchor: #075d9c · macrostructure: Workbench · shell: one-vehicle guided record · variation: vehicle-scoped capture-first progressive form + shared navigation dock + inline history · design-system: Bsystem locked UI · designed-as-app · slop-test: code audit pass; rendered viewport audit pending · contrast: pass (40–41) · nav: app-shell · footer: frameless icon dock · honest: pass (46) · chrome: pass (47) · tokens: pass (48) · responsive: code pass; render-dependent gates pending */
-:root {
-  --color-canvas: #eef1f4;
-  --color-panel: #ffffff;
-  --color-panel-subtle: #fbfcfd;
-  --color-text: #17212b;
-  --color-text-secondary: #465463;
-  --color-text-disabled: #7b8792;
-  --color-line: #c4ccd4;
-  --color-line-soft: #d4dae0;
-  --color-line-strong: #657381;
-  --color-nav: #172331;
-  --color-nav-line: #2a3a4d;
-  --color-nav-text: #c9d3dd;
-  --color-primary: #075d9c;
-  --color-primary-dark: #064a7a;
-  --color-primary-soft: #e6f1fb;
-  --color-primary-ink: #ffffff;
-  --color-focus: #075d9c;
-  --color-focus-on-dark: #7cc8ff;
-  --color-hover: #f5f7f9;
-  --color-disabled: #f1f3f5;
-  --color-success: #157f3b;
-  --color-success-soft: #edf8f0;
-  --color-warning: #b54708;
-  --color-warning-soft: #fff3d6;
-  --color-danger: #b42318;
-  --color-danger-soft: #feeceb;
-  --color-overlay: rgba(23, 33, 43, 0.18);
-  --font-ui: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", system-ui, sans-serif;
-  --space-3xs: 2px;
-  --space-2xs: 4px;
-  --space-xs: 8px;
-  --space-sm: 12px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
-  --space-2xl: 48px;
-  --space-3xl: 64px;
-  --radius: 2px;
-  --radius-pill: 999px;
-  --bs-radius-field: 6px;
-  --bs-radius-action: 8px;
-  --bs-radius-group: 8px;
-  --bs-radius-row: 4px;
-  --bs-radius-tag: 3px;
-  --radius-field: var(--bs-radius-field);
-  --radius-action: var(--bs-radius-action);
-  --control-mobile: 44px;
-  --action-face-mobile: 36px;
-  --action-face-desktop: 32px;
-  --action-face-icon: 32px;
-  --selection-token-face: 28px;
-  --sidebar-width: 184px;
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --duration-micro: 120ms;
-  --duration-short: 220ms;
-  --z-base: 1;
-  --z-raised: 10;
-  --z-dropdown: 100;
-  --z-sticky: 200;
-  --z-modal: 400;
-  --z-toast: 500;
-  --z-tooltip: 600;
-}
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · genre: modern-minimal · tone: utilitarian-refined · macrostructure: Narrative Workflow · theme: Bsystem modern component system · component vocabulary: Compact Header Timeline + Baseline-aligned Paired Field Group + Segmented Control + Disclosure + Modal Dialog + Form Field + Badge + Sticky Navigation + Inline Alert · anchor: Bsystem blue · display/body: Bsystem Japanese UI stack · nav: N3 side-rail · footer: task dock · contrast: pass (40–41) · slop: pass (42–49) · mobile: code-pass (34, 49–57), render-hold · designed-as-app */
 
 *,
 *::before,
@@ -528,7 +462,7 @@ body[data-app-view="vehicle"] .work-header {
   min-height: 26px;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-2xs);
   border: 0;
   background: transparent;
   color: var(--color-text-secondary);
@@ -553,7 +487,24 @@ body[data-app-view="vehicle"] .work-header {
   min-width: 0;
   background: var(--color-panel);
   border: 1px solid var(--color-line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-card);
+}
+
+/*
+ * Shared Workbench law:
+ * canvas → one task card → content. Both minutes and vehicle records use
+ * the same 8px card radius, 4px spacing scale, heading treatment and rail.
+ */
+#creation-workspace {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-xs);
+}
+
+#creation-workspace > .recording-boundary,
+#creation-workspace > .participants-panel,
+#creation-workspace > .recording-workflow {
+  margin-top: 0;
 }
 
 .meeting-type {
@@ -607,8 +558,8 @@ body[data-app-view="vehicle"] .work-header {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 7px 10px;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid transparent;
   border-radius: var(--radius-action);
   background: transparent;
@@ -689,6 +640,7 @@ body[data-app-view="vehicle"] .work-header {
   gap: var(--space-xs);
   padding: var(--space-2xs) var(--space-xs);
   border-bottom: 1px solid var(--color-line);
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
   background: var(--color-panel-subtle);
 }
 
@@ -697,7 +649,7 @@ body[data-app-view="vehicle"] .work-header {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-xs);
 }
 
 .panel-title h2,
@@ -903,7 +855,7 @@ body[data-app-view="vehicle"] .work-header {
 .participant-category-tabs button {
   min-width: 0;
   min-height: var(--control-mobile);
-  padding-inline: 6px;
+  padding-inline: var(--space-xs);
   border: 0;
   border-radius: 0;
   background: var(--color-panel);
@@ -981,7 +933,7 @@ body[data-app-view="vehicle"] .work-header {
 
 .participant-options {
   display: grid;
-  gap: 1px;
+  gap: var(--space-3xs);
   background: var(--color-line-soft);
 }
 
@@ -1246,7 +1198,7 @@ body[data-app-view="vehicle"] .work-header {
 .compact-message {
   min-width: 0;
   margin-top: var(--space-xs);
-  padding: 7px var(--space-xs);
+  padding: var(--space-xs);
   border: 1px solid;
   font-size: 11px;
 }
@@ -1769,6 +1721,95 @@ body[data-app-view="vehicle"] .work-header {
   min-height: var(--control-mobile);
 }
 
+.vehicle-leave-dialog {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: var(--space-xs);
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+}
+
+.vehicle-leave-dialog[open] {
+  display: grid;
+  place-items: center;
+}
+
+.vehicle-leave-dialog::backdrop {
+  background: var(--color-overlay);
+}
+
+.vehicle-leave-surface {
+  width: min(100%, 460px);
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto auto auto;
+  overflow: hidden;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius);
+  background: var(--color-panel);
+  box-shadow: 0 8px 22px var(--color-overlay);
+}
+
+.vehicle-leave-surface > header,
+.vehicle-leave-body,
+.vehicle-leave-surface > footer {
+  min-width: 0;
+  padding: var(--space-sm);
+}
+
+.vehicle-leave-surface > header {
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-panel-subtle);
+}
+
+.vehicle-leave-surface > header span {
+  display: block;
+  margin-bottom: var(--space-3xs);
+  color: var(--color-warning);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.vehicle-leave-surface h2,
+.vehicle-leave-body p {
+  margin: 0;
+}
+
+.vehicle-leave-surface h2 {
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+.vehicle-leave-surface h2:focus {
+  outline: none;
+}
+
+.vehicle-leave-body p {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.vehicle-leave-surface > footer {
+  display: grid;
+  gap: var(--space-2xs);
+  border-top: 1px solid var(--color-line);
+  background: var(--color-panel-subtle);
+}
+
+.vehicle-leave-surface > footer .button {
+  width: 100%;
+  min-height: var(--control-mobile);
+}
+
 @media (hover: hover) and (pointer: fine) {
   .button:not(:disabled):hover {
     --action-face-border: var(--color-primary);
@@ -1895,6 +1936,10 @@ body[data-app-view="vehicle"] .work-header {
     min-width: 180px;
   }
 
+  .vehicle-leave-surface > footer {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .panel-header {
     min-height: 42px;
   }
@@ -1969,7 +2014,7 @@ body[data-app-view="vehicle"] .work-header {
   }
 
   .button {
-    padding: 4px 9px;
+    padding: var(--space-2xs) var(--space-xs);
   }
 
   .voice-box-open {
@@ -2041,11 +2086,11 @@ body[data-app-view="vehicle"] .work-header {
 @media (min-width: 60rem) {
   .panel-body,
   .section-body {
-    padding: 6px var(--space-xs);
+    padding: var(--space-xs);
   }
 
   .sections-grid {
-    gap: 6px;
+    gap: var(--space-xs);
   }
 
   .section-heading {
@@ -2075,8 +2120,8 @@ body[data-app-view="vehicle"] .work-header {
     min-height: 58px;
     display: flex;
     align-items: center;
-    gap: 9px;
-    padding: 10px 12px;
+    gap: var(--space-xs);
+    padding: var(--space-sm);
     border-bottom: 1px solid var(--color-nav-line);
   }
 
@@ -2106,7 +2151,7 @@ body[data-app-view="vehicle"] .work-header {
     display: flex;
     align-items: center;
     gap: var(--space-xs);
-    padding: 6px 9px;
+    padding: var(--space-xs);
     border-inline-start: 2px solid transparent;
     color: var(--color-nav-text);
     text-decoration: none;
@@ -2130,7 +2175,7 @@ body[data-app-view="vehicle"] .work-header {
   }
 
   .main {
-    padding-inline: 14px;
+    padding-inline: var(--space-md);
   }
 
   .mobile-brand {
@@ -2248,7 +2293,8 @@ body[data-app-view="vehicle"] .work-header {
   grid-template-columns: var(--control-mobile) minmax(0, 1fr);
   align-items: center;
   margin-top: var(--space-xs);
-  border-block: 1px solid var(--color-line);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
   background: var(--color-panel-subtle);
 }
 
@@ -2277,8 +2323,8 @@ body[data-app-view="vehicle"] .work-header {
 .recording-workflow {
   min-width: 0;
   margin-top: var(--space-xs);
-  border: 1px solid var(--color-line-strong);
-  border-radius: var(--bs-radius-group);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
   background: var(--color-panel);
   scroll-margin-top: calc(101px + var(--space-xs));
 }
@@ -2292,6 +2338,7 @@ body[data-app-view="vehicle"] .work-header {
   gap: var(--space-xs);
   padding: var(--space-xs);
   border-bottom: 1px solid var(--color-line);
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
   background: var(--color-panel-subtle);
 }
 
@@ -2548,8 +2595,8 @@ body[data-app-view="vehicle"] .work-header {
   display: grid;
   grid-template-columns: 12px minmax(0, 1fr);
   place-items: center;
-  gap: 6px;
-  padding: 9px;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
   border: 1px solid var(--color-danger);
   border-radius: 50%;
   background: var(--color-danger-soft);
@@ -2567,7 +2614,7 @@ body[data-app-view="vehicle"] .work-header {
   height: 22px;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 
 .recording-levels > span {
@@ -3340,6 +3387,8 @@ body[data-capture-state="paused"] .recording-levels > span {
 
 .vehicle-workspace {
   min-width: 0;
+  display: grid;
+  gap: var(--space-xs);
   margin-top: var(--space-xs);
 }
 
@@ -3351,9 +3400,10 @@ body[data-capture-state="paused"] .recording-levels > span {
   min-width: 0;
   display: grid;
   gap: var(--space-sm);
-  margin-bottom: var(--space-xs);
-  padding: var(--space-xs) var(--space-xs) var(--space-sm);
-  border-bottom: 1px solid var(--color-line-strong);
+  margin-bottom: 0;
+  padding: var(--space-sm);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
   background: var(--color-panel);
 }
 
@@ -3443,8 +3493,118 @@ body[data-capture-state="paused"] .recording-levels > span {
   font-size: 9px;
 }
 
+/* One progress grammar across the minutes and vehicle workspaces. */
+.system-workflow-steps {
+  --workflow-count: 4;
+  min-width: 0;
+  position: relative;
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: var(--space-xs) var(--space-2xs);
+  border: 0;
+  border-bottom: 1px solid var(--color-line);
+  list-style: none;
+}
+
+.recording-steps.system-workflow-steps {
+  --workflow-count: 3;
+}
+
+.system-workflow-steps::before {
+  content: "";
+  position: absolute;
+  top: 19px;
+  left: calc(50% / var(--workflow-count));
+  right: calc(50% / var(--workflow-count));
+  height: 1px;
+  background: var(--color-line);
+}
+
+.system-workflow-steps li,
+.recording-steps.system-workflow-steps li,
+.vehicle-flow-progress.system-workflow-steps li {
+  min-width: 0;
+  min-height: var(--control-mobile);
+  position: relative;
+  z-index: var(--z-base);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 22px auto;
+  place-items: center;
+  align-content: start;
+  gap: var(--space-3xs);
+  padding: 0 var(--space-3xs);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-disabled);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.25;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.system-workflow-steps li > span,
+.recording-steps.system-workflow-steps li > span,
+.vehicle-flow-progress.system-workflow-steps li > span {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-line);
+  border-radius: 50%;
+  outline: 0;
+  background: var(--color-panel);
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.system-workflow-steps li > strong {
+  min-width: 0;
+  max-width: 100%;
+  color: inherit;
+  font: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recording-steps.system-workflow-steps li[data-status="current"],
+.vehicle-flow-progress.system-workflow-steps li.is-current {
+  background: transparent;
+  color: var(--color-primary-dark);
+}
+
+.recording-steps.system-workflow-steps li[data-status="current"] > span,
+.vehicle-flow-progress.system-workflow-steps li.is-current > span {
+  border-color: var(--color-primary);
+  outline: 0;
+  background: var(--color-primary);
+  color: var(--color-primary-ink);
+}
+
+.recording-steps.system-workflow-steps li[data-status="complete"],
+.vehicle-flow-progress.system-workflow-steps li.is-complete {
+  color: var(--color-text);
+}
+
+.recording-steps.system-workflow-steps li[data-status="complete"] > span,
+.vehicle-flow-progress.system-workflow-steps li.is-complete > span {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-ink);
+}
+
 .vehicle-record-form {
   min-width: 0;
+  display: grid;
+  gap: var(--space-xs);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   overflow: visible;
 }
 
@@ -3453,7 +3613,9 @@ body[data-capture-state="paused"] .recording-levels > span {
   display: grid;
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-xs);
-  border-bottom: 1px solid var(--color-line);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-panel);
   scroll-margin-top: calc(var(--control-mobile) * 2 + var(--space-md));
   animation: vehicle-step-in var(--duration-short) var(--ease-out) both;
 }
@@ -3533,7 +3695,7 @@ body[data-capture-state="paused"] .recording-levels > span {
 }
 
 .vehicle-record-meta {
-  padding-block: 0;
+  padding: 0 var(--space-xs);
 }
 
 .vehicle-selection-section {
@@ -3551,7 +3713,9 @@ body[data-capture-state="paused"] .recording-levels > span {
   display: flex;
   align-items: center;
   padding: var(--space-xs);
-  border-block: 1px solid var(--color-line);
+  border-top: 1px solid var(--color-line);
+  border-radius: 0 0 var(--bs-radius-field) var(--bs-radius-field);
+  background: var(--color-panel-subtle);
   color: var(--color-text-secondary);
   font-size: 11px;
   font-weight: 700;
@@ -3836,29 +4000,13 @@ body[data-capture-state="paused"] .recording-levels > span {
   background: transparent;
 }
 
-.vehicle-account-person {
+.vehicle-photo-tools {
+  width: 100%;
   min-width: 0;
-  display: grid;
-  align-content: center;
-  gap: var(--space-3xs);
-}
-
-.vehicle-account-person > span {
-  color: var(--color-text-secondary);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.vehicle-account-person strong {
-  font-size: 14px;
-}
-
-.vehicle-photo-switch {
-  width: min(100%, 360px);
-  min-width: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-2xs);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-sm);
 }
 
 .vehicle-photo-scope {
@@ -3869,86 +4017,74 @@ body[data-capture-state="paused"] .recording-levels > span {
   line-height: 1.45;
 }
 
-.vehicle-photo-switch button {
-  min-width: 0;
-  min-height: var(--control-mobile);
-  padding-inline: var(--space-xs);
-  border: 1px solid var(--color-line-strong);
-  border-radius: var(--bs-radius-action);
-  outline: 2px solid transparent;
-  outline-offset: 1px;
-  background: var(--color-panel);
-  color: var(--color-text);
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    background-color var(--duration-micro) var(--ease-out),
-    transform var(--duration-micro) var(--ease-out);
-}
-
-.vehicle-photo-switch button[aria-pressed="true"] {
-  border-color: var(--color-primary);
-  background: var(--color-primary-soft);
-  color: var(--color-primary-dark);
-}
-
-.vehicle-photo-switch button:focus-visible,
-.vehicle-photo-guide-trigger:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 1px;
-}
-
-.vehicle-photo-switch button:active,
-.vehicle-photo-guide-trigger:active {
-  transform: translateY(1px);
-}
-
-.vehicle-photo-switch button:disabled {
-  background: var(--color-disabled);
-  color: var(--color-text-disabled);
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
+.vehicle-photo-text-action,
 .vehicle-photo-guide-trigger {
   width: max-content;
-  min-width: 0;
+  max-width: 100%;
   min-height: var(--control-mobile);
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-2xs);
-  padding: var(--space-2xs) var(--space-xs);
-  border: 1px solid var(--color-line-strong);
-  border-radius: var(--bs-radius-action);
+  gap: var(--space-xs);
+  padding: 0;
+  border: 0;
   outline: 2px solid transparent;
-  outline-offset: 1px;
-  background: var(--color-panel);
-  color: var(--color-primary-dark);
+  outline-offset: 2px;
+  background: transparent;
+  color: var(--color-text-secondary);
   font: inherit;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.4;
+  text-decoration: underline;
+  text-decoration-color: var(--color-line-strong);
+  text-underline-offset: 3px;
+  white-space: nowrap;
   cursor: pointer;
   transition:
-    background-color var(--duration-micro) var(--ease-out),
-    transform var(--duration-micro) var(--ease-out);
+    color var(--duration-micro) var(--ease-out),
+    text-decoration-color var(--duration-micro) var(--ease-out);
 }
 
-.vehicle-photo-guide-trigger svg {
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.vehicle-photo-text-action::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg) translate(-1px, 1px);
+  transition: transform var(--duration-micro) var(--ease-out);
+}
+
+.vehicle-photo-text-action[aria-expanded="true"]::after {
+  transform: rotate(225deg) translate(-1px, 1px);
+}
+
+.vehicle-photo-text-action:focus-visible,
+.vehicle-photo-guide-trigger:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.vehicle-photo-text-action:disabled {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 #vehicle-photo-today {
   min-width: 0;
   display: grid;
   gap: var(--space-xs);
+}
+
+.vehicle-photo-period {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .vehicle-photo-grid {
@@ -4135,6 +4271,8 @@ body[data-capture-state="paused"] .recording-levels > span {
   min-width: 0;
   display: grid;
   gap: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-line);
 }
 
 .vehicle-previous-record > header {
@@ -4222,8 +4360,49 @@ body[data-capture-state="paused"] .recording-levels > span {
   gap: var(--space-2xs);
 }
 
+.vehicle-distance-entry {
+  width: min(100%, 380px);
+  min-width: 0;
+  display: grid;
+  gap: var(--space-2xs);
+}
+
 .vehicle-distance-section .vehicle-number-field {
-  width: min(100%, 360px);
+  width: 100%;
+}
+
+.vehicle-odometer-reference {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3xs) var(--space-sm);
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.vehicle-odometer-reference span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-3xs);
+  white-space: nowrap;
+}
+
+.vehicle-odometer-reference strong,
+.vehicle-odometer-reference output {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.vehicle-odometer-reference output[data-state="ready"] {
+  color: var(--color-primary-dark);
+}
+
+.vehicle-odometer-reference output[data-state="below-previous"] {
+  color: var(--color-danger);
 }
 
 .vehicle-number-control {
@@ -4306,7 +4485,7 @@ body[data-capture-state="paused"] .recording-levels > span {
 }
 
 .vehicle-abnormal-card .vehicle-radio-row.is-binary {
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .vehicle-abnormal-card.has-error {
@@ -4387,6 +4566,85 @@ body[data-capture-state="paused"] .recording-levels > span {
   font-size: 11px;
 }
 
+.vehicle-form-actions {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-xs);
+  align-items: stretch;
+}
+
+.vehicle-draft-action {
+  min-width: 0;
+  min-height: var(--control-mobile);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2xs);
+  padding: var(--space-xs);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--bs-radius-action);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  background: var(--color-panel);
+  color: var(--color-primary-dark);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-micro) var(--ease-out),
+    border-color var(--duration-micro) var(--ease-out),
+    color var(--duration-micro) var(--ease-out),
+    transform var(--duration-micro) var(--ease-out);
+}
+
+.vehicle-draft-action svg,
+.vehicle-desktop-draft svg {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.vehicle-draft-action:focus-visible,
+.vehicle-desktop-draft:focus-visible {
+  outline-color: var(--color-focus);
+}
+
+.vehicle-draft-action:active,
+.vehicle-desktop-draft:active {
+  transform: translateY(1px);
+}
+
+.vehicle-draft-action[data-state="saved"],
+.vehicle-desktop-draft[data-state="saved"] {
+  border-color: var(--color-success);
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.vehicle-draft-action:disabled,
+.vehicle-desktop-draft:disabled {
+  border-color: var(--color-line);
+  background: var(--color-disabled);
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.vehicle-draft-action[data-state="saved"]:disabled,
+.vehicle-desktop-draft[data-state="saved"]:disabled {
+  border-color: var(--color-success);
+  background: var(--color-success-soft);
+  color: var(--color-success);
+  opacity: 1;
+}
+
 .vehicle-complete-action {
   width: 100%;
   min-width: 0;
@@ -4447,7 +4705,7 @@ body[data-capture-state="paused"] .recording-levels > span {
 }
 
 .vehicle-complete-action[data-ready="true"] .vehicle-complete-icon {
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--color-on-dark-soft);
 }
 
 .vehicle-complete-action[data-state="success"] {
@@ -4467,6 +4725,10 @@ body[data-capture-state="paused"] .recording-levels > span {
 }
 
 .vehicle-desktop-completion {
+  display: none;
+}
+
+.vehicle-desktop-draft {
   display: none;
 }
 
@@ -4497,6 +4759,7 @@ body[data-app-view="vehicle"] .minutes-workspace-footer {
   display: none;
 }
 
+body[data-app-view="create"] .minutes-workspace-footer [data-minutes-home],
 body[data-app-view="history"] .minutes-workspace-footer [data-minutes-history] {
   color: var(--color-primary);
 }
@@ -4887,19 +5150,26 @@ body[data-vehicle-screen="history"] .vehicle-page-header {
     background: var(--color-primary-dark);
   }
 
+  .vehicle-draft-action:not(:disabled):hover,
+  .vehicle-desktop-draft:not(:disabled):hover {
+    border-color: var(--color-primary-dark);
+    background: var(--color-hover);
+  }
+
   .vehicle-desktop-completion[data-ready="true"]:hover {
     border-color: var(--color-primary-dark);
     background: var(--color-primary-dark);
   }
 
   .vehicle-radio-row label:hover,
-  .vehicle-photo-switch button:not(:disabled):not([aria-pressed="true"]):hover,
   .vehicle-history-record:not(:disabled):not([aria-expanded="true"]):hover {
     background: var(--color-hover);
   }
 
+  .vehicle-photo-text-action:not(:disabled):hover,
   .vehicle-photo-guide-trigger:hover {
-    background: var(--color-hover);
+    color: var(--color-primary-dark);
+    text-decoration-color: currentColor;
   }
 
   .vehicle-photo-action:not(:disabled):not(.is-captured):hover {
@@ -4976,10 +5246,6 @@ body[data-vehicle-screen="history"] .vehicle-page-header {
   .vehicle-user-row {
     grid-template-columns: minmax(120px, 0.65fr) minmax(250px, 1.35fr);
     align-items: end;
-  }
-
-  .vehicle-user-row:has(#vehicle-additional-driver-wrap:not([hidden])) {
-    grid-template-columns: minmax(120px, 0.65fr) minmax(250px, 1.2fr) minmax(180px, 1fr);
   }
 
   .vehicle-radio-row.is-condition {
@@ -5075,6 +5341,7 @@ body[data-vehicle-screen="history"] .vehicle-page-header {
     display: flex;
     align-items: center;
     justify-content: flex-end;
+    gap: var(--space-xs);
     padding: var(--space-xs) 0;
     background: var(--color-canvas);
   }
@@ -5096,6 +5363,31 @@ body[data-vehicle-screen="history"] .vehicle-page-header {
 
   .vehicle-completion-copy h2 {
     font-size: 28px;
+  }
+
+  .vehicle-desktop-draft {
+    min-width: 124px;
+    min-height: var(--control-mobile);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2xs);
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--bs-radius-action);
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    background: var(--color-panel);
+    color: var(--color-primary-dark);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    transition:
+      background-color var(--duration-micro) var(--ease-out),
+      border-color var(--duration-micro) var(--ease-out),
+      color var(--duration-micro) var(--ease-out),
+      transform var(--duration-micro) var(--ease-out);
   }
 
   .vehicle-desktop-completion {
@@ -5139,7 +5431,7 @@ body[data-vehicle-screen="history"] .vehicle-page-header {
 
   .vehicle-desktop-completion[data-ready="true"] .vehicle-desktop-completion-status {
     background: var(--color-primary-ink);
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18);
+    box-shadow: 0 0 0 3px var(--color-on-dark-ring);
   }
 
   .vehicle-desktop-completion[data-state="success"] {
@@ -5437,5 +5729,774 @@ body[data-vehicle-screen="history"] .vehicle-page-header {
 
   .vehicle-form-section {
     animation: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Bsystem modern component layer
+   Uses component patterns, not the visual identity of the reference catalog.
+   -------------------------------------------------------------------------- */
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+}
+
+h1,
+h2,
+h3,
+h4,
+.brand-name,
+.screen-title {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.panel,
+.recording-workflow,
+.vehicle-page-header,
+.vehicle-form-section,
+.vehicle-history-workspace {
+  border-color: var(--color-line-soft);
+  border-radius: var(--radius-card);
+  background: var(--color-panel);
+  box-shadow: var(--shadow-card);
+}
+
+.panel-header,
+.recording-workflow-header,
+.vehicle-history-header {
+  border-color: var(--color-line-soft);
+  background: var(--color-panel);
+}
+
+.vehicle-form-section {
+  gap: var(--space-sm);
+  padding: var(--space-md);
+}
+
+.vehicle-section-heading {
+  padding-block-end: var(--space-2xs);
+  border-block-end: var(--rule-thin) solid var(--color-line-soft);
+}
+
+.vehicle-section-heading h3 {
+  font-size: var(--text-md);
+  font-weight: 800;
+}
+
+.vehicle-section-help,
+.vehicle-photo-note,
+.vehicle-field-note,
+.helper-text {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+}
+
+/* Steps: one visual grammar for recording and vehicle registration. */
+.system-workflow-steps {
+  padding: var(--space-sm) var(--space-xs) var(--space-xs);
+  border-block-end: var(--rule-thin) solid var(--color-line-soft);
+  background: var(--color-panel);
+}
+
+.system-workflow-steps::before {
+  top: calc(var(--space-sm) + 10px);
+  block-size: 2px;
+  background: var(--color-line-soft);
+}
+
+.system-workflow-steps li,
+.recording-steps.system-workflow-steps li,
+.vehicle-flow-progress.system-workflow-steps li {
+  grid-template-rows: 20px auto;
+  min-height: var(--control-mobile);
+  gap: var(--space-2xs);
+  color: var(--color-text-disabled);
+  font-size: var(--text-2xs);
+}
+
+.system-workflow-steps li > span,
+.recording-steps.system-workflow-steps li > span,
+.vehicle-flow-progress.system-workflow-steps li > span {
+  inline-size: 20px;
+  block-size: 20px;
+  border-color: var(--color-line);
+  background: var(--color-panel);
+  font-size: var(--text-2xs);
+}
+
+.recording-steps.system-workflow-steps li[data-status="current"] > span,
+.vehicle-flow-progress.system-workflow-steps li.is-current > span {
+  box-shadow: 0 0 0 var(--space-2xs) var(--color-focus-soft);
+}
+
+.recording-steps.system-workflow-steps li[data-status="complete"] > span,
+.vehicle-flow-progress.system-workflow-steps li.is-complete > span {
+  box-shadow: 0 0 0 var(--rule-thin) var(--color-panel);
+}
+
+/* Segmented control: native radios stay semantic, the selection surface is modern. */
+.vehicle-radio-row {
+  gap: var(--space-3xs);
+  padding: var(--space-3xs);
+  border: var(--rule-thin) solid var(--color-line-soft);
+  border-radius: var(--radius-action);
+  background: var(--color-panel-muted);
+}
+
+.vehicle-radio-row.is-condition {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.vehicle-radio-row.is-binary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.vehicle-radio-row label,
+.vehicle-abnormal-card .vehicle-radio-row label {
+  justify-content: center;
+  min-height: var(--control-mobile);
+  gap: 0;
+  padding: var(--space-xs);
+  border-radius: var(--radius-field);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+.vehicle-radio-row input {
+  position: absolute;
+  inline-size: var(--rule-thin);
+  block-size: var(--rule-thin);
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.vehicle-radio-row label:has(input:checked),
+.vehicle-abnormal-card .vehicle-radio-row label:has(input:checked) {
+  background: var(--color-panel);
+  color: var(--color-primary-dark);
+  box-shadow:
+    var(--shadow-segment),
+    inset 0 0 0 var(--rule-thin) var(--color-primary);
+}
+
+.vehicle-radio-row label:has(input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.vehicle-choice-group.has-error .vehicle-radio-row {
+  outline: 2px solid var(--color-danger);
+  outline-offset: 2px;
+}
+
+.participant-category-tabs,
+.history-category-buttons {
+  gap: var(--space-3xs);
+  padding: var(--space-3xs);
+  border: var(--rule-thin) solid var(--color-line-soft);
+  border-radius: var(--radius-action);
+  background: var(--color-panel-muted);
+}
+
+.participant-category-tab,
+.history-category-buttons .button {
+  min-height: var(--control-mobile);
+  border: 0;
+  border-radius: var(--radius-field);
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.participant-category-tab[aria-selected="true"],
+.history-category-buttons .button.is-selected {
+  background: var(--color-panel);
+  color: var(--color-primary-dark);
+  box-shadow: inset 0 0 0 var(--rule-thin) var(--color-primary);
+}
+
+/* Form field: compact, legible and consistent across both workspaces. */
+.meeting-type select,
+.participant-search input,
+.vehicle-meta-field input,
+.vehicle-meta-field select,
+.vehicle-select-field select,
+.vehicle-detail-field select,
+.vehicle-detail-field input[type="text"],
+.vehicle-detail-field textarea,
+.vehicle-number-control input,
+.vehicle-exception-fields input,
+.vehicle-exception-fields textarea,
+.history-filter-field input,
+.history-filter-field select,
+.review-metadata input {
+  min-height: var(--control-mobile);
+  border: var(--rule-thin) solid var(--color-line);
+  border-radius: var(--radius-field);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  background: var(--color-panel);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+}
+
+.meeting-type select:focus-visible,
+.participant-search input:focus-visible,
+.vehicle-meta-field input:focus-visible,
+.vehicle-meta-field select:focus-visible,
+.vehicle-select-field select:focus-visible,
+.vehicle-detail-field select:focus-visible,
+.vehicle-detail-field input[type="text"]:focus-visible,
+.vehicle-detail-field textarea:focus-visible,
+.vehicle-number-control input:focus-visible,
+.vehicle-exception-fields input:focus-visible,
+.vehicle-exception-fields textarea:focus-visible,
+.history-filter-field input:focus-visible,
+.history-filter-field select:focus-visible,
+.review-metadata input:focus-visible {
+  border-color: var(--color-primary);
+  outline-color: var(--color-focus);
+}
+
+.vehicle-meta-field.has-error input,
+.vehicle-meta-field.has-error select,
+.vehicle-select-field.has-error select,
+.vehicle-detail-field.has-error select,
+.vehicle-detail-field.has-error input,
+.vehicle-choice-group.has-error .vehicle-radio-row {
+  border-color: var(--color-danger);
+}
+
+.vehicle-meta-field > span,
+.vehicle-select-field > span,
+.vehicle-choice-group legend,
+.vehicle-number-field > span:first-child,
+.vehicle-detail-field > span,
+.vehicle-exception-fields label {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 750;
+}
+
+/* Disclosure: lightweight rows with visible state instead of full button chrome. */
+.vehicle-meta-disclosure summary,
+.transcript-disclosure summary {
+  min-height: var(--control-mobile);
+  border-radius: var(--radius-field);
+}
+
+.vehicle-meta-disclosure summary {
+  padding-inline: var(--space-xs);
+}
+
+.vehicle-meta-disclosure[open] summary,
+.transcript-disclosure[open] summary {
+  background: var(--color-panel-muted);
+}
+
+.vehicle-photo-text-action,
+.vehicle-photo-guide-trigger {
+  min-height: var(--control-mobile);
+  gap: var(--space-xs);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  text-decoration: none;
+}
+
+.vehicle-photo-guide-trigger::before {
+  content: "?";
+  inline-size: 18px;
+  block-size: 18px;
+  display: grid;
+  place-items: center;
+  border: var(--rule-thin) solid var(--color-line);
+  border-radius: var(--radius-pill);
+  color: var(--color-primary-dark);
+  font-size: var(--text-2xs);
+  font-weight: 850;
+}
+
+/* Chips and badges are status cues, not decorative cards. */
+.state-label,
+.mini-badge,
+.participant-chip,
+.status-pill {
+  min-height: 24px;
+  padding: var(--space-2xs) var(--space-xs);
+  border: var(--rule-thin) solid var(--color-line-soft);
+  border-radius: var(--radius-pill);
+  background: var(--color-panel-muted);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  line-height: 1.2;
+}
+
+.state-label.is-current,
+.status-pill.is-current,
+.participant-chip.is-selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+/* Inline alert: calm by default, clear only when action is required. */
+.recording-boundary,
+.screen-callout,
+.vehicle-form-message {
+  border: var(--rule-thin) solid var(--color-line-soft);
+  border-inline-start: 3px solid var(--color-primary);
+  border-radius: var(--radius-field);
+  background: var(--color-primary-soft);
+  box-shadow: none;
+}
+
+.vehicle-form-message.is-error,
+.screen-callout.is-error {
+  border-inline-start-color: var(--color-danger);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.vehicle-form-message.is-success,
+.screen-callout.is-success {
+  border-inline-start-color: var(--color-success);
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+/* Photo capture: an obvious action with less visual weight than the final submit. */
+.vehicle-photo-grid {
+  gap: var(--space-xs);
+}
+
+.vehicle-photo-item {
+  min-height: 124px;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
+  border-color: var(--color-line-soft);
+  border-radius: var(--radius-action);
+  background: var(--color-panel);
+  box-shadow: var(--shadow-card);
+}
+
+.vehicle-photo-guide {
+  border-color: var(--color-line);
+  background: var(--color-panel-muted);
+}
+
+.vehicle-photo-action {
+  min-height: var(--control-mobile);
+  border-color: var(--color-primary);
+  border-radius: var(--radius-action);
+  background: var(--color-panel);
+  color: var(--color-primary-dark);
+}
+
+.vehicle-photo-item.is-captured {
+  border-color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+.vehicle-photo-action.is-captured {
+  background: var(--color-panel);
+}
+
+/* Modal dialog + scrim. Dialogs keep their own content and Bsystem identity. */
+.vehicle-photo-guide-dialog,
+.app-guide-dialog,
+.contact-dialog,
+.vehicle-leave-dialog {
+  border: 0;
+  background: transparent;
+}
+
+.vehicle-photo-guide-dialog::backdrop,
+.app-guide-dialog::backdrop,
+.contact-dialog::backdrop,
+.vehicle-leave-dialog::backdrop {
+  background: var(--color-overlay);
+  backdrop-filter: blur(2px);
+}
+
+.vehicle-photo-guide-dialog[open] > *,
+.app-guide-dialog[open] > *,
+.contact-dialog[open] > *,
+.vehicle-leave-dialog[open] > * {
+  border: var(--rule-thin) solid var(--color-line-soft);
+  border-radius: var(--radius-card);
+  background: var(--color-panel);
+  box-shadow: var(--shadow-modal);
+  animation: bsystem-dialog-in var(--dur-short) var(--ease-out) both;
+}
+
+@keyframes bsystem-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-xs)) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Sticky navigation: no outer capsule, just a quiet system dock. */
+.vehicle-form-footer,
+.minutes-workspace-footer {
+  border: 0;
+  border-block-start: var(--rule-thin) solid var(--color-line-soft);
+  background: var(--color-panel);
+  box-shadow: var(--shadow-dock);
+}
+
+.vehicle-dock-action {
+  position: relative;
+  min-height: 54px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.vehicle-dock-action.is-primary,
+body[data-vehicle-screen="history"] .vehicle-footer-actions-mobile [data-vehicle-history-trigger],
+body[data-app-view="create"] .minutes-workspace-footer [data-minutes-home],
+body[data-app-view="history"] .minutes-workspace-footer [data-minutes-history] {
+  background: transparent;
+  color: var(--color-primary-dark);
+}
+
+.vehicle-dock-action.is-primary::before,
+body[data-vehicle-screen="history"] .vehicle-footer-actions-mobile [data-vehicle-history-trigger]::before,
+body[data-app-view="create"] .minutes-workspace-footer [data-minutes-home]::before,
+body[data-app-view="history"] .minutes-workspace-footer [data-minutes-history]::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 50%;
+  inline-size: var(--space-lg);
+  block-size: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  transform: translateX(-50%);
+}
+
+/* Desktop navigation keeps the existing N3 rail with a quieter active marker. */
+.sidebar-link,
+.desktop-nav-action {
+  position: relative;
+  border-radius: var(--radius-field);
+}
+
+.sidebar-link.is-active::before,
+.desktop-nav-action.is-active::before {
+  content: "";
+  position: absolute;
+  inset: var(--space-xs) auto var(--space-xs) 0;
+  inline-size: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--color-focus-on-dark);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .vehicle-radio-row label:hover,
+  .vehicle-abnormal-card .vehicle-radio-row label:hover,
+  .participant-category-tab:hover,
+  .history-category-buttons .button:hover {
+    background: var(--color-panel-subtle);
+    color: var(--color-text);
+  }
+
+  .vehicle-radio-row label:has(input:checked):hover,
+  .vehicle-abnormal-card .vehicle-radio-row label:has(input:checked):hover,
+  .participant-category-tab[aria-selected="true"]:hover,
+  .history-category-buttons .button.is-selected:hover {
+    background: var(--color-panel);
+    color: var(--color-primary-dark);
+  }
+
+  .vehicle-photo-action:not(:disabled):not(.is-captured):hover {
+    border-color: var(--color-primary-dark);
+    background: var(--color-primary-soft);
+    color: var(--color-primary-dark);
+  }
+
+  .vehicle-photo-text-action:not(:disabled):hover,
+  .vehicle-photo-guide-trigger:hover {
+    color: var(--color-primary-dark);
+    text-decoration: underline;
+    text-underline-offset: var(--space-2xs);
+  }
+
+  .vehicle-dock-action:hover {
+    background: var(--color-panel-muted);
+    color: var(--color-text);
+  }
+}
+
+@media (min-width: 48rem) {
+  .meeting-type select,
+  .participant-search input,
+  .vehicle-meta-field input,
+  .vehicle-meta-field select,
+  .vehicle-select-field select,
+  .vehicle-detail-field select,
+  .vehicle-detail-field input[type="text"],
+  .vehicle-number-control input,
+  .history-filter-field input,
+  .history-filter-field select,
+  .review-metadata input {
+    min-height: 40px;
+    font-size: var(--text-base);
+  }
+
+  .vehicle-radio-row label,
+  .vehicle-abnormal-card .vehicle-radio-row label,
+  .participant-category-tab,
+  .history-category-buttons .button {
+    min-height: 40px;
+  }
+
+  .vehicle-photo-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .vehicle-photo-item {
+    min-height: 152px;
+  }
+
+  .vehicle-form-footer,
+  .minutes-workspace-footer {
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 39.999rem) {
+  .vehicle-form-section {
+    padding: var(--space-sm);
+  }
+
+  .vehicle-photo-guide-dialog[open] > *,
+  .app-guide-dialog[open] > *,
+  .contact-dialog[open] > *,
+  .vehicle-leave-dialog[open] > * {
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vehicle-photo-guide-dialog[open] > *,
+  .app-guide-dialog[open] > *,
+  .contact-dialog[open] > *,
+  .vehicle-leave-dialog[open] > * {
+    animation: none;
+  }
+}
+
+/* Compact workflow timelines live inside each workspace header. */
+.recording-workflow-header {
+  min-height: 0;
+  display: grid;
+  grid-template-areas:
+    "copy status"
+    "timeline timeline";
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: var(--space-2xs) var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.recording-workflow-header > div {
+  grid-area: copy;
+}
+
+.recording-workflow-header > .system-workflow-steps {
+  grid-area: timeline;
+}
+
+.recording-workflow-header > .state-label {
+  grid-area: status;
+}
+
+.recording-workflow-header p {
+  display: none;
+}
+
+.vehicle-page-header {
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.recording-workflow-header .system-workflow-steps,
+.vehicle-page-header .system-workflow-steps {
+  --workflow-marker-size: 18px;
+  width: 100%;
+  min-height: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.recording-workflow-header .system-workflow-steps::before,
+.vehicle-page-header .system-workflow-steps::before {
+  top: calc(var(--workflow-marker-size) / 2);
+  height: var(--rule-thin);
+}
+
+.recording-workflow-header .system-workflow-steps li,
+.vehicle-page-header .system-workflow-steps li,
+.recording-workflow-header .recording-steps.system-workflow-steps li,
+.vehicle-page-header .vehicle-flow-progress.system-workflow-steps li {
+  min-height: 30px;
+  grid-template-rows: var(--workflow-marker-size) auto;
+  gap: var(--space-3xs);
+  padding: 0 var(--space-3xs);
+  font-size: var(--text-2xs);
+}
+
+.recording-workflow-header .system-workflow-steps li > span,
+.vehicle-page-header .system-workflow-steps li > span,
+.recording-workflow-header .recording-steps.system-workflow-steps li > span,
+.vehicle-page-header .vehicle-flow-progress.system-workflow-steps li > span {
+  width: var(--workflow-marker-size);
+  height: var(--workflow-marker-size);
+  font-size: var(--text-2xs);
+}
+
+.recording-workflow-header .system-workflow-steps li > strong,
+.vehicle-page-header .system-workflow-steps li > strong {
+  line-height: 1;
+}
+
+@media (min-width: 40rem) {
+  .recording-workflow-header {
+    grid-template-areas: "copy timeline status";
+    grid-template-columns:
+      minmax(180px, 1fr)
+      minmax(220px, 320px)
+      max-content;
+    gap: var(--space-sm);
+  }
+
+  .recording-workflow-header p {
+    display: block;
+    max-width: 48ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .vehicle-page-header {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+    gap: var(--space-md);
+  }
+}
+
+/* Paired vehicle inputs share one card; the form itself stays visually open. */
+.vehicle-record-form.panel {
+  --vehicle-paired-control-height: var(--control-mobile);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.vehicle-selection-row {
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  align-items: start;
+}
+
+.vehicle-selection-row > .vehicle-select-field,
+.vehicle-distance-field,
+.vehicle-distance-entry {
+  width: 100%;
+  min-width: 0;
+}
+
+.vehicle-selection-section .vehicle-select-field select,
+.vehicle-selection-section .vehicle-number-control input,
+.vehicle-context-section .vehicle-select-field select {
+  block-size: var(--vehicle-paired-control-height);
+  min-block-size: var(--vehicle-paired-control-height);
+}
+
+.vehicle-selected-summary {
+  grid-column: 1 / -1;
+  padding-inline: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.vehicle-context-grid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--space-sm);
+}
+
+.vehicle-context-pane {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: var(--space-xs);
+}
+
+.vehicle-context-pane-heading {
+  min-width: 0;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+}
+
+.vehicle-context-pane + .vehicle-context-pane {
+  padding-inline-start: var(--space-sm);
+  border-inline-start: var(--rule-thin) solid var(--color-line-soft);
+}
+
+.vehicle-context-pane h4 {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-style: normal;
+  line-height: 1.3;
+}
+
+.vehicle-context-pane h4:focus {
+  outline: none;
+}
+
+.vehicle-context-pane h4:focus-visible {
+  border-radius: var(--radius-row);
+  box-shadow: 0 0 0 2px var(--color-focus);
+}
+
+.vehicle-context-pane .vehicle-observation-fields,
+.vehicle-context-pane .vehicle-user-row {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+@media (min-width: 48rem) {
+  .vehicle-record-form.panel {
+    --vehicle-paired-control-height: 40px;
+  }
+}
+
+@media (max-width: 39.999rem) {
+  .vehicle-selection-row,
+  .vehicle-context-grid {
+    gap: var(--space-xs);
+  }
+
+  .vehicle-context-pane + .vehicle-context-pane {
+    padding-inline-start: var(--space-xs);
   }
 }

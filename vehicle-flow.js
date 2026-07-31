@@ -36,6 +36,23 @@ function deriveVehicleFlowState({
   };
 }
 
+function calculateDailyDistance(previousOdometer, currentOdometer) {
+  const previous = Number(previousOdometer);
+  const hasCurrent = currentOdometer !== "" && currentOdometer !== null && currentOdometer !== undefined;
+  const current = hasCurrent ? Number(currentOdometer) : null;
+
+  if (!Number.isFinite(previous)) {
+    return { state: "missing-previous", previous: null, current, daily: null, valid: false };
+  }
+  if (!hasCurrent || !Number.isFinite(current)) {
+    return { state: "empty", previous, current: null, daily: null, valid: false };
+  }
+  if (current < previous) {
+    return { state: "below-previous", previous, current, daily: current - previous, valid: false };
+  }
+  return { state: "ready", previous, current, daily: current - previous, valid: true };
+}
+
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { deriveVehicleFlowState };
+  module.exports = { calculateDailyDistance, deriveVehicleFlowState };
 }
