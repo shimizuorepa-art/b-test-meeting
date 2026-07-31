@@ -401,8 +401,6 @@ const elements = {
   vehicleFlowSteps: [...document.querySelectorAll("[data-vehicle-flow-step]")],
   vehicleRecordedAt: document.querySelector("#vehicle-recorded-at"),
   vehicleReporter: document.querySelector("#vehicle-reporter"),
-  vehicleLinkedDate: document.querySelector("#vehicle-linked-date"),
-  vehicleLinkedReporter: document.querySelector("#vehicle-linked-reporter"),
   vehiclePhotoRecordDates: [...document.querySelectorAll("[data-photo-record-date]")],
   vehiclePreviousDates: [...document.querySelectorAll("[data-yesterday-date]")],
   vehicleAccidentFields: document.querySelector("#vehicle-accident-fields"),
@@ -1541,8 +1539,6 @@ function renderVehicleFormState() {
   const recordDate = formatVehicleRecordDate(elements.vehicleRecordedAt.value);
   const usageReady = Boolean(vehicleValue("purpose"));
 
-  elements.vehicleLinkedDate.textContent = recordDate.label;
-  elements.vehicleLinkedReporter.textContent = `担当：${elements.vehicleReporter.value || LOGIN_ACCOUNT.name}`;
   elements.vehicleFooterSummary.textContent = `${vehicleLabel || "車両未選択"}・${recordDate.label}・${elements.vehicleReporter.value || LOGIN_ACCOUNT.name}`;
   elements.vehicleSelectedSummary.textContent = hasVehicle
     ? `${vehicleLabel}の記録を編集中`

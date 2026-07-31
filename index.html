@@ -10,7 +10,7 @@
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23075d9c'/%3E%3Cpath d='M9 7h8c4 0 6 2 6 5 0 2-1 3-3 4 3 1 4 2 4 5 0 4-3 6-7 6H9V7zm5 4v4h3c1 0 2-1 2-2s-1-2-2-2h-3zm0 8v4h4c1 0 2-1 2-2s-1-2-2-2h-4z' fill='white'/%3E%3C/svg%3E"
     />
     <link rel="stylesheet" href="./tokens.css?v=20260731-2" />
-    <link rel="stylesheet" href="./styles.css?v=20260731-17" />
+    <link rel="stylesheet" href="./styles.css?v=20260731-18" />
   </head>
   <body>
     <div class="app-shell">
@@ -399,48 +399,38 @@
         </footer>
 
         <section id="vehicle-workspace" class="vehicle-workspace" aria-labelledby="vehicle-page-heading" hidden>
-          <header class="vehicle-page-header">
-            <div>
-              <h2 id="vehicle-page-heading" tabindex="-1">退勤前の車両チェック</h2>
-            </div>
-            <ol class="vehicle-flow-progress system-workflow-steps" aria-label="車両記録の進行状況">
-              <li class="is-current" data-vehicle-flow-step="vehicle"><span>1</span><strong>車両</strong></li>
-              <li data-vehicle-flow-step="photos"><span>2</span><strong>写真</strong></li>
-              <li data-vehicle-flow-step="context"><span>3</span><strong>状況・使用</strong></li>
-              <li data-vehicle-flow-step="check"><span>4</span><strong>確認</strong></li>
-            </ol>
-          </header>
-
           <form id="vehicle-record-form" class="vehicle-record-form panel" novalidate>
+            <header class="vehicle-page-header">
+              <div class="vehicle-page-header-copy">
+                <h2 id="vehicle-page-heading" tabindex="-1">退勤前の車両チェック</h2>
+              </div>
+              <ol class="vehicle-flow-progress system-workflow-steps" aria-label="車両記録の進行状況">
+                <li class="is-current" data-vehicle-flow-step="vehicle"><span>1</span><strong>車両</strong></li>
+                <li data-vehicle-flow-step="photos"><span>2</span><strong>写真</strong></li>
+                <li data-vehicle-flow-step="context"><span>3</span><strong>状況・使用</strong></li>
+                <li data-vehicle-flow-step="check"><span>4</span><strong>確認</strong></li>
+              </ol>
+              <div class="vehicle-meta-grid vehicle-page-meta" role="group" aria-label="記録日時と担当者">
+                <label class="vehicle-meta-field" for="vehicle-recorded-at">
+                  <span>記録日時</span>
+                  <input id="vehicle-recorded-at" name="recorded-at" type="datetime-local" />
+                </label>
+                <label class="vehicle-meta-field" for="vehicle-reporter">
+                  <span>担当者</span>
+                  <select id="vehicle-reporter" name="reporter">
+                    <option value="田中">田中（ログイン中）</option>
+                    <option value="佐藤">佐藤</option>
+                    <option value="山本">山本</option>
+                    <option value="その他">その他</option>
+                  </select>
+                </label>
+              </div>
+            </header>
+
             <div id="vehicle-form-error" class="vehicle-form-message is-error" role="alert" hidden></div>
             <div id="vehicle-form-success" class="vehicle-form-message is-success" role="status" aria-live="polite" tabindex="-1" hidden>
               登録しました
             </div>
-
-            <section class="vehicle-form-section vehicle-record-meta" aria-labelledby="vehicle-meta-heading">
-              <details class="vehicle-meta-disclosure">
-                <summary>
-                  <span id="vehicle-meta-heading">記録情報</span>
-                  <strong role="status" aria-live="polite"><span id="vehicle-linked-date">—</span><span id="vehicle-linked-reporter">担当：田中</span></strong>
-                  <span class="vehicle-meta-edit">変更</span>
-                </summary>
-                <div class="vehicle-meta-grid">
-                  <label class="vehicle-meta-field" for="vehicle-recorded-at">
-                    <span>記録日時</span>
-                    <input id="vehicle-recorded-at" name="recorded-at" type="datetime-local" />
-                  </label>
-                  <label class="vehicle-meta-field" for="vehicle-reporter">
-                    <span>担当者</span>
-                    <select id="vehicle-reporter" name="reporter">
-                      <option value="田中">田中（ログイン中）</option>
-                      <option value="佐藤">佐藤</option>
-                      <option value="山本">山本</option>
-                      <option value="その他">その他</option>
-                    </select>
-                  </label>
-                </div>
-              </details>
-            </section>
 
             <section id="vehicle-selection-section" class="vehicle-form-section vehicle-selection-section" aria-labelledby="vehicle-selection-heading">
               <div class="vehicle-section-heading">
@@ -1194,6 +1184,6 @@
     </dialog>
 
     <script defer src="./vehicle-flow.js?v=20260731-5"></script>
-    <script defer src="./app.js?v=20260731-11"></script>
+    <script defer src="./app.js?v=20260731-12"></script>
   </body>
 </html>

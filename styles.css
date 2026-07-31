@@ -1,4 +1,4 @@
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · genre: modern-minimal · tone: utilitarian-refined · macrostructure: Narrative Workflow · theme: Bsystem modern component system · component vocabulary: Compact Header Timeline + Baseline-aligned Paired Field Group + Binary Choice Buttons + Segmented Control + Disclosure + Modal Dialog + Form Field + Badge + Sticky Navigation + Inline Alert · anchor: Bsystem blue · display/body: Bsystem Japanese UI stack · nav: N3 side-rail · footer: task dock · contrast: pass (40–41) · slop: pass (42–49) · mobile: code-pass (34, 49–57), render-hold · designed-as-app */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · genre: modern-minimal · tone: utilitarian-refined · macrostructure: Narrative Workflow · theme: Bsystem modern component system · component vocabulary: Persistent Vehicle Meta Header + Compact Header Timeline + Baseline-aligned Paired Field Group + Binary Choice Buttons + Segmented Control + Disclosure + Modal Dialog + Form Field + Badge + Sticky Navigation + Inline Alert · anchor: Bsystem blue · display/body: Bsystem Japanese UI stack · nav: N3 side-rail · footer: task dock · contrast: pass (40–41) · slop: pass (42–49) · mobile: pass (34, 49–57) · designed-as-app */
 
 *,
 *::before,
@@ -3694,10 +3694,6 @@ body[data-capture-state="paused"] .recording-levels > span {
   gap: var(--space-xs);
 }
 
-.vehicle-record-meta {
-  padding: 0 var(--space-xs);
-}
-
 .vehicle-selection-section {
   background: var(--color-panel);
 }
@@ -3720,75 +3716,6 @@ body[data-capture-state="paused"] .recording-levels > span {
   font-size: 11px;
   font-weight: 700;
   overflow-wrap: anywhere;
-}
-
-.vehicle-meta-disclosure {
-  min-width: 0;
-}
-
-.vehicle-meta-disclosure summary {
-  min-width: 0;
-  min-height: var(--control-mobile);
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr) max-content;
-  align-items: center;
-  gap: var(--space-xs);
-  padding-block: var(--space-xs);
-  outline: 2px solid transparent;
-  outline-offset: 1px;
-  list-style: none;
-  cursor: pointer;
-}
-
-.vehicle-meta-disclosure summary::-webkit-details-marker {
-  display: none;
-}
-
-.vehicle-meta-disclosure summary > span:first-child {
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.vehicle-meta-disclosure summary strong {
-  min-width: 0;
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-xs);
-  color: var(--color-text-secondary);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.vehicle-meta-disclosure summary strong span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.vehicle-meta-edit {
-  color: var(--color-primary-dark);
-  font-size: 11px;
-  font-weight: 750;
-  white-space: nowrap;
-}
-
-.vehicle-meta-disclosure[open] .vehicle-meta-edit {
-  color: var(--color-text-secondary);
-}
-
-.vehicle-meta-disclosure[open] .vehicle-meta-edit::after {
-  content: "中";
-}
-
-.vehicle-meta-disclosure > .vehicle-meta-grid {
-  padding: var(--space-xs) 0 var(--space-sm);
-  border-top: 1px solid var(--color-line);
-}
-
-.vehicle-meta-disclosure summary:focus-visible {
-  outline-color: var(--color-focus);
 }
 
 .vehicle-compact-field-grid,
@@ -5983,17 +5910,11 @@ h4,
 }
 
 /* Disclosure: lightweight rows with visible state instead of full button chrome. */
-.vehicle-meta-disclosure summary,
 .transcript-disclosure summary {
   min-height: var(--control-mobile);
   border-radius: var(--radius-field);
 }
 
-.vehicle-meta-disclosure summary {
-  padding-inline: var(--space-xs);
-}
-
-.vehicle-meta-disclosure[open] summary,
 .transcript-disclosure[open] summary {
   background: var(--color-panel-muted);
 }
@@ -6607,5 +6528,47 @@ body[data-app-view="history"] .minutes-workspace-footer [data-minutes-history]::
 
   .vehicle-radio-row.is-binary label:active {
     transform: none;
+  }
+}
+
+/* Vehicle entry header keeps record metadata visible without a second disclosure card. */
+.vehicle-page-header {
+  grid-template-areas:
+    "vehicle-copy"
+    "vehicle-timeline"
+    "vehicle-meta";
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.vehicle-page-header-copy {
+  grid-area: vehicle-copy;
+}
+
+.vehicle-page-header > .system-workflow-steps {
+  grid-area: vehicle-timeline;
+}
+
+.vehicle-page-meta {
+  grid-area: vehicle-meta;
+  padding-top: var(--space-xs);
+  border-top: var(--rule-thin) solid var(--color-line-soft);
+}
+
+@media (min-width: 23rem) and (max-width: 39.999rem) {
+  .vehicle-page-meta {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.65fr);
+  }
+}
+
+@media (min-width: 40rem) {
+  .vehicle-page-header {
+    grid-template-areas:
+      "vehicle-copy vehicle-timeline"
+      "vehicle-meta vehicle-meta";
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+  }
+
+  .vehicle-page-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
