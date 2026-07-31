@@ -9,7 +9,7 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23075d9c'/%3E%3Cpath d='M9 7h8c4 0 6 2 6 5 0 2-1 3-3 4 3 1 4 2 4 5 0 4-3 6-7 6H9V7zm5 4v4h3c1 0 2-1 2-2s-1-2-2-2h-3zm0 8v4h4c1 0 2-1 2-2s-1-2-2-2h-4z' fill='white'/%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260730-6" />
+    <link rel="stylesheet" href="./styles.css?v=20260731-4" />
   </head>
   <body>
     <div class="app-shell">
@@ -69,6 +69,20 @@
             <output id="author-output" aria-label="記入者：田中">田中</output>
           </div>
           <div class="header-tools">
+            <nav class="vehicle-header-actions" aria-label="車両記録の移動">
+              <button class="vehicle-header-action" type="button" data-vehicle-history-trigger>
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M3.5 12a8.5 8.5 0 1 0 2.4-5.9L3.5 8.5M3.5 4v4.5H8M12 7.5V12l3 2" />
+                </svg>
+                <span>履歴</span>
+              </button>
+              <a class="vehicle-header-action" href="#minutes-workspace" data-minutes-home>
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M6 4h9l3 3v13H6V4Zm9 0v4h3M9 12h6M9 16h6" />
+                </svg>
+                <span>議事録</span>
+              </a>
+            </nav>
             <button
               id="app-guide-trigger"
               class="button button-secondary app-guide-trigger"
@@ -384,16 +398,16 @@
               <h2 id="vehicle-page-heading" tabindex="-1">退勤前の車両チェック</h2>
             </div>
             <ol class="vehicle-flow-progress" aria-label="車両記録の進行状況">
-              <li class="is-current" data-vehicle-flow-step="gate"><span>1</span><strong>状態</strong></li>
-              <li data-vehicle-flow-step="basic"><span>2</span><strong>使用情報</strong></li>
-              <li data-vehicle-flow-step="details"><span>3</span><strong>確認</strong></li>
-              <li data-vehicle-flow-step="photos"><span>4</span><strong>写真</strong></li>
+              <li class="is-current" data-vehicle-flow-step="vehicle"><span>1</span><strong>車両</strong></li>
+              <li data-vehicle-flow-step="photos"><span>2</span><strong>写真</strong></li>
+              <li data-vehicle-flow-step="context"><span>3</span><strong>状況・使用</strong></li>
+              <li data-vehicle-flow-step="check"><span>4</span><strong>確認</strong></li>
             </ol>
           </header>
 
           <form id="vehicle-record-form" class="vehicle-record-form panel" novalidate>
             <div id="vehicle-form-error" class="vehicle-form-message is-error" role="alert" hidden></div>
-            <div id="vehicle-form-success" class="vehicle-form-message is-success" role="status" aria-live="polite" hidden>
+            <div id="vehicle-form-success" class="vehicle-form-message is-success" role="status" aria-live="polite" tabindex="-1" hidden>
               登録しました
             </div>
 
@@ -422,10 +436,31 @@
               </details>
             </section>
 
+            <section id="vehicle-selection-section" class="vehicle-form-section vehicle-selection-section" aria-labelledby="vehicle-selection-heading">
+              <div class="vehicle-section-heading">
+                <div class="vehicle-section-title">
+                  <h3 id="vehicle-selection-heading" tabindex="-1">記録する車両</h3>
+                </div>
+                <span>1台ずつ・必須</span>
+              </div>
+              <div class="vehicle-selection-row">
+                <label class="vehicle-select-field" data-required-group="vehicle" for="vehicle-select">
+                  <span>社用車</span>
+                  <select id="vehicle-select" name="vehicle">
+                    <option value="">車両を選択</option>
+                    <option value="vehicle-a">車両A（25-07）</option>
+                    <option value="vehicle-b">車両B（仮）</option>
+                    <option value="vehicle-c">車両C（仮）</option>
+                  </select>
+                </label>
+                <output id="vehicle-selected-summary" class="vehicle-selected-summary" aria-live="polite">車両を選ぶと、この1台の記録を開始します</output>
+              </div>
+            </section>
+
             <section class="vehicle-form-section vehicle-gate-section" aria-labelledby="vehicle-gate-heading">
               <div class="vehicle-section-heading">
                 <div class="vehicle-section-title">
-                  <h3 id="vehicle-gate-heading">異常はありますか？</h3>
+                  <h3 id="vehicle-gate-heading" tabindex="-1">異常の有無</h3>
                 </div>
                 <span>必須</span>
               </div>
@@ -447,7 +482,7 @@
             <section id="vehicle-common-section" class="vehicle-form-section" aria-labelledby="vehicle-basic-heading" hidden>
               <div class="vehicle-section-heading">
                 <div class="vehicle-section-title">
-                  <h3 id="vehicle-basic-heading">使用情報</h3>
+                  <h3 id="vehicle-basic-heading" tabindex="-1">使用情報</h3>
                 </div>
                 <span>必須</span>
               </div>
@@ -477,16 +512,6 @@
               </div>
 
               <div class="vehicle-compact-field-grid">
-                <label class="vehicle-select-field" data-required-group="vehicle" for="vehicle-select">
-                  <span>車両</span>
-                  <select id="vehicle-select" name="vehicle">
-                    <option value="">選択してください</option>
-                    <option value="vehicle-a">車両A（25-07）</option>
-                    <option value="vehicle-b">車両B（仮）</option>
-                    <option value="vehicle-c">車両C（仮）</option>
-                  </select>
-                </label>
-
                 <label class="vehicle-select-field" data-required-group="purpose" for="vehicle-purpose">
                   <span>使用用途</span>
                   <select id="vehicle-purpose" name="purpose">
@@ -498,71 +523,102 @@
                   </select>
                 </label>
 
-                <label class="vehicle-number-field" for="vehicle-odometer">
-                  <span>最終走行距離</span>
-                  <span class="vehicle-number-control"><input id="vehicle-odometer" name="odometer" type="number" inputmode="numeric" min="0" step="1" placeholder="45210" /><span>km</span></span>
-                </label>
               </div>
             </section>
 
             <section id="vehicle-photo-section" class="vehicle-form-section" aria-labelledby="vehicle-photo-heading" hidden>
               <div class="vehicle-section-heading">
                 <div class="vehicle-section-title">
-                  <h3 id="vehicle-photo-heading">車両写真</h3>
+                  <h3 id="vehicle-photo-heading" tabindex="-1">車両写真</h3>
                 </div>
                 <span id="vehicle-photo-count">0 / 4枚</span>
               </div>
+              <p id="vehicle-photo-scope" class="vehicle-photo-scope" role="status">選択した1台に4方向の写真を登録します</p>
 
               <div class="vehicle-photo-switch" role="group" aria-label="表示する車両写真">
                 <button type="button" data-vehicle-photo-view="today" aria-pressed="true">本日の撮影</button>
                 <button type="button" data-vehicle-photo-view="yesterday" aria-pressed="false">昨日の写真</button>
               </div>
 
-              <details class="vehicle-photo-instructions">
-                <summary><span>撮影方法を見る</span><strong>ナンバー必須</strong></summary>
-                <div>
-                  <ol>
-                    <li>フロント・バック・左・右の順に撮影します。</li>
-                    <li>車体全体が画面の約8割に入り、タイヤやバンパーが切れない距離に立ちます。</li>
-                    <li>前後はナンバーが読める明るさと角度に合わせます。</li>
-                  </ol>
-                  <p>昨日と比較できるよう、毎回なるべく同じ位置・高さから撮影してください。</p>
-                </div>
-              </details>
+              <button
+                id="vehicle-photo-guide-trigger"
+                class="vehicle-photo-guide-trigger"
+                type="button"
+                aria-haspopup="dialog"
+                aria-controls="vehicle-photo-guide-dialog"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 10.5v6M12 7.5h.01" />
+                </svg>
+                <span>撮影方法を見る</span>
+              </button>
 
               <div id="vehicle-photo-today">
                 <div class="vehicle-photo-grid">
-                  <button class="vehicle-photo-button" type="button" data-photo-position="front" aria-pressed="false">
-                    <span class="vehicle-photo-guide" aria-hidden="true"></span>
-                    <span class="vehicle-photo-crop is-front" aria-hidden="true"><img src="../assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="" /></span>
+                  <article class="vehicle-photo-item">
+                    <span class="vehicle-photo-preview" aria-hidden="true">
+                      <span class="vehicle-photo-guide"></span>
+                      <span class="vehicle-photo-crop is-front"><img src="../assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="" /></span>
+                    </span>
                     <strong>フロント</strong>
-                    <span data-photo-status>撮影する</span>
-                  </button>
-                  <button class="vehicle-photo-button" type="button" data-photo-position="back" aria-pressed="false">
-                    <span class="vehicle-photo-guide" aria-hidden="true"></span>
-                    <span class="vehicle-photo-crop is-back" aria-hidden="true"><img src="../assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="" /></span>
+                    <button class="vehicle-photo-action" type="button" data-photo-position="front" aria-label="フロントを撮影する" aria-pressed="false">
+                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M4 8.5h3l1.4-2h7.2l1.4 2h3v10H4v-10Z" />
+                        <circle cx="12" cy="13.5" r="3.2" />
+                      </svg>
+                      <span data-photo-status>撮影する</span>
+                    </button>
+                  </article>
+                  <article class="vehicle-photo-item">
+                    <span class="vehicle-photo-preview" aria-hidden="true">
+                      <span class="vehicle-photo-guide"></span>
+                      <span class="vehicle-photo-crop is-back"><img src="../assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="" /></span>
+                    </span>
                     <strong>バック</strong>
-                    <span data-photo-status>撮影する</span>
-                  </button>
-                  <button class="vehicle-photo-button" type="button" data-photo-position="left" aria-pressed="false">
-                    <span class="vehicle-photo-guide" aria-hidden="true"></span>
-                    <span class="vehicle-photo-crop is-left" aria-hidden="true"><img src="../assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="" /></span>
+                    <button class="vehicle-photo-action" type="button" data-photo-position="back" aria-label="バックを撮影する" aria-pressed="false">
+                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M4 8.5h3l1.4-2h7.2l1.4 2h3v10H4v-10Z" />
+                        <circle cx="12" cy="13.5" r="3.2" />
+                      </svg>
+                      <span data-photo-status>撮影する</span>
+                    </button>
+                  </article>
+                  <article class="vehicle-photo-item">
+                    <span class="vehicle-photo-preview" aria-hidden="true">
+                      <span class="vehicle-photo-guide"></span>
+                      <span class="vehicle-photo-crop is-left"><img src="../assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="" /></span>
+                    </span>
                     <strong>左サイド</strong>
-                    <span data-photo-status>撮影する</span>
-                  </button>
-                  <button class="vehicle-photo-button" type="button" data-photo-position="right" aria-pressed="false">
-                    <span class="vehicle-photo-guide" aria-hidden="true"></span>
-                    <span class="vehicle-photo-crop is-right" aria-hidden="true"><img src="../assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="" /></span>
+                    <button class="vehicle-photo-action" type="button" data-photo-position="left" aria-label="左サイドを撮影する" aria-pressed="false">
+                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M4 8.5h3l1.4-2h7.2l1.4 2h3v10H4v-10Z" />
+                        <circle cx="12" cy="13.5" r="3.2" />
+                      </svg>
+                      <span data-photo-status>撮影する</span>
+                    </button>
+                  </article>
+                  <article class="vehicle-photo-item">
+                    <span class="vehicle-photo-preview" aria-hidden="true">
+                      <span class="vehicle-photo-guide"></span>
+                      <span class="vehicle-photo-crop is-right"><img src="../assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="" /></span>
+                    </span>
                     <strong>右サイド</strong>
-                    <span data-photo-status>撮影する</span>
-                  </button>
+                    <button class="vehicle-photo-action" type="button" data-photo-position="right" aria-label="右サイドを撮影する" aria-pressed="false">
+                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M4 8.5h3l1.4-2h7.2l1.4 2h3v10H4v-10Z" />
+                        <circle cx="12" cy="13.5" r="3.2" />
+                      </svg>
+                      <span data-photo-status>撮影する</span>
+                    </button>
+                  </article>
                 </div>
               </div>
 
               <div id="vehicle-photo-yesterday" class="vehicle-previous-record" hidden>
                 <header>
                   <div>
-                    <strong>車両A（25-07）</strong>
+                    <strong id="vehicle-previous-name">車両A（25-07）</strong>
                     <time data-yesterday-date datetime="">前日</time>
                   </div>
                   <span class="state-label is-neutral">異常なし</span>
@@ -597,7 +653,7 @@
             <section id="vehicle-abnormal-checks" class="vehicle-form-section vehicle-abnormal-checks" aria-labelledby="vehicle-check-heading" hidden>
               <div class="vehicle-section-heading">
                 <div class="vehicle-section-title">
-                  <h3 id="vehicle-check-heading">異常の詳細</h3>
+                  <h3 id="vehicle-check-heading" tabindex="-1">異常の詳細</h3>
                 </div>
               </div>
 
@@ -680,15 +736,15 @@
             <section id="vehicle-observation-section" class="vehicle-form-section vehicle-observation-section" aria-labelledby="vehicle-observation-heading" hidden>
               <div class="vehicle-section-heading">
                 <div class="vehicle-section-title">
-                  <h3 id="vehicle-observation-heading">気づいたこと</h3>
+                  <h3 id="vehicle-observation-heading" tabindex="-1">車両の状況チェック</h3>
                 </div>
-                <span>任意</span>
+                <span>必須</span>
               </div>
               <div class="vehicle-observation-fields">
                 <label class="vehicle-select-field" for="vehicle-observation">
-                  <span>車両の状態</span>
+                  <span>気づいた状態</span>
                   <select id="vehicle-observation" name="observation">
-                    <option value="">選択なし</option>
+                    <option value="特になし">特になし</option>
                     <option value="空調が弱い">空調が弱い</option>
                     <option value="異音がする">異音がする</option>
                     <option value="振動が気になる">振動が気になる</option>
@@ -707,12 +763,71 @@
               </div>
             </section>
 
+            <section id="vehicle-distance-section" class="vehicle-form-section vehicle-distance-section" aria-labelledby="vehicle-distance-heading" hidden>
+              <div class="vehicle-section-heading">
+                <div class="vehicle-section-title">
+                  <h3 id="vehicle-distance-heading" tabindex="-1">最終走行距離</h3>
+                </div>
+                <span>必須</span>
+              </div>
+              <label class="vehicle-number-field" for="vehicle-odometer">
+                <span>メーター表示</span>
+                <span class="vehicle-number-control"><input id="vehicle-odometer" name="odometer" type="number" inputmode="numeric" min="0" step="1" placeholder="45210" /><span>km</span></span>
+              </label>
+            </section>
+
+            <section id="vehicle-mobile-completion" class="vehicle-mobile-completion" aria-labelledby="vehicle-mobile-completion-heading">
+              <div>
+                <h3 id="vehicle-mobile-completion-heading">この車両の記録を完了</h3>
+                <p id="vehicle-completion-status" role="status" aria-live="polite">必要な項目を入力してください</p>
+              </div>
+              <button
+                id="vehicle-complete-mobile"
+                class="vehicle-complete-action"
+                type="submit"
+                data-vehicle-complete
+                data-label-default="登録を完了する"
+                data-label-success="登録完了"
+                aria-describedby="vehicle-save-help"
+                disabled
+              >
+                <span class="vehicle-complete-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false"><path d="M5 12.5 9.2 17 19 7" /></svg>
+                </span>
+                <span data-vehicle-complete-label>登録を完了する</span>
+              </button>
+            </section>
+
           </form>
+
+          <section
+            id="vehicle-completion-workspace"
+            class="vehicle-completion-workspace"
+            aria-labelledby="vehicle-completion-title"
+            hidden
+          >
+            <div class="vehicle-completion-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false"><path d="M5 12.5 9.2 17 19 7" /></svg>
+            </div>
+            <div class="vehicle-completion-copy">
+              <span class="vehicle-completion-eyebrow">登録完了</span>
+              <h2 id="vehicle-completion-title" tabindex="-1">車両記録を登録しました</h2>
+              <p id="vehicle-completion-message">本日の記録を保存しました</p>
+            </div>
+            <dl class="vehicle-completion-summary">
+              <div><dt>車両</dt><dd id="vehicle-completion-vehicle">—</dd></div>
+              <div><dt>最終走行距離</dt><dd id="vehicle-completion-distance">—</dd></div>
+              <div><dt>担当者</dt><dd id="vehicle-completion-reporter">—</dd></div>
+            </dl>
+            <button id="vehicle-continue-record" class="button button-primary vehicle-continue-record" type="button">
+              続けて登録
+            </button>
+          </section>
 
           <section id="vehicle-history-workspace" class="vehicle-history-workspace" aria-labelledby="vehicle-history-title" hidden>
             <header class="vehicle-history-header">
               <div>
-                <span>車両A（25-07）</span>
+                <span id="vehicle-history-vehicle-name">車両A（25-07）</span>
                 <h2 id="vehicle-history-title" tabindex="-1">前日までの車両記録</h2>
               </div>
               <button id="vehicle-history-close" class="button button-secondary" type="button" aria-label="前日までの車両記録を閉じる">
@@ -814,11 +929,11 @@
 
           <footer class="vehicle-form-footer">
             <strong id="vehicle-footer-summary" class="sr-only">本日の車両記録</strong>
-            <p id="vehicle-save-help" class="sr-only" role="status" aria-live="polite">最初に異常の有無を選択してください。</p>
-            <nav class="vehicle-footer-actions" aria-label="車両記録の操作">
-              <button id="vehicle-save" class="vehicle-dock-action is-primary" type="button">
+            <p id="vehicle-save-help" class="sr-only" role="status" aria-live="polite">最初に車両を選択してください。</p>
+            <nav class="vehicle-footer-actions vehicle-footer-actions-mobile" aria-label="車両記録の操作">
+              <button id="vehicle-new-record" class="vehicle-dock-action is-primary" type="button">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <path d="M5 12.5 9.2 17 19 7" />
+                  <path d="M5 5h14v14H5zM8 9h8M8 13h5" />
                 </svg>
                 <span>本日登録</span>
               </button>
@@ -835,6 +950,19 @@
                 <span>議事録</span>
               </a>
             </nav>
+            <button
+              id="vehicle-complete-desktop"
+              class="vehicle-desktop-completion"
+              type="button"
+              data-vehicle-complete
+              data-label-default="登録完了"
+              data-label-success="登録完了"
+              aria-describedby="vehicle-save-help"
+              disabled
+            >
+              <span class="vehicle-desktop-completion-status" aria-hidden="true"></span>
+              <span data-vehicle-complete-label>登録完了</span>
+            </button>
           </footer>
         </section>
       </main>
@@ -927,6 +1055,42 @@
     </dialog>
 
     <dialog
+      id="vehicle-photo-guide-dialog"
+      class="vehicle-photo-guide-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="vehicle-photo-guide-title"
+      aria-describedby="vehicle-photo-guide-intro"
+    >
+      <div class="vehicle-photo-guide-surface">
+        <header class="vehicle-photo-guide-header">
+          <div>
+            <span>車両写真</span>
+            <h2 id="vehicle-photo-guide-title" tabindex="-1">撮影方法</h2>
+          </div>
+          <button id="vehicle-photo-guide-close" class="button button-secondary" type="button" aria-label="撮影方法を閉じる">
+            <span aria-hidden="true">×</span>
+          </button>
+        </header>
+        <div class="vehicle-photo-guide-body">
+          <figure class="vehicle-photo-guide-example">
+            <img src="../assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="白い車両をフロント、バック、左、右から撮影した見本" />
+            <figcaption id="vehicle-photo-guide-intro">車体全体とナンバーが確認できる位置から撮影します。</figcaption>
+          </figure>
+          <ol>
+            <li><strong>フロント・バック・左・右</strong><span>4方向を順に撮影</span></li>
+            <li><strong>車体を画面の約8割に</strong><span>タイヤやバンパーを切らない</span></li>
+            <li><strong>前後はナンバーを鮮明に</strong><span>明るさと角度を調整</span></li>
+            <li><strong>毎回同じ位置と高さ</strong><span>昨日の写真と比較しやすくする</span></li>
+          </ol>
+        </div>
+        <footer class="vehicle-photo-guide-footer">
+          <button id="vehicle-photo-guide-done" class="button button-primary" type="button">撮影を始める</button>
+        </footer>
+      </div>
+    </dialog>
+
+    <dialog
       id="app-guide-dialog"
       class="app-guide-dialog"
       role="dialog"
@@ -970,17 +1134,18 @@
               <h3>車両記録を残す</h3>
               <ol>
                 <li>記録日時と担当者を確認します。ログイン中のアカウントが初期表示されます。</li>
-                <li>異常の有無を選ぶと、使用者・車両・用途・最終走行距離が下へ開きます。</li>
-                <li>使用者は本人が初期表示されます。複数人で使った時だけ「複数人」を選び、追加使用者をプルダウンで選びます。</li>
-                <li>異常ありの場合は丸いラジオで状態を回答し、必要な内容だけ直下のプルダウンから選択します。</li>
-                <li>異常の有無にかかわらず、車両の気づきを任意で選べます。</li>
+                <li>記録する社用車を1台選び、メーターの最終走行距離を入力してから前後左右4枚の写真を撮影します。</li>
+                <li>写真の後に、車両の状況チェックと使用情報を上から順に入力します。</li>
+                <li>使用者は本人が初期表示されます。複数人で使った時だけ「複数人」を選び、追加使用者を選びます。</li>
+                <li>異常ありの場合だけ詳細を回答します。最終走行距離は車両選択直後から入力でき、異常の有無にかかわらず必須です。</li>
+                <li>別の社用車へ切り替えると、その1台用の新しい記録に切り替わります。</li>
                 <li>写真ブロックと画面下部から、昨日の写真や前日までの記録を確認できます。</li>
               </ol>
             </div>
           </section>
           <aside class="app-guide-note">
             <strong>写真と日付について</strong>
-            <p>前後左右の写真は、画面上部で選択した記録日時に自動で紐づきます。同じ距離・高さから、車体全体とナンバーが入るよう撮影してください。</p>
+            <p>前後左右の写真は、選択した1台と記録日時に自動で紐づきます。同じ距離・高さから、車体全体とナンバーが入るよう撮影してください。</p>
           </aside>
         </div>
         <footer class="app-guide-footer">
@@ -990,6 +1155,7 @@
       </div>
     </dialog>
 
-    <script type="module" src="./app.js?v=20260730-6"></script>
+    <script defer src="./vehicle-flow.js?v=20260731-4"></script>
+    <script defer src="./app.js?v=20260731-7"></script>
   </body>
 </html>
