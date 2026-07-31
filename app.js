@@ -9,7 +9,61 @@ const VEHICLE_PREVIOUS_ODOMETERS = Object.freeze({
   "vehicle-a": 45168,
   "vehicle-b": 38120,
   "vehicle-c": 52604,
+  "vehicle-d": 29760,
+  "vehicle-e": 61432,
 });
+
+const VEHICLE_HISTORY_VEHICLES = Object.freeze([
+  { id: "vehicle-a", label: "車両A（25-07）", odometer: 45168 },
+  { id: "vehicle-b", label: "車両B（12-34）", odometer: 38120 },
+  { id: "vehicle-c", label: "車両C（56-78）", odometer: 52604 },
+  { id: "vehicle-d", label: "車両D（90-12）", odometer: 29760 },
+  { id: "vehicle-e", label: "車両E（34-56）", odometer: 61432 },
+]);
+const VEHICLE_HISTORY_TIMES = Object.freeze(["07:15", "09:20", "11:35", "13:50", "16:10", "18:05"]);
+const VEHICLE_HISTORY_REPORTERS = Object.freeze(["田中", "佐藤", "山本", "中村", "高橋"]);
+const VEHICLE_HISTORY_PURPOSES = Object.freeze(["見回り", "資材運搬", "送迎", "買い出し", "農園間移動", "その他業務"]);
+const VEHICLE_HISTORY_OBSERVATIONS = Object.freeze(["特になし", "空調が弱い", "異音がする", "振動が気になる", "タイヤ空気圧を確認"]);
+
+function createVehicleHistoryFixtures() {
+  const records = [];
+  for (let offset = 0; offset <= 6; offset += 1) {
+    for (let vehicleIndex = 0; vehicleIndex < VEHICLE_HISTORY_VEHICLES.length; vehicleIndex += 1) {
+      const vehicle = VEHICLE_HISTORY_VEHICLES[vehicleIndex];
+      const registrationCount = offset === 0 ? 6 : 1 + ((offset + vehicleIndex) % 3);
+      for (let entryIndex = 0; entryIndex < registrationCount; entryIndex += 1) {
+        const anomaly = offset === 0
+          ? (vehicleIndex === 1 && entryIndex === 4) || (vehicleIndex === 3 && entryIndex === 2) || (vehicleIndex === 4 && entryIndex === 5)
+          : (offset + vehicleIndex + entryIndex) % 11 === 0;
+        const condition = anomaly && vehicleIndex === 3 ? "C・要修理" : anomaly ? "B・走行可" : "A・良好";
+        const accident = anomaly && (vehicleIndex + entryIndex) % 2 === 0;
+        const maintenance = entryIndex === registrationCount - 1 && (offset + vehicleIndex) % 2 === 0;
+        const time = VEHICLE_HISTORY_TIMES[entryIndex];
+        records.push({
+          id: `vehicle-history-${offset}-${vehicle.id}-${entryIndex}`,
+          offset,
+          vehicleId: vehicle.id,
+          vehicleLabel: vehicle.label,
+          time,
+          reporter: VEHICLE_HISTORY_REPORTERS[(offset + vehicleIndex + entryIndex) % VEHICLE_HISTORY_REPORTERS.length],
+          purpose: VEHICLE_HISTORY_PURPOSES[(vehicleIndex + entryIndex) % VEHICLE_HISTORY_PURPOSES.length],
+          anomaly,
+          condition,
+          accident: accident ? "あり・左側面の擦り傷" : "なし",
+          maintenance: maintenance ? (vehicleIndex % 2 === 0 ? "給油" : "タイヤ空気圧調整") : "なし",
+          observation: anomaly
+            ? VEHICLE_HISTORY_OBSERVATIONS[1 + ((vehicleIndex + entryIndex) % (VEHICLE_HISTORY_OBSERVATIONS.length - 1))]
+            : VEHICLE_HISTORY_OBSERVATIONS[(offset + entryIndex) % VEHICLE_HISTORY_OBSERVATIONS.length],
+          odometer: vehicle.odometer - offset * (48 + vehicleIndex * 7) + (entryIndex + 1) * (3 + vehicleIndex),
+          photoCount: 4,
+        });
+      }
+    }
+  }
+  return Object.freeze(records);
+}
+
+const VEHICLE_HISTORY_FIXTURES = createVehicleHistoryFixtures();
 
 const MEETING_TYPES = [
   { id: "morning", label: "朝礼" },
@@ -261,6 +315,9 @@ const state = {
   vehiclePhotoView: "today",
   vehicleRecordStatus: "editing",
   vehicleDraftDirty: false,
+  vehicleHistoryFilter: "all",
+  vehicleHistoryOpenOffset: 0,
+  vehicleHistoryOpenVehicle: "",
 };
 
 function createSuggestions() {
@@ -426,10 +483,17 @@ const elements = {
   vehicleHistoryTriggers: [...document.querySelectorAll("[data-vehicle-history-trigger]")],
   vehicleHistoryWorkspace: document.querySelector("#vehicle-history-workspace"),
   vehicleHistoryTitle: document.querySelector("#vehicle-history-title"),
-  vehicleHistoryVehicleName: document.querySelector("#vehicle-history-vehicle-name"),
   vehicleHistoryClose: document.querySelector("#vehicle-history-close"),
-  vehicleHistoryRecords: [...document.querySelectorAll("[data-vehicle-history-record]")],
-  vehicleHistoryDates: [...document.querySelectorAll("[data-vehicle-history-date]")],
+  vehicleHistorySummary: document.querySelector("#vehicle-history-summary"),
+  vehicleHistoryFilter: document.querySelector("#vehicle-history-filter"),
+  vehicleHistoryEmpty: document.querySelector("#vehicle-history-empty"),
+  vehicleHistoryList: document.querySelector("#vehicle-history-list"),
+  vehicleHistoryDetailDialog: document.querySelector("#vehicle-history-detail-dialog"),
+  vehicleHistoryDetailTitle: document.querySelector("#vehicle-history-detail-title"),
+  vehicleHistoryDetailSubtitle: document.querySelector("#vehicle-history-detail-subtitle"),
+  vehicleHistoryDetailContent: document.querySelector("#vehicle-history-detail-content"),
+  vehicleHistoryDetailClose: document.querySelector("#vehicle-history-detail-close"),
+  vehicleHistoryDetailDone: document.querySelector("#vehicle-history-detail-done"),
   vehicleLeaveDialog: document.querySelector("#vehicle-leave-dialog"),
   vehicleLeaveTitle: document.querySelector("#vehicle-leave-title"),
   vehicleLeaveDescription: document.querySelector("#vehicle-leave-description"),
@@ -455,6 +519,7 @@ let restoreMenuAfterContact = false;
 let activeInfoTrigger = null;
 let lastGuideTrigger = null;
 let lastVehicleHistoryTrigger = null;
+let lastVehicleHistoryDetailTrigger = null;
 let pendingVehicleRevealFrame = null;
 let pendingVehicleLeaveAction = null;
 let lastVehicleLeaveTrigger = null;
@@ -1443,31 +1508,273 @@ function offsetVehicleRecordDate(value, days) {
   };
 }
 
-function renderVehicleHistoryDates() {
-  for (const record of elements.vehicleHistoryRecords) {
-    const days = Number.parseInt(record.dataset.offset, 10) || 1;
-    const recordDate = offsetVehicleRecordDate(elements.vehicleRecordedAt.value, days);
-    const time = record.querySelector("[data-vehicle-history-date]");
-    if (!time) continue;
-    time.dateTime = recordDate.iso;
-    time.textContent = recordDate.label;
-    record.dataset.dateLabel = recordDate.label;
+function createVehicleHistoryChevron() {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 16 16");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", "m4 6 4 4 4-4");
+  svg.append(path);
+  return svg;
+}
+
+function filteredVehicleHistoryRecords() {
+  if (state.vehicleHistoryFilter === "all") return [...VEHICLE_HISTORY_FIXTURES];
+  return VEHICLE_HISTORY_FIXTURES.filter(({ vehicleId }) => vehicleId === state.vehicleHistoryFilter);
+}
+
+function groupVehicleHistoryByDate(records) {
+  const groups = new Map();
+  for (const record of records) {
+    if (!groups.has(record.offset)) groups.set(record.offset, []);
+    groups.get(record.offset).push(record);
+  }
+  return [...groups.entries()].sort(([offsetA], [offsetB]) => offsetA - offsetB);
+}
+
+function groupVehicleHistoryByVehicle(records) {
+  const groups = new Map();
+  for (const vehicle of VEHICLE_HISTORY_VEHICLES) {
+    const vehicleRecords = records.filter(({ vehicleId }) => vehicleId === vehicle.id);
+    if (vehicleRecords.length) groups.set(vehicle.id, vehicleRecords);
+  }
+  return [...groups.entries()];
+}
+
+function vehicleHistoryRelativeLabel(offset) {
+  if (offset === 0) return "本日";
+  if (offset === 1) return "前日";
+  return `${offset}日前`;
+}
+
+function vehicleHistoryStatus(count) {
+  return count > 0 ? `異常 ${count}件` : "異常なし";
+}
+
+function renderVehicleHistoryRecordList(records, offset, vehicleId) {
+  const list = document.createElement("ol");
+  list.className = "vehicle-history-record-list";
+  list.setAttribute("aria-label", `${records[0].vehicleLabel}の${vehicleHistoryRelativeLabel(offset)}の記録`);
+
+  for (const record of records) {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "vehicle-history-record-row";
+    button.dataset.vehicleHistoryRecord = record.id;
+    button.setAttribute("aria-haspopup", "dialog");
+    button.setAttribute("aria-label", `${record.time}、${record.purpose}、${record.reporter}、${record.anomaly ? "異常あり" : "異常なし"}の記録を開く`);
+
+    const time = document.createElement("time");
+    time.dateTime = record.time;
+    time.textContent = record.time;
+
+    const purpose = document.createElement("span");
+    purpose.className = "vehicle-history-record-purpose";
+    purpose.textContent = record.purpose;
+
+    const reporter = document.createElement("span");
+    reporter.className = "vehicle-history-record-reporter";
+    reporter.textContent = record.reporter;
+
+    const distance = document.createElement("span");
+    distance.className = "vehicle-history-record-distance";
+    distance.textContent = `${record.odometer.toLocaleString("ja-JP")} km`;
+
+    const status = document.createElement("strong");
+    status.className = record.anomaly ? "is-alert" : "is-clear";
+    status.textContent = record.anomaly ? "あり" : "なし";
+
+    button.append(time, purpose, reporter, distance, status, createVehicleHistoryChevron());
+    item.append(button);
+    list.append(item);
+  }
+
+  return list;
+}
+
+function renderVehicleHistoryVehicleGroups(records, offset) {
+  const list = document.createElement("div");
+  list.className = "vehicle-history-vehicle-list";
+
+  for (const [vehicleId, vehicleRecords] of groupVehicleHistoryByVehicle(records)) {
+    const vehicle = VEHICLE_HISTORY_VEHICLES.find(({ id }) => id === vehicleId);
+    const anomalyCount = vehicleRecords.filter(({ anomaly }) => anomaly).length;
+    const group = document.createElement("section");
+    group.className = "vehicle-history-vehicle-group";
+
+    const buttonId = `vehicle-history-vehicle-toggle-${offset}-${vehicleId}`;
+    const panelId = `vehicle-history-vehicle-panel-${offset}-${vehicleId}`;
+    const expanded = state.vehicleHistoryOpenVehicle === `${offset}:${vehicleId}`;
+    const button = document.createElement("button");
+    button.id = buttonId;
+    button.type = "button";
+    button.className = "vehicle-history-vehicle-toggle";
+    button.dataset.vehicleHistoryVehicle = `${offset}:${vehicleId}`;
+    button.setAttribute("aria-expanded", String(expanded));
+    button.setAttribute("aria-controls", panelId);
+
+    const main = document.createElement("span");
+    main.className = "vehicle-history-vehicle-main";
+    const label = document.createElement("strong");
+    label.textContent = vehicle.label;
+    const range = document.createElement("small");
+    range.textContent = `${vehicleRecords[0].time}–${vehicleRecords.at(-1).time}`;
+    main.append(label, range);
+
+    const count = document.createElement("span");
+    count.className = "vehicle-history-count";
+    count.textContent = `${vehicleRecords.length}件`;
+
+    const status = document.createElement("strong");
+    status.className = anomalyCount ? "vehicle-history-status is-alert" : "vehicle-history-status is-clear";
+    status.textContent = vehicleHistoryStatus(anomalyCount);
+
+    button.append(main, count, status, createVehicleHistoryChevron());
+
+    const panel = document.createElement("div");
+    panel.id = panelId;
+    panel.className = "vehicle-history-vehicle-panel";
+    panel.setAttribute("role", "region");
+    panel.setAttribute("aria-labelledby", buttonId);
+    panel.hidden = !expanded;
+    if (expanded) panel.append(renderVehicleHistoryRecordList(vehicleRecords, offset, vehicleId));
+
+    group.append(button, panel);
+    list.append(group);
+  }
+
+  return list;
+}
+
+function renderVehicleHistory() {
+  const records = filteredVehicleHistoryRecords();
+  const dayGroups = groupVehicleHistoryByDate(records);
+  const vehicleCount = new Set(records.map(({ vehicleId }) => vehicleId)).size;
+  elements.vehicleHistoryFilter.value = state.vehicleHistoryFilter;
+  elements.vehicleHistorySummary.textContent = `${dayGroups.length}日分・${records.length}件・${vehicleCount}台`;
+  elements.vehicleHistoryEmpty.hidden = records.length > 0;
+  elements.vehicleHistoryList.replaceChildren();
+
+  for (const [offset, dayRecords] of dayGroups) {
+    const vehicleGroups = groupVehicleHistoryByVehicle(dayRecords);
+    const anomalyCount = dayRecords.filter(({ anomaly }) => anomaly).length;
+    const date = offsetVehicleRecordDate(elements.vehicleRecordedAt.value, offset);
+    const article = document.createElement("article");
+    article.className = "vehicle-history-day";
+    article.setAttribute("role", "listitem");
+
+    const buttonId = `vehicle-history-day-toggle-${offset}`;
+    const panelId = `vehicle-history-day-panel-${offset}`;
+    const expanded = state.vehicleHistoryOpenOffset === offset;
+    const button = document.createElement("button");
+    button.id = buttonId;
+    button.type = "button";
+    button.className = "vehicle-history-day-toggle";
+    button.dataset.vehicleHistoryDate = String(offset);
+    button.setAttribute("aria-expanded", String(expanded));
+    button.setAttribute("aria-controls", panelId);
+
+    const dateBlock = document.createElement("span");
+    dateBlock.className = "vehicle-history-day-date";
+    const time = document.createElement("time");
+    time.dateTime = date.iso;
+    time.textContent = date.label;
+    const relative = document.createElement("small");
+    relative.textContent = vehicleHistoryRelativeLabel(offset);
+    dateBlock.append(time, relative);
+
+    const summary = document.createElement("span");
+    summary.className = "vehicle-history-day-summary";
+    const registrationCount = document.createElement("strong");
+    registrationCount.textContent = `${dayRecords.length}件`;
+    const vehicles = document.createElement("span");
+    vehicles.textContent = `${vehicleGroups.length}台`;
+    const status = document.createElement("span");
+    status.className = anomalyCount ? "is-alert" : "is-clear";
+    status.textContent = vehicleHistoryStatus(anomalyCount);
+    summary.append(registrationCount, vehicles, status);
+    button.append(dateBlock, summary, createVehicleHistoryChevron());
+
+    const panel = document.createElement("div");
+    panel.id = panelId;
+    panel.className = "vehicle-history-day-panel";
+    panel.setAttribute("role", "region");
+    panel.setAttribute("aria-labelledby", buttonId);
+    panel.hidden = !expanded;
+    if (expanded) panel.append(renderVehicleHistoryVehicleGroups(dayRecords, offset));
+
+    article.append(button, panel);
+    elements.vehicleHistoryList.append(article);
   }
 }
 
-function selectVehicleHistoryRecord(record) {
-  const shouldOpen = Boolean(record) && record.getAttribute("aria-expanded") !== "true";
-  for (const item of elements.vehicleHistoryRecords) {
-    item.classList.remove("is-current");
-    item.setAttribute("aria-expanded", "false");
-    const detail = document.querySelector(`#${item.getAttribute("aria-controls")}`);
-    if (detail) detail.hidden = true;
+function focusRenderedVehicleHistory(selector) {
+  requestAnimationFrame(() => elements.vehicleHistoryList.querySelector(selector)?.focus({ preventScroll: true }));
+}
+
+function toggleVehicleHistoryDate(button) {
+  const offset = Number.parseInt(button.dataset.vehicleHistoryDate, 10);
+  state.vehicleHistoryOpenOffset = state.vehicleHistoryOpenOffset === offset ? null : offset;
+  state.vehicleHistoryOpenVehicle = "";
+  renderVehicleHistory();
+  focusRenderedVehicleHistory(`[data-vehicle-history-date="${offset}"]`);
+}
+
+function toggleVehicleHistoryVehicle(button) {
+  const key = button.dataset.vehicleHistoryVehicle;
+  state.vehicleHistoryOpenVehicle = state.vehicleHistoryOpenVehicle === key ? "" : key;
+  renderVehicleHistory();
+  focusRenderedVehicleHistory(`[data-vehicle-history-vehicle="${key}"]`);
+}
+
+function renderVehicleHistoryDetail(record) {
+  const date = offsetVehicleRecordDate(elements.vehicleRecordedAt.value, record.offset);
+  elements.vehicleHistoryDetailTitle.textContent = record.vehicleLabel;
+  elements.vehicleHistoryDetailSubtitle.textContent = `${date.label} ${record.time}・${record.reporter}`;
+  elements.vehicleHistoryDetailContent.replaceChildren();
+
+  const status = document.createElement("p");
+  status.className = record.anomaly ? "vehicle-history-detail-status is-alert" : "vehicle-history-detail-status is-clear";
+  status.textContent = record.anomaly ? "異常あり" : "異常なし";
+
+  const details = document.createElement("dl");
+  details.className = "vehicle-history-detail-grid";
+  const fields = [
+    ["使用用途", record.purpose],
+    ["車両状態", record.condition],
+    ["気づいたこと", record.observation],
+    ["事故・接触", record.accident],
+    ["整備・修繕", record.maintenance],
+    ["最終走行距離", `${record.odometer.toLocaleString("ja-JP")} km`],
+    ["車両写真", `${record.photoCount}枚・前後左右`],
+  ];
+  for (const [term, value] of fields) {
+    const row = document.createElement("div");
+    const dt = document.createElement("dt");
+    dt.textContent = term;
+    const dd = document.createElement("dd");
+    dd.textContent = value;
+    row.append(dt, dd);
+    details.append(row);
   }
-  if (!shouldOpen) return;
-  record.classList.add("is-current");
-  record.setAttribute("aria-expanded", "true");
-  const detail = document.querySelector(`#${record.getAttribute("aria-controls")}`);
-  if (detail) detail.hidden = false;
+  elements.vehicleHistoryDetailContent.append(status, details);
+}
+
+function openVehicleHistoryDetail(recordId, trigger) {
+  const record = VEHICLE_HISTORY_FIXTURES.find(({ id }) => id === recordId);
+  if (!record) return;
+  lastVehicleHistoryDetailTrigger = trigger;
+  renderVehicleHistoryDetail(record);
+  elements.vehicleHistoryDetailDialog.showModal();
+  elements.vehicleHistoryDetailTitle.focus({ preventScroll: true });
+}
+
+function closeVehicleHistoryDetail({ restoreFocus = true } = {}) {
+  if (!elements.vehicleHistoryDetailDialog.open) return;
+  elements.vehicleHistoryDetailDialog.close();
+  if (restoreFocus) lastVehicleHistoryDetailTrigger?.focus({ preventScroll: true });
+  lastVehicleHistoryDetailTrigger = null;
 }
 
 function selectedVehicleLabel() {
@@ -1547,7 +1854,6 @@ function renderVehicleFormState() {
     ? `${vehicleLabel}に4方向の写真を登録します`
     : "選択した1台に4方向の写真を登録します";
   elements.vehiclePreviousName.textContent = vehicleLabel || "車両A（25-07）";
-  elements.vehicleHistoryVehicleName.textContent = vehicleLabel || "車両A（25-07）";
   const distanceState = currentVehicleDistanceState(vehicleId);
   if (distanceState.previous === null) {
     elements.vehiclePreviousOdometer.textContent = "— km";
@@ -1574,7 +1880,6 @@ function renderVehicleFormState() {
     time.dateTime = previousDate.iso;
     time.textContent = previousDate.label;
   }
-  renderVehicleHistoryDates();
   for (const button of elements.vehiclePhotoViewButtons) {
     const expanded = state.vehiclePhotoView === "yesterday";
     button.setAttribute("aria-expanded", String(expanded));
@@ -1818,8 +2123,9 @@ function showVehicleCompletion({ focus = true } = {}) {
 
 function openVehicleHistory(trigger) {
   lastVehicleHistoryTrigger = trigger;
-  renderVehicleHistoryDates();
-  selectVehicleHistoryRecord(null);
+  state.vehicleHistoryOpenOffset = 0;
+  state.vehicleHistoryOpenVehicle = "";
+  renderVehicleHistory();
   elements.vehicleForm.hidden = true;
   elements.vehicleCompletionWorkspace.hidden = true;
   elements.vehicleHistoryWorkspace.hidden = false;
@@ -1830,6 +2136,7 @@ function openVehicleHistory(trigger) {
 
 function closeVehicleHistory({ restoreFocus = true } = {}) {
   if (elements.vehicleHistoryWorkspace.hidden) return;
+  closeVehicleHistoryDetail({ restoreFocus: false });
   elements.vehicleHistoryWorkspace.hidden = true;
   const wasSaved = state.vehicleRecordStatus === "saved";
   elements.vehicleForm.hidden = wasSaved;
@@ -2106,10 +2413,36 @@ function bindEvents() {
   for (const trigger of elements.vehicleHistoryTriggers) {
     trigger.addEventListener("click", () => requestVehicleLeave(() => openVehicleHistory(trigger), trigger));
   }
-  for (const record of elements.vehicleHistoryRecords) {
-    record.addEventListener("click", () => selectVehicleHistoryRecord(record));
-  }
+  elements.vehicleHistoryFilter.addEventListener("change", () => {
+    state.vehicleHistoryFilter = elements.vehicleHistoryFilter.value;
+    state.vehicleHistoryOpenOffset = 0;
+    state.vehicleHistoryOpenVehicle = "";
+    renderVehicleHistory();
+  });
+  elements.vehicleHistoryList.addEventListener("click", (event) => {
+    const record = event.target.closest("[data-vehicle-history-record]");
+    if (record) {
+      openVehicleHistoryDetail(record.dataset.vehicleHistoryRecord, record);
+      return;
+    }
+    const vehicle = event.target.closest("[data-vehicle-history-vehicle]");
+    if (vehicle) {
+      toggleVehicleHistoryVehicle(vehicle);
+      return;
+    }
+    const date = event.target.closest("[data-vehicle-history-date]");
+    if (date) toggleVehicleHistoryDate(date);
+  });
   elements.vehicleHistoryClose.addEventListener("click", closeVehicleHistory);
+  elements.vehicleHistoryDetailClose.addEventListener("click", () => closeVehicleHistoryDetail());
+  elements.vehicleHistoryDetailDone.addEventListener("click", () => closeVehicleHistoryDetail());
+  elements.vehicleHistoryDetailDialog.addEventListener("click", (event) => {
+    if (event.target === elements.vehicleHistoryDetailDialog) closeVehicleHistoryDetail();
+  });
+  elements.vehicleHistoryDetailDialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeVehicleHistoryDetail();
+  });
   elements.vehicleLeaveContinue.addEventListener("click", () => closeVehicleLeaveDialog());
   elements.vehicleLeaveDiscard.addEventListener("click", () => resolveVehicleLeave("discard"));
   elements.vehicleLeaveSave.addEventListener("click", () => resolveVehicleLeave("save"));
@@ -2164,6 +2497,7 @@ function bindEvents() {
   });
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
+    if (elements.vehicleHistoryDetailDialog.open) return;
     if (!elements.vehicleHistoryWorkspace.hidden) closeVehicleHistory();
     else if (!elements.participantMenu.hidden) setParticipantMenu(false);
     else if (activeInfoTrigger) closeInfo();
