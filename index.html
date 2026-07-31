@@ -10,7 +10,7 @@
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23075d9c'/%3E%3Cpath d='M9 7h8c4 0 6 2 6 5 0 2-1 3-3 4 3 1 4 2 4 5 0 4-3 6-7 6H9V7zm5 4v4h3c1 0 2-1 2-2s-1-2-2-2h-3zm0 8v4h4c1 0 2-1 2-2s-1-2-2-2h-4z' fill='white'/%3E%3C/svg%3E"
     />
     <link rel="stylesheet" href="./tokens.css?v=20260731-2" />
-    <link rel="stylesheet" href="./styles.css?v=20260731-15" />
+    <link rel="stylesheet" href="./styles.css?v=20260731-16" />
   </head>
   <body>
     <div class="app-shell">
@@ -450,19 +450,27 @@
                 <span>1台ずつ・必須</span>
               </div>
               <div class="vehicle-selection-row">
-                <label class="vehicle-select-field" data-required-group="vehicle" for="vehicle-select">
-                  <span>社用車</span>
-                  <select id="vehicle-select" name="vehicle">
-                    <option value="">車両を選択</option>
-                    <option value="vehicle-a">車両A（25-07）</option>
-                    <option value="vehicle-b">車両B（仮）</option>
-                    <option value="vehicle-c">車両C（仮）</option>
-                  </select>
-                </label>
-                <div id="vehicle-distance-section" class="vehicle-distance-field" aria-labelledby="vehicle-distance-label" hidden>
+                <div class="vehicle-context-pane vehicle-selection-pane" aria-labelledby="vehicle-selection-vehicle-heading">
+                  <div class="vehicle-context-pane-heading">
+                    <h4 id="vehicle-selection-vehicle-heading">記録する車両</h4>
+                  </div>
+                  <label class="vehicle-select-field" data-required-group="vehicle" for="vehicle-select">
+                    <span>社用車</span>
+                    <select id="vehicle-select" name="vehicle">
+                      <option value="">車両を選択</option>
+                      <option value="vehicle-a">車両A（25-07）</option>
+                      <option value="vehicle-b">車両B（仮）</option>
+                      <option value="vehicle-c">車両C（仮）</option>
+                    </select>
+                  </label>
+                </div>
+                <div id="vehicle-distance-section" class="vehicle-context-pane vehicle-selection-pane vehicle-distance-field" aria-labelledby="vehicle-distance-heading" hidden>
+                  <div class="vehicle-context-pane-heading">
+                    <h4 id="vehicle-distance-heading" tabindex="-1">最終走行距離</h4>
+                  </div>
                   <div class="vehicle-distance-entry">
                     <label class="vehicle-number-field" for="vehicle-odometer">
-                      <span id="vehicle-distance-label">最終走行距離</span>
+                      <span>メーター値</span>
                       <span class="vehicle-number-control">
                         <input id="vehicle-odometer" name="odometer" type="number" inputmode="numeric" min="0" step="1" placeholder="45210" aria-describedby="vehicle-odometer-reference" />
                         <span>km</span>
@@ -597,19 +605,19 @@
                 </header>
                 <div class="vehicle-previous-photo-grid">
                   <figure>
-                    <span class="vehicle-photo-crop is-front"><img src="./assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="白い車両Aの前面。ナンバーが確認できる前日写真" /></span>
+                    <span class="vehicle-photo-crop is-front"><img src="../assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="白い車両Aの前面。ナンバーが確認できる前日写真" /></span>
                     <figcaption>フロント</figcaption>
                   </figure>
                   <figure>
-                    <span class="vehicle-photo-crop is-back"><img src="./assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="白い車両Aの後面。ナンバーが確認できる前日写真" /></span>
+                    <span class="vehicle-photo-crop is-back"><img src="../assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="白い車両Aの後面。ナンバーが確認できる前日写真" /></span>
                     <figcaption>バック</figcaption>
                   </figure>
                   <figure>
-                    <span class="vehicle-photo-crop is-left"><img src="./assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="白い車両Aの左側面の前日写真" /></span>
+                    <span class="vehicle-photo-crop is-left"><img src="../assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="白い車両Aの左側面の前日写真" /></span>
                     <figcaption>左サイド</figcaption>
                   </figure>
                   <figure>
-                    <span class="vehicle-photo-crop is-right"><img src="./assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="白い車両Aの右側面の前日写真" /></span>
+                    <span class="vehicle-photo-crop is-right"><img src="../assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="白い車両Aの右側面の前日写真" /></span>
                     <figcaption>右サイド</figcaption>
                   </figure>
                 </div>
@@ -627,7 +635,7 @@
                   <article class="vehicle-photo-item">
                     <span class="vehicle-photo-preview" aria-hidden="true">
                       <span class="vehicle-photo-guide"></span>
-                      <span class="vehicle-photo-crop is-front"><img src="./assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="" /></span>
+                      <span class="vehicle-photo-crop is-front"><img src="../assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="" /></span>
                     </span>
                     <strong>フロント</strong>
                     <button class="vehicle-photo-action" type="button" data-photo-position="front" aria-label="フロントを撮影する" aria-pressed="false">
@@ -641,7 +649,7 @@
                   <article class="vehicle-photo-item">
                     <span class="vehicle-photo-preview" aria-hidden="true">
                       <span class="vehicle-photo-guide"></span>
-                      <span class="vehicle-photo-crop is-back"><img src="./assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="" /></span>
+                      <span class="vehicle-photo-crop is-back"><img src="../assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="" /></span>
                     </span>
                     <strong>バック</strong>
                     <button class="vehicle-photo-action" type="button" data-photo-position="back" aria-label="バックを撮影する" aria-pressed="false">
@@ -655,7 +663,7 @@
                   <article class="vehicle-photo-item">
                     <span class="vehicle-photo-preview" aria-hidden="true">
                       <span class="vehicle-photo-guide"></span>
-                      <span class="vehicle-photo-crop is-left"><img src="./assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="" /></span>
+                      <span class="vehicle-photo-crop is-left"><img src="../assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="" /></span>
                     </span>
                     <strong>左サイド</strong>
                     <button class="vehicle-photo-action" type="button" data-photo-position="left" aria-label="左サイドを撮影する" aria-pressed="false">
@@ -669,7 +677,7 @@
                   <article class="vehicle-photo-item">
                     <span class="vehicle-photo-preview" aria-hidden="true">
                       <span class="vehicle-photo-guide"></span>
-                      <span class="vehicle-photo-crop is-right"><img src="./assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="" /></span>
+                      <span class="vehicle-photo-crop is-right"><img src="../assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="" /></span>
                     </span>
                     <strong>右サイド</strong>
                     <button class="vehicle-photo-action" type="button" data-photo-position="right" aria-label="右サイドを撮影する" aria-pressed="false">
@@ -1080,7 +1088,7 @@
         </header>
         <div class="vehicle-photo-guide-body">
           <figure class="vehicle-photo-guide-example">
-            <img src="./assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="白い車両をフロント、バック、左、右から撮影した見本" />
+            <img src="../assets/generated/vehicle-inspection-views-v1.png" width="1254" height="1254" loading="lazy" alt="白い車両をフロント、バック、左、右から撮影した見本" />
             <figcaption id="vehicle-photo-guide-intro">車体全体とナンバーが確認できる位置から撮影します。</figcaption>
           </figure>
           <ol>

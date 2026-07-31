@@ -6408,13 +6408,19 @@ body[data-app-view="history"] .minutes-workspace-footer [data-minutes-history]::
 .vehicle-selection-row {
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
   align-items: start;
+  gap: var(--space-sm);
 }
 
-.vehicle-selection-row > .vehicle-select-field,
+.vehicle-selection-row > .vehicle-selection-pane,
+.vehicle-selection-pane .vehicle-select-field,
 .vehicle-distance-field,
 .vehicle-distance-entry {
   width: 100%;
   min-width: 0;
+}
+
+.vehicle-selection-pane .vehicle-number-field > span:first-child {
+  margin-bottom: 0;
 }
 
 .vehicle-selection-section .vehicle-select-field select,
