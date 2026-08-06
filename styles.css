@@ -1,4 +1,4 @@
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · genre: modern-minimal · tone: utilitarian-refined · macrostructure: Narrative Workflow · theme: Bsystem modern component system · component vocabulary: Grouped Vehicle History Navigator + Persistent Vehicle Meta Header + Compact Header Timeline + Baseline-aligned Paired Field Group + Binary Choice Buttons + Segmented Control + Disclosure + Modal Dialog + Form Field + Badge + Sticky Navigation + Inline Alert · anchor: Bsystem blue · display/body: Bsystem Japanese UI stack · nav: N3 side-rail · footer: task dock · contrast: pass (40–41) · slop: pass (42–49) · mobile: pass (34, 49–57) · designed-as-app */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · genre: modern-minimal · tone: utilitarian-refined · macrostructure: Narrative Workflow · theme: Bsystem modern component system · component vocabulary: Compact Fleet Status Selector + Today History Shortcut + Per-vehicle Draft Progress + Actionable Validation Navigator + Grouped Vehicle History Navigator + Persistent Vehicle Meta Header + Compact Header Timeline + Baseline-aligned Paired Field Group + Binary Choice Buttons + Segmented Control + Disclosure + Modal Dialog + Form Field + Badge + Sticky Navigation + Inline Alert · anchor: Bsystem blue · display/body: Bsystem Japanese UI stack · nav: N3 side-rail · footer: task dock · contrast: pass (40–41) · slop: pass (42–49) · mobile: pass (34, 49–57) · designed-as-app */
 
 *,
 *::before,
@@ -3704,20 +3704,6 @@ body[data-capture-state="paused"] .recording-levels > span {
   gap: var(--space-xs);
 }
 
-.vehicle-selected-summary {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  padding: var(--space-xs);
-  border-top: 1px solid var(--color-line);
-  border-radius: 0 0 var(--bs-radius-field) var(--bs-radius-field);
-  background: var(--color-panel-subtle);
-  color: var(--color-text-secondary);
-  font-size: 11px;
-  font-weight: 700;
-  overflow-wrap: anywhere;
-}
-
 .vehicle-compact-field-grid,
 .vehicle-abnormal-grid,
 .vehicle-observation-fields {
@@ -3832,7 +3818,6 @@ body[data-capture-state="paused"] .recording-levels > span {
 }
 
 .vehicle-choice-group legend,
-.vehicle-number-field > span:first-child,
 .vehicle-detail-field > span,
 .vehicle-exception-fields label {
   display: block;
@@ -3934,14 +3919,6 @@ body[data-capture-state="paused"] .recording-levels > span {
   flex-wrap: wrap;
   align-items: center;
   gap: 0 var(--space-sm);
-}
-
-.vehicle-photo-scope {
-  margin: calc(var(--space-2xs) * -1) 0 0;
-  color: var(--color-primary-dark);
-  font-size: 11px;
-  font-weight: 750;
-  line-height: 1.45;
 }
 
 .vehicle-photo-text-action,
@@ -5175,6 +5152,11 @@ body[data-vehicle-screen="history"] .vehicle-page-header {
   text-align: end;
 }
 
+.vehicle-history-count.is-complete {
+  color: var(--color-success);
+  font-weight: 800;
+}
+
 .vehicle-history-vehicle-toggle[aria-expanded="true"] {
   background: var(--color-panel-muted);
   color: var(--color-primary-dark);
@@ -5243,10 +5225,26 @@ body[data-vehicle-screen="history"] .vehicle-page-header {
   font-variant-numeric: tabular-nums;
 }
 
-.vehicle-history-record-row strong {
+.vehicle-history-record-state {
   grid-area: status;
   justify-self: end;
+  display: grid;
+  justify-items: end;
+  gap: var(--space-3xs);
+}
+
+.vehicle-history-record-state strong,
+.vehicle-history-record-confirmation {
   font-size: var(--text-2xs);
+}
+
+.vehicle-history-record-confirmation.is-confirmed {
+  color: var(--color-success);
+  font-weight: 800;
+}
+
+.vehicle-history-record-confirmation.is-pending {
+  color: var(--color-text-secondary);
 }
 
 .vehicle-history-record-row > svg {
@@ -5335,8 +5333,94 @@ body[data-vehicle-screen="history"] .vehicle-page-header {
   overflow-wrap: anywhere;
 }
 
+.vehicle-history-photo-section {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.vehicle-history-photo-section h3 {
+  margin: 0;
+  font-size: var(--text-base);
+}
+
+.vehicle-history-photo-grid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-xs);
+}
+
+.vehicle-history-photo-grid figure {
+  min-width: 0;
+  margin: 0;
+}
+
+.vehicle-history-photo-grid .vehicle-photo-crop {
+  border: var(--rule-thin) solid var(--color-line-soft);
+}
+
+.vehicle-history-photo-grid figcaption {
+  margin-top: var(--space-2xs);
+  color: var(--color-text-secondary);
+  font-size: var(--text-2xs);
+  font-weight: 750;
+  text-align: center;
+}
+
+.vehicle-history-photo-empty {
+  margin: 0;
+  padding: var(--space-md);
+  border-radius: var(--radius-field);
+  background: var(--color-panel-muted);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  text-align: center;
+}
+
+.vehicle-history-dialog-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-xs);
+}
+
 .vehicle-history-dialog-footer .button {
   width: 100%;
+}
+
+.vehicle-history-confirm-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2xs);
+}
+
+.vehicle-history-confirm-action svg {
+  inline-size: 18px;
+  block-size: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.vehicle-history-confirm-action[data-state="success"] {
+  border-color: var(--color-success);
+  background: var(--color-success);
+  color: var(--color-primary-ink);
+}
+
+.vehicle-history-confirm-action[data-state="loading"] {
+  background: var(--color-disabled);
+  color: var(--color-text-secondary);
+  cursor: wait;
+}
+
+.vehicle-history-confirm-action[data-state="error"] {
+  border-color: var(--color-danger);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -5526,6 +5610,19 @@ body[data-vehicle-screen="history"] .vehicle-page-header {
 
   .vehicle-history-record-row strong {
     justify-self: start;
+  }
+
+  .vehicle-history-record-state {
+    justify-self: start;
+    justify-items: start;
+  }
+
+  .vehicle-history-photo-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .vehicle-history-dialog-footer {
+    grid-template-columns: minmax(0, 1fr) minmax(132px, 0.42fr);
   }
 
   .vehicle-history-dialog-surface {
@@ -6188,7 +6285,6 @@ h4,
 .vehicle-meta-field > span,
 .vehicle-select-field > span,
 .vehicle-choice-group legend,
-.vehicle-number-field > span:first-child,
 .vehicle-detail-field > span,
 .vehicle-exception-fields label {
   color: var(--color-text-secondary);
@@ -6627,10 +6723,6 @@ body[data-app-view="history"] .minutes-workspace-footer [data-minutes-history]::
   min-width: 0;
 }
 
-.vehicle-selection-pane .vehicle-number-field > span:first-child {
-  margin-bottom: 0;
-}
-
 .vehicle-selection-section .vehicle-select-field select,
 .vehicle-selection-section .vehicle-number-control input,
 .vehicle-context-section .vehicle-select-field select {
@@ -6638,11 +6730,38 @@ body[data-app-view="history"] .minutes-workspace-footer [data-minutes-history]::
   min-block-size: var(--vehicle-paired-control-height);
 }
 
-.vehicle-selected-summary {
+.vehicle-collaboration-notice {
   grid-column: 1 / -1;
-  padding-inline: 0;
-  border-radius: 0;
-  background: transparent;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-action);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.vehicle-collaboration-notice[hidden] {
+  display: none;
+}
+
+.vehicle-collaboration-notice svg {
+  inline-size: 18px;
+  block-size: 18px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.vehicle-collaboration-notice p {
+  min-width: 0;
+  margin: 0;
 }
 
 .vehicle-context-grid {
@@ -6896,6 +7015,388 @@ body[data-app-view="history"] .minutes-workspace-footer [data-minutes-history]::
   .vehicle-history-day-toggle:active,
   .vehicle-history-vehicle-toggle:active,
   .vehicle-history-record-row:active {
+    transform: none;
+  }
+}
+
+/* Daily fleet status: a compact selector, with detail kept in accessible labels. */
+.vehicle-fleet-progress-section {
+  gap: var(--space-xs);
+}
+
+.vehicle-fleet-progress-section > .vehicle-section-heading {
+  align-items: center;
+}
+
+.vehicle-today-history {
+  min-height: var(--control-mobile);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2xs);
+  padding: 0 var(--space-xs);
+  border: var(--rule-thin) solid transparent;
+  border-radius: var(--radius-action);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  background: transparent;
+  color: var(--color-primary-dark);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-micro) var(--ease-out),
+    border-color var(--duration-micro) var(--ease-out),
+    color var(--duration-micro) var(--ease-out);
+}
+
+.vehicle-today-history svg {
+  inline-size: 16px;
+  block-size: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.vehicle-today-history:focus-visible {
+  outline-color: var(--color-focus);
+}
+
+.vehicle-today-history:active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.vehicle-today-history:disabled,
+.vehicle-today-history[data-state="loading"] {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.vehicle-today-history[data-state="error"] {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.vehicle-today-history[data-state="success"] {
+  color: var(--color-success);
+}
+
+.vehicle-fleet-list {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-2xs);
+  border: 0;
+}
+
+.vehicle-fleet-item {
+  min-width: 0;
+  min-height: 56px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 22px auto;
+  align-items: center;
+  justify-items: center;
+  gap: var(--space-3xs);
+  padding: var(--space-2xs) var(--space-3xs);
+  border: 0;
+  border-radius: var(--radius-action);
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-micro) var(--ease-out),
+    color var(--duration-micro) var(--ease-out);
+}
+
+.vehicle-fleet-item:active {
+  background: var(--color-primary-soft);
+}
+
+.vehicle-fleet-item:disabled {
+  background: var(--color-disabled);
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.vehicle-fleet-item:focus-visible {
+  outline-color: var(--color-focus);
+}
+
+.vehicle-fleet-item[aria-current="true"] {
+  background: var(--color-primary-soft);
+}
+
+.vehicle-fleet-item-visual {
+  inline-size: 22px;
+  block-size: 22px;
+  display: grid;
+  place-items: center;
+}
+
+.vehicle-fleet-item-visual > svg:not(.vehicle-fleet-mini-progress) {
+  inline-size: 22px;
+  block-size: 22px;
+  padding: var(--space-2xs);
+  border-radius: 50%;
+  background: var(--color-success);
+  fill: none;
+  stroke: var(--color-primary-ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.vehicle-fleet-mini-progress {
+  inline-size: 22px;
+  block-size: 22px;
+  transform: rotate(-90deg);
+}
+
+.vehicle-progress-track,
+.vehicle-progress-meter {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.vehicle-progress-track {
+  stroke: var(--color-line-soft);
+  stroke-width: 3;
+}
+
+.vehicle-progress-meter {
+  stroke: var(--color-primary);
+  stroke-width: 3;
+}
+
+.vehicle-fleet-pending-dot {
+  inline-size: 18px;
+  block-size: 18px;
+  border: 2px solid var(--color-line);
+  border-radius: 50%;
+}
+
+.vehicle-fleet-item-name {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: var(--text-xs);
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vehicle-fleet-item.is-complete .vehicle-fleet-item-name {
+  color: var(--color-success);
+}
+
+.vehicle-fleet-item.is-draft .vehicle-fleet-item-name,
+.vehicle-fleet-item.is-editing .vehicle-fleet-item-name {
+  color: var(--color-primary-dark);
+}
+
+/* Validation is an actionable navigator, not a dead error paragraph. */
+.vehicle-validation-summary {
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: var(--space-md);
+  scroll-margin-top: calc(var(--control-mobile) * 2 + var(--space-md));
+}
+
+.vehicle-validation-summary[hidden] {
+  display: none;
+}
+
+.vehicle-validation-summary:focus {
+  outline: none;
+}
+
+.vehicle-validation-summary:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-focus);
+}
+
+.vehicle-validation-heading {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.vehicle-validation-icon {
+  inline-size: 28px;
+  block-size: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-danger);
+  color: var(--color-primary-ink);
+  font-weight: 900;
+}
+
+.vehicle-validation-heading h3,
+.vehicle-validation-heading p {
+  margin: 0;
+}
+
+.vehicle-validation-heading h3 {
+  color: var(--color-text);
+  font-size: var(--text-md);
+}
+
+.vehicle-validation-heading p {
+  margin-top: var(--space-3xs);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.vehicle-validation-list {
+  margin: 0;
+  padding: 0;
+  border-block-start: var(--rule-thin) solid var(--color-line-soft);
+  list-style: none;
+}
+
+.vehicle-validation-list button {
+  width: 100%;
+  min-height: var(--control-mobile);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) 0;
+  border: 0;
+  border-block-end: var(--rule-thin) solid var(--color-line-soft);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.vehicle-validation-list button > span:first-child {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-3xs);
+}
+
+.vehicle-validation-list button strong {
+  font-size: var(--text-sm);
+}
+
+.vehicle-validation-list button > span:first-child > span {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vehicle-validation-list button:hover {
+  color: var(--color-danger);
+}
+
+.vehicle-validation-list button:focus-visible {
+  outline-color: var(--color-focus);
+}
+
+.vehicle-validation-list button:active {
+  background: var(--color-danger-soft);
+}
+
+.vehicle-validation-list button:disabled {
+  background: var(--color-disabled);
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.vehicle-validation-arrow {
+  color: var(--color-danger);
+  font-size: var(--text-md);
+  font-weight: 800;
+}
+
+/* Completion remains actionable before the form is complete, so it can reveal the navigator. */
+.vehicle-complete-action[data-state="waiting"],
+.vehicle-desktop-completion[data-state="waiting"] {
+  border-color: var(--color-primary);
+  background: var(--color-panel);
+  color: var(--color-primary-dark);
+  cursor: pointer;
+}
+
+.vehicle-complete-action[data-state="waiting"] .vehicle-complete-icon {
+  background: var(--color-primary-soft);
+}
+
+.vehicle-complete-action[data-state="error"],
+.vehicle-desktop-completion[data-state="error"] {
+  border-color: var(--color-danger);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  cursor: pointer;
+}
+
+.vehicle-desktop-completion[data-state="waiting"] .vehicle-desktop-completion-status {
+  background: var(--color-primary);
+}
+
+.vehicle-desktop-completion[data-state="error"] .vehicle-desktop-completion-status {
+  background: var(--color-danger);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .vehicle-today-history:hover,
+  .vehicle-fleet-item:hover {
+    background: var(--color-hover);
+  }
+}
+
+.vehicle-complete-action[data-state="waiting"]:active,
+.vehicle-complete-action[data-state="error"]:active,
+.vehicle-desktop-completion[data-ready="true"]:active,
+.vehicle-desktop-completion[data-state="waiting"]:active,
+.vehicle-desktop-completion[data-state="error"]:active {
+  transform: translateY(1px);
+}
+
+@media (min-width: 40rem) {
+  .vehicle-fleet-item {
+    min-height: 48px;
+    grid-template-columns: 22px minmax(0, 1fr);
+    grid-template-rows: auto;
+    justify-items: start;
+    gap: var(--space-2xs);
+    padding: var(--space-2xs) var(--space-xs);
+    text-align: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vehicle-today-history,
+  .vehicle-fleet-item,
+  .vehicle-complete-action,
+  .vehicle-desktop-completion {
+    transition: none;
+  }
+
+  .vehicle-complete-action:active,
+  .vehicle-desktop-completion:active {
     transform: none;
   }
 }

@@ -1,16 +1,37 @@
 const HISTORY_STORAGE_KEY = "bsystem.minutes.recording-history.v1";
 const HISTORY_LIMIT = 100;
-const VEHICLE_DRAFT_STORAGE_KEY = "bsystem.vehicle-record.draft.v1";
-const VEHICLE_DRAFT_VERSION = 1;
+const VEHICLE_DRAFT_STORAGE_KEY = "bsystem.vehicle-record.drafts.v3";
+const VEHICLE_DRAFT_VERSION = 3;
+const VEHICLE_LEGACY_DRAFT_STORAGE_KEY = "bsystem.vehicle-record.drafts.v2";
+const VEHICLE_DAILY_STATUS_STORAGE_KEY = "bsystem.vehicle-record.daily-status.v1";
+const VEHICLE_DAILY_STATUS_VERSION = 1;
+const VEHICLE_HISTORY_CONFIRM_STORAGE_KEY = "bsystem.vehicle-record.history-confirmed.v1";
+const VEHICLE_HISTORY_CONFIRM_VERSION = 1;
 const DEMO_DATE = "2026-07-21";
 const CONTACT_FORM_URL = "https://northern-hearing-e36.notion.site/ebd//55559c2fd62e828c8c318163c97e7d62";
 const LOGIN_ACCOUNT = Object.freeze({ name: "田中" });
-const VEHICLE_PREVIOUS_ODOMETERS = Object.freeze({
-  "vehicle-a": 45168,
-  "vehicle-b": 38120,
-  "vehicle-c": 52604,
-  "vehicle-d": 29760,
-  "vehicle-e": 61432,
+const VEHICLE_FLEET = Object.freeze([
+  { id: "vehicle-a", label: "車両A（25-07）", shortLabel: "車両A", plate: "25-07", odometer: 45168 },
+  { id: "vehicle-b", label: "車両B（12-34）", shortLabel: "車両B", plate: "12-34", odometer: 38120 },
+  { id: "vehicle-c", label: "車両C（56-78）", shortLabel: "車両C", plate: "56-78", odometer: 52604 },
+  { id: "vehicle-d", label: "車両D（90-12）", shortLabel: "車両D", plate: "90-12", odometer: 29760 },
+  { id: "vehicle-e", label: "車両E（34-56）", shortLabel: "車両E", plate: "34-56", odometer: 61432 },
+  { id: "vehicle-f", label: "車両F（78-90）", shortLabel: "車両F", plate: "78-90", odometer: 43308 },
+  { id: "vehicle-g", label: "車両G（11-22）", shortLabel: "車両G", plate: "11-22", odometer: 36415 },
+  { id: "vehicle-h", label: "車両H（33-44）", shortLabel: "車両H", plate: "33-44", odometer: 48760 },
+  { id: "vehicle-i", label: "車両I（55-66）", shortLabel: "車両I", plate: "55-66", odometer: 27184 },
+  { id: "vehicle-j", label: "車両J（77-88）", shortLabel: "車両J", plate: "77-88", odometer: 55290 },
+]);
+
+const VEHICLE_PREVIOUS_ODOMETERS = Object.freeze(
+  Object.fromEntries(VEHICLE_FLEET.map(({ id, odometer }) => [id, odometer])),
+);
+
+const VEHICLE_DAILY_STATUS_FIXTURE = Object.freeze({
+  "vehicle-a": Object.freeze({ completedCount: 2, draftProgress: 0 }),
+  "vehicle-b": Object.freeze({ completedCount: 1, draftProgress: 0 }),
+  "vehicle-c": Object.freeze({ completedCount: 1, draftProgress: 0 }),
+  "vehicle-d": Object.freeze({ completedCount: 1, draftProgress: 0 }),
 });
 
 const VEHICLE_HISTORY_VEHICLES = Object.freeze([
@@ -315,9 +336,19 @@ const state = {
   vehiclePhotoView: "today",
   vehicleRecordStatus: "editing",
   vehicleDraftDirty: false,
+  vehicleDraftId: "",
+  vehicleDraftStartedAt: "",
+  vehicleDraftReporter: LOGIN_ACCOUNT.name,
+  vehicleProgressPercent: 0,
+  vehicleValidationVisible: false,
+  vehicleValidationIssues: [],
+  vehicleDailyStatuses: null,
   vehicleHistoryFilter: "all",
+  vehicleHistoryTodayOnly: false,
   vehicleHistoryOpenOffset: 0,
   vehicleHistoryOpenVehicle: "",
+  vehicleHistoryConfirmedIds: null,
+  vehicleHistoryDetailRecordId: "",
 };
 
 function createSuggestions() {
@@ -428,16 +459,22 @@ const elements = {
   vehiclePageHeading: document.querySelector("#vehicle-page-heading"),
   vehicleForm: document.querySelector("#vehicle-record-form"),
   vehicleFormError: document.querySelector("#vehicle-form-error"),
+  vehicleFormErrorTitle: document.querySelector("#vehicle-form-error-title"),
+  vehicleFormErrorSummary: document.querySelector("#vehicle-form-error-summary"),
+  vehicleFormErrorList: document.querySelector("#vehicle-form-error-list"),
   vehicleFormSuccess: document.querySelector("#vehicle-form-success"),
+  vehicleFleetProgressSection: document.querySelector("#vehicle-fleet-progress-section"),
+  vehicleTodayHistory: document.querySelector("#vehicle-today-history"),
+  vehicleFleetList: document.querySelector("#vehicle-fleet-list"),
   vehicleSelectionSection: document.querySelector("#vehicle-selection-section"),
   vehicleSelect: document.querySelector("#vehicle-select"),
-  vehicleSelectedSummary: document.querySelector("#vehicle-selected-summary"),
+  vehicleCollaborationNotice: document.querySelector("#vehicle-collaboration-notice"),
+  vehicleCollaborationMessage: document.querySelector("#vehicle-collaboration-message"),
   vehiclePhotoButtons: [...document.querySelectorAll("[data-photo-position]")],
   vehiclePhotoViewButtons: [...document.querySelectorAll("[data-vehicle-photo-view]")],
   vehiclePhotoCount: document.querySelector("#vehicle-photo-count"),
   vehiclePhotoToday: document.querySelector("#vehicle-photo-today"),
   vehiclePhotoYesterday: document.querySelector("#vehicle-photo-yesterday"),
-  vehiclePhotoScope: document.querySelector("#vehicle-photo-scope"),
   vehiclePhotoGuideTrigger: document.querySelector("#vehicle-photo-guide-trigger"),
   vehiclePhotoGuideDialog: document.querySelector("#vehicle-photo-guide-dialog"),
   vehiclePhotoGuideTitle: document.querySelector("#vehicle-photo-guide-title"),
@@ -482,6 +519,7 @@ const elements = {
   vehicleNewRecord: document.querySelector("#vehicle-new-record"),
   vehicleHistoryTriggers: [...document.querySelectorAll("[data-vehicle-history-trigger]")],
   vehicleHistoryWorkspace: document.querySelector("#vehicle-history-workspace"),
+  vehicleHistoryScopeLabel: document.querySelector("#vehicle-history-scope-label"),
   vehicleHistoryTitle: document.querySelector("#vehicle-history-title"),
   vehicleHistoryClose: document.querySelector("#vehicle-history-close"),
   vehicleHistorySummary: document.querySelector("#vehicle-history-summary"),
@@ -493,6 +531,8 @@ const elements = {
   vehicleHistoryDetailSubtitle: document.querySelector("#vehicle-history-detail-subtitle"),
   vehicleHistoryDetailContent: document.querySelector("#vehicle-history-detail-content"),
   vehicleHistoryDetailClose: document.querySelector("#vehicle-history-detail-close"),
+  vehicleHistoryDetailConfirm: document.querySelector("#vehicle-history-detail-confirm"),
+  vehicleHistoryDetailConfirmLabel: document.querySelector("[data-vehicle-history-confirm-label]"),
   vehicleHistoryDetailDone: document.querySelector("#vehicle-history-detail-done"),
   vehicleLeaveDialog: document.querySelector("#vehicle-leave-dialog"),
   vehicleLeaveTitle: document.querySelector("#vehicle-leave-title"),
@@ -1343,6 +1383,159 @@ function vehicleOtherSelected(name) {
   return vehicleValue(name) === "その他";
 }
 
+function createInitialVehicleDailyStatus() {
+  return Object.fromEntries(
+    VEHICLE_FLEET.map(({ id }) => [
+      id,
+      {
+        completedCount: VEHICLE_DAILY_STATUS_FIXTURE[id]?.completedCount || 0,
+        draftProgress: VEHICLE_DAILY_STATUS_FIXTURE[id]?.draftProgress || 0,
+      },
+    ]),
+  );
+}
+
+function loadVehicleDailyStatuses() {
+  if (state.vehicleDailyStatuses) return state.vehicleDailyStatuses;
+  try {
+    const stored = JSON.parse(window.sessionStorage.getItem(VEHICLE_DAILY_STATUS_STORAGE_KEY) || "null");
+    state.vehicleDailyStatuses = stored?.version === VEHICLE_DAILY_STATUS_VERSION && stored.dates
+      ? stored.dates
+      : {};
+  } catch {
+    state.vehicleDailyStatuses = {};
+  }
+  return state.vehicleDailyStatuses;
+}
+
+function currentVehicleDateKey() {
+  return formatVehicleRecordDate(elements.vehicleRecordedAt.value).iso || currentLocalDatetimeValue().slice(0, 10);
+}
+
+function vehicleDailyStatusForDate(dateKey = currentVehicleDateKey()) {
+  const dates = loadVehicleDailyStatuses();
+  if (!dates[dateKey]) dates[dateKey] = createInitialVehicleDailyStatus();
+  for (const { id } of VEHICLE_FLEET) {
+    if (!dates[dateKey][id]) dates[dateKey][id] = { completedCount: 0, draftProgress: 0 };
+  }
+  return dates[dateKey];
+}
+
+function persistVehicleDailyStatuses() {
+  try {
+    window.sessionStorage.setItem(
+      VEHICLE_DAILY_STATUS_STORAGE_KEY,
+      JSON.stringify({ version: VEHICLE_DAILY_STATUS_VERSION, dates: loadVehicleDailyStatuses() }),
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function updateVehicleDailyDraft(vehicleId, progress) {
+  if (!vehicleId) return;
+  const entry = vehicleDailyStatusForDate()[vehicleId];
+  entry.draftProgress = Math.max(1, Math.min(99, Math.round(progress)));
+  persistVehicleDailyStatuses();
+}
+
+function completeVehicleDailyStatus(vehicleId) {
+  if (!vehicleId) return;
+  const entry = vehicleDailyStatusForDate()[vehicleId];
+  entry.completedCount += 1;
+  entry.draftProgress = 0;
+  persistVehicleDailyStatuses();
+}
+
+function createVehicleProgressSvg(progress, className) {
+  const namespace = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(namespace, "svg");
+  svg.setAttribute("viewBox", "0 0 28 28");
+  svg.setAttribute("aria-hidden", "true");
+  svg.classList.add(className);
+  const track = document.createElementNS(namespace, "circle");
+  track.setAttribute("cx", "14");
+  track.setAttribute("cy", "14");
+  track.setAttribute("r", "10.5");
+  track.setAttribute("pathLength", "100");
+  track.classList.add("vehicle-progress-track");
+  const meter = document.createElementNS(namespace, "circle");
+  meter.setAttribute("cx", "14");
+  meter.setAttribute("cy", "14");
+  meter.setAttribute("r", "10.5");
+  meter.setAttribute("pathLength", "100");
+  meter.style.strokeDasharray = `${progress} 100`;
+  meter.classList.add("vehicle-progress-meter");
+  svg.append(track, meter);
+  return svg;
+}
+
+function vehicleFleetStatusSnapshot(vehicle, dailyStatus) {
+  const persisted = dailyStatus[vehicle.id] || { completedCount: 0, draftProgress: 0 };
+  const isCurrent = vehicle.id === state.vehicleId;
+  const liveProgress = isCurrent && state.vehicleRecordStatus !== "saved" ? state.vehicleProgressPercent : 0;
+  const progress = Math.max(persisted.draftProgress || 0, liveProgress || 0);
+  if (persisted.completedCount > 0) {
+    return {
+      state: "complete",
+      progress: 100,
+      label: "完了",
+      detail: `本日${persisted.completedCount}件`,
+      completedCount: persisted.completedCount,
+    };
+  }
+  if (progress > 0) {
+    const draftSaved = isCurrent && state.vehicleRecordStatus === "draft" && !state.vehicleDraftDirty;
+    const editingNow = isCurrent && state.vehicleDraftDirty;
+    return {
+      state: editingNow ? "editing" : draftSaved || persisted.draftProgress > 0 ? "draft" : "editing",
+      progress,
+      label: editingNow ? "入力中" : draftSaved || persisted.draftProgress > 0 ? "一時保存" : "入力中",
+      detail: `${progress}%`,
+      completedCount: 0,
+    };
+  }
+  return { state: "pending", progress: 0, label: "未完了", detail: "未着手", completedCount: 0 };
+}
+
+function renderVehicleFleetProgress() {
+  const date = formatVehicleRecordDate(elements.vehicleRecordedAt.value);
+  const dailyStatus = vehicleDailyStatusForDate(date.iso || currentVehicleDateKey());
+  const snapshots = VEHICLE_FLEET.map((vehicle) => ({
+    vehicle,
+    status: vehicleFleetStatusSnapshot(vehicle, dailyStatus),
+  }));
+
+  const fragment = document.createDocumentFragment();
+  for (const { vehicle, status } of snapshots) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `vehicle-fleet-item is-${status.state}`;
+    button.dataset.vehicleFleetId = vehicle.id;
+    button.setAttribute("aria-label", `${vehicle.label}、${status.label}、${status.detail}。この車両を記録する`);
+    if (vehicle.id === state.vehicleId) button.setAttribute("aria-current", "true");
+
+    const visual = document.createElement("span");
+    visual.className = "vehicle-fleet-item-visual";
+    if (status.state === "complete") {
+      visual.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5 9.2 17 19 7" /></svg>';
+    } else if (["draft", "editing"].includes(status.state)) {
+      visual.append(createVehicleProgressSvg(status.progress, "vehicle-fleet-mini-progress"));
+    } else {
+      visual.innerHTML = '<span class="vehicle-fleet-pending-dot" aria-hidden="true"></span>';
+    }
+
+    const name = document.createElement("strong");
+    name.className = "vehicle-fleet-item-name";
+    name.textContent = vehicle.shortLabel;
+
+    button.append(visual, name);
+    fragment.append(button);
+  }
+  elements.vehicleFleetList.replaceChildren(fragment);
+}
+
 function markVehicleRecordEditing() {
   state.vehicleRecordStatus = "editing";
   state.vehicleDraftDirty = true;
@@ -1362,7 +1555,7 @@ function setVehicleHeaderStatus() {
 function renderVehicleDraftActions() {
   const finalSaved = state.vehicleRecordStatus === "saved";
   const draftSaved = state.vehicleRecordStatus === "draft" && !state.vehicleDraftDirty;
-  const canSaveDraft = state.vehicleDraftDirty && !finalSaved;
+  const canSaveDraft = state.vehicleDraftDirty && Boolean(state.vehicleId) && !finalSaved;
   for (const button of elements.vehicleDraftButtons) {
     button.disabled = !canSaveDraft;
     button.dataset.state = finalSaved ? "complete" : draftSaved ? "saved" : canSaveDraft ? "ready" : "waiting";
@@ -1375,10 +1568,11 @@ function renderVehicleCompletion(flow) {
   const saved = state.vehicleRecordStatus === "saved";
   const draftSaved = state.vehicleRecordStatus === "draft" && !state.vehicleDraftDirty;
   const ready = flow.requiredReady && !saved;
+  const hasValidationErrors = state.vehicleValidationVisible && state.vehicleValidationIssues.length > 0;
   for (const button of elements.vehicleCompletionButtons) {
-    button.disabled = !ready;
+    button.disabled = saved;
     button.dataset.ready = String(ready);
-    button.dataset.state = saved ? "success" : ready ? "ready" : "waiting";
+    button.dataset.state = saved ? "success" : hasValidationErrors ? "error" : ready ? "ready" : "waiting";
     const label = button.querySelector("[data-vehicle-complete-label]");
     if (label) label.textContent = saved ? button.dataset.labelSuccess : button.dataset.labelDefault;
   }
@@ -1395,6 +1589,7 @@ function renderVehicleCompletion(flow) {
 }
 
 function serializeVehicleDraft() {
+  ensureVehicleDraftIdentity();
   const values = {};
   for (const control of elements.vehicleForm.elements) {
     if (!control.name || ["button", "submit", "reset"].includes(control.type)) continue;
@@ -1406,6 +1601,10 @@ function serializeVehicleDraft() {
   }
   return {
     version: VEHICLE_DRAFT_VERSION,
+    id: state.vehicleDraftId,
+    dateKey: currentVehicleDateKey(),
+    reporter: state.vehicleDraftReporter || elements.vehicleReporter.value || LOGIN_ACCOUNT.name,
+    startedAt: state.vehicleDraftStartedAt,
     savedAt: new Date().toISOString(),
     values,
     photos: [...state.vehiclePhotos],
@@ -1426,28 +1625,102 @@ function applyVehicleDraft(draft) {
   state.vehiclePhotos = new Set((draft.photos || []).filter((position) => validPhotoPositions.has(position)));
   state.vehiclePhotoView = draft.photoView === "yesterday" ? "yesterday" : "today";
   state.vehicleId = elements.vehicleSelect.value;
+  state.vehicleDraftId = draft.id || createVehicleDraftId();
+  state.vehicleDraftStartedAt = draft.startedAt || draft.savedAt || new Date().toISOString();
+  state.vehicleDraftReporter = draft.reporter || elements.vehicleReporter.value || LOGIN_ACCOUNT.name;
   state.vehicleRecordStatus = "draft";
   state.vehicleDraftDirty = false;
   elements.vehicleFormSuccess.hidden = true;
   clearVehicleErrors();
 }
 
-function restoreVehicleDraft() {
+function readVehicleDraftStore() {
   try {
-    const raw = window.sessionStorage.getItem(VEHICLE_DRAFT_STORAGE_KEY);
-    if (!raw) return false;
-    const draft = JSON.parse(raw);
-    if (draft?.version !== VEHICLE_DRAFT_VERSION || !draft.values || typeof draft.values !== "object") return false;
-    applyVehicleDraft(draft);
-    return true;
+    const raw = window.localStorage.getItem(VEHICLE_DRAFT_STORAGE_KEY);
+    if (raw) {
+      const store = JSON.parse(raw);
+      if (store?.version === VEHICLE_DRAFT_VERSION && store.drafts && typeof store.drafts === "object") return store;
+    }
+    const legacyRaw = window.sessionStorage.getItem(VEHICLE_LEGACY_DRAFT_STORAGE_KEY);
+    if (!legacyRaw) return { version: VEHICLE_DRAFT_VERSION, drafts: {} };
+    const legacyStore = JSON.parse(legacyRaw);
+    if (legacyStore?.version !== 2 || !legacyStore.drafts || typeof legacyStore.drafts !== "object") {
+      return { version: VEHICLE_DRAFT_VERSION, drafts: {} };
+    }
+    const migratedStore = { version: VEHICLE_DRAFT_VERSION, drafts: {} };
+    for (const legacyDraft of Object.values(legacyStore.drafts)) {
+      if (!legacyDraft?.values?.vehicle) continue;
+      const reporter = legacyDraft.values.reporter || LOGIN_ACCOUNT.name;
+      const dateKey = String(legacyDraft.values["recorded-at"] || "").slice(0, 10) || currentVehicleDateKey();
+      const draft = {
+        ...legacyDraft,
+        version: VEHICLE_DRAFT_VERSION,
+        id: createVehicleDraftId(),
+        dateKey,
+        reporter,
+        startedAt: legacyDraft.savedAt || new Date().toISOString(),
+      };
+      migratedStore.drafts[vehicleDraftStorageId(dateKey, draft.values.vehicle, reporter, draft.id)] = draft;
+    }
+    if (Object.keys(migratedStore.drafts).length) {
+      window.localStorage.setItem(VEHICLE_DRAFT_STORAGE_KEY, JSON.stringify(migratedStore));
+    }
+    window.sessionStorage.removeItem(VEHICLE_LEGACY_DRAFT_STORAGE_KEY);
+    return migratedStore;
   } catch {
-    return false;
+    return { version: VEHICLE_DRAFT_VERSION, drafts: {} };
   }
 }
 
-function clearVehicleDraft() {
+function createVehicleDraftId() {
+  if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+  return `draft-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function resetVehicleDraftIdentity(reporter = elements.vehicleReporter.value || LOGIN_ACCOUNT.name) {
+  state.vehicleDraftId = createVehicleDraftId();
+  state.vehicleDraftStartedAt = new Date().toISOString();
+  state.vehicleDraftReporter = reporter;
+}
+
+function ensureVehicleDraftIdentity() {
+  if (!state.vehicleDraftId) resetVehicleDraftIdentity();
+}
+
+function vehicleDraftStorageId(dateKey, vehicleId, reporter, draftId) {
+  return [dateKey, vehicleId, encodeURIComponent(reporter), draftId].join(":");
+}
+
+function vehicleDraftCandidates({ vehicleId = "", reporter = "", dateKey = currentVehicleDateKey() } = {}) {
+  return Object.values(readVehicleDraftStore().drafts)
+    .filter((draft) => draft?.values && typeof draft.values === "object")
+    .filter((draft) => !vehicleId || draft.values.vehicle === vehicleId)
+    .filter((draft) => !reporter || (draft.reporter || draft.values.reporter) === reporter)
+    .filter((draft) => !dateKey || (draft.dateKey || String(draft.values["recorded-at"] || "").slice(0, 10)) === dateKey)
+    .sort((left, right) => String(right.savedAt).localeCompare(String(left.savedAt)));
+}
+
+function restoreVehicleDraft(
+  vehicleId = "",
+  reporter = elements.vehicleReporter.value || LOGIN_ACCOUNT.name,
+) {
+  const drafts = vehicleDraftCandidates({ vehicleId, reporter });
+  if (!drafts.length) return false;
+  applyVehicleDraft(drafts[0]);
+  return true;
+}
+
+function clearVehicleDraft(draftId = state.vehicleDraftId) {
   try {
-    window.sessionStorage.removeItem(VEHICLE_DRAFT_STORAGE_KEY);
+    const store = readVehicleDraftStore();
+    for (const [storageId, draft] of Object.entries(store.drafts)) {
+      if (draftId && draft?.id === draftId) delete store.drafts[storageId];
+    }
+    if (Object.keys(store.drafts).length) {
+      window.localStorage.setItem(VEHICLE_DRAFT_STORAGE_KEY, JSON.stringify(store));
+    } else {
+      window.localStorage.removeItem(VEHICLE_DRAFT_STORAGE_KEY);
+    }
   } catch {
     // The in-memory form remains usable when browser storage is unavailable.
   }
@@ -1455,20 +1728,58 @@ function clearVehicleDraft() {
 
 function saveVehicleDraft() {
   if (state.vehicleRecordStatus === "saved") return true;
+  if (!state.vehicleId) return false;
   try {
-    window.sessionStorage.setItem(VEHICLE_DRAFT_STORAGE_KEY, JSON.stringify(serializeVehicleDraft()));
+    const store = readVehicleDraftStore();
+    const draft = serializeVehicleDraft();
+    for (const [storageId, storedDraft] of Object.entries(store.drafts)) {
+      if (storedDraft?.id === draft.id) delete store.drafts[storageId];
+    }
+    store.drafts[vehicleDraftStorageId(draft.dateKey, state.vehicleId, draft.reporter, draft.id)] = draft;
+    window.localStorage.setItem(VEHICLE_DRAFT_STORAGE_KEY, JSON.stringify(store));
   } catch {
-    elements.vehicleFormError.textContent = "一時保存できませんでした。もう一度お試しください。";
+    state.vehicleValidationVisible = false;
+    state.vehicleValidationIssues = [];
+    elements.vehicleFormErrorTitle.textContent = "一時保存できませんでした";
+    elements.vehicleFormErrorSummary.textContent = "もう一度お試しください。";
+    elements.vehicleFormErrorList.replaceChildren();
     elements.vehicleFormError.hidden = false;
     setHeaderStatus("一時保存エラー", "is-error");
     return false;
   }
   state.vehicleRecordStatus = "draft";
   state.vehicleDraftDirty = false;
+  updateVehicleDailyDraft(state.vehicleId, state.vehicleProgressPercent);
+  state.vehicleValidationVisible = false;
+  state.vehicleValidationIssues = [];
   elements.vehicleFormError.hidden = true;
   renderVehicleFormState();
   setVehicleHeaderStatus();
   return true;
+}
+
+function formatVehicleDraftStartTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "先ほど";
+  return new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit", hour12: false }).format(date);
+}
+
+function renderVehicleCollaborationNotice() {
+  const vehicleId = vehicleValue("vehicle");
+  const reporter = elements.vehicleReporter.value || LOGIN_ACCOUNT.name;
+  const otherDrafts = vehicleId
+    ? vehicleDraftCandidates({ vehicleId }).filter((draft) => (draft.reporter || draft.values.reporter) !== reporter)
+    : [];
+  if (!otherDrafts.length) {
+    elements.vehicleCollaborationNotice.hidden = true;
+    elements.vehicleCollaborationMessage.textContent = "";
+    return;
+  }
+  const reporters = [...new Set(otherDrafts.map((draft) => draft.reporter || draft.values.reporter).filter(Boolean))];
+  const reporterLabel = reporters.length > 1 ? `${reporters[0]}さんほか${reporters.length - 1}名` : `${reporters[0]}さん`;
+  const startedAt = formatVehicleDraftStartTime(otherDrafts[0].startedAt || otherDrafts[0].savedAt);
+  elements.vehicleCollaborationMessage.textContent = `${reporterLabel}が${startedAt}から入力中です。${reporter}さんは新しい記録として開始しています。`;
+  elements.vehicleCollaborationNotice.hidden = false;
 }
 
 function currentLocalDatetimeValue() {
@@ -1519,8 +1830,10 @@ function createVehicleHistoryChevron() {
 }
 
 function filteredVehicleHistoryRecords() {
-  if (state.vehicleHistoryFilter === "all") return [...VEHICLE_HISTORY_FIXTURES];
-  return VEHICLE_HISTORY_FIXTURES.filter(({ vehicleId }) => vehicleId === state.vehicleHistoryFilter);
+  const records = state.vehicleHistoryFilter === "all"
+    ? [...VEHICLE_HISTORY_FIXTURES]
+    : VEHICLE_HISTORY_FIXTURES.filter(({ vehicleId }) => vehicleId === state.vehicleHistoryFilter);
+  return state.vehicleHistoryTodayOnly ? records.filter(({ offset }) => offset === 0) : records;
 }
 
 function groupVehicleHistoryByDate(records) {
@@ -1551,19 +1864,64 @@ function vehicleHistoryStatus(count) {
   return count > 0 ? `異常 ${count}件` : "異常なし";
 }
 
+function loadVehicleHistoryConfirmations() {
+  if (state.vehicleHistoryConfirmedIds) return state.vehicleHistoryConfirmedIds;
+  try {
+    const stored = JSON.parse(window.sessionStorage.getItem(VEHICLE_HISTORY_CONFIRM_STORAGE_KEY) || "null");
+    const confirmedIds = stored?.version === VEHICLE_HISTORY_CONFIRM_VERSION && Array.isArray(stored.confirmedIds)
+      ? stored.confirmedIds
+      : [];
+    state.vehicleHistoryConfirmedIds = new Set(confirmedIds);
+  } catch {
+    state.vehicleHistoryConfirmedIds = new Set();
+  }
+  return state.vehicleHistoryConfirmedIds;
+}
+
+function vehicleHistoryRecordConfirmed(recordId) {
+  return loadVehicleHistoryConfirmations().has(recordId);
+}
+
+function persistVehicleHistoryConfirmations() {
+  try {
+    window.sessionStorage.setItem(
+      VEHICLE_HISTORY_CONFIRM_STORAGE_KEY,
+      JSON.stringify({
+        version: VEHICLE_HISTORY_CONFIRM_VERSION,
+        confirmedIds: [...loadVehicleHistoryConfirmations()],
+      }),
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function toggleVehicleHistoryConfirmation(recordId) {
+  const confirmedIds = loadVehicleHistoryConfirmations();
+  if (confirmedIds.has(recordId)) confirmedIds.delete(recordId);
+  else confirmedIds.add(recordId);
+  persistVehicleHistoryConfirmations();
+  return confirmedIds.has(recordId);
+}
+
 function renderVehicleHistoryRecordList(records, offset, vehicleId) {
   const list = document.createElement("ol");
   list.className = "vehicle-history-record-list";
   list.setAttribute("aria-label", `${records[0].vehicleLabel}の${vehicleHistoryRelativeLabel(offset)}の記録`);
 
   for (const record of records) {
+    const confirmed = vehicleHistoryRecordConfirmed(record.id);
     const item = document.createElement("li");
     const button = document.createElement("button");
     button.type = "button";
     button.className = "vehicle-history-record-row";
     button.dataset.vehicleHistoryRecord = record.id;
     button.setAttribute("aria-haspopup", "dialog");
-    button.setAttribute("aria-label", `${record.time}、${record.purpose}、${record.reporter}、${record.anomaly ? "異常あり" : "異常なし"}の記録を開く`);
+    button.setAttribute(
+      "aria-label",
+      `${record.time}、${record.purpose}、${record.reporter}、${record.anomaly ? "異常あり" : "異常なし"}、${confirmed ? "確認済み" : "未確認"}、写真${record.photoCount}枚の記録を開く`,
+    );
 
     const time = document.createElement("time");
     time.dateTime = record.time;
@@ -1581,11 +1939,17 @@ function renderVehicleHistoryRecordList(records, offset, vehicleId) {
     distance.className = "vehicle-history-record-distance";
     distance.textContent = `${record.odometer.toLocaleString("ja-JP")} km`;
 
+    const recordState = document.createElement("span");
+    recordState.className = "vehicle-history-record-state";
     const status = document.createElement("strong");
     status.className = record.anomaly ? "is-alert" : "is-clear";
-    status.textContent = record.anomaly ? "あり" : "なし";
+    status.textContent = record.anomaly ? "異常あり" : "異常なし";
+    const confirmation = document.createElement("span");
+    confirmation.className = confirmed ? "vehicle-history-record-confirmation is-confirmed" : "vehicle-history-record-confirmation is-pending";
+    confirmation.textContent = confirmed ? "確認済み" : "未確認";
+    recordState.append(status, confirmation);
 
-    button.append(time, purpose, reporter, distance, status, createVehicleHistoryChevron());
+    button.append(time, purpose, reporter, distance, recordState, createVehicleHistoryChevron());
     item.append(button);
     list.append(item);
   }
@@ -1600,6 +1964,7 @@ function renderVehicleHistoryVehicleGroups(records, offset) {
   for (const [vehicleId, vehicleRecords] of groupVehicleHistoryByVehicle(records)) {
     const vehicle = VEHICLE_HISTORY_VEHICLES.find(({ id }) => id === vehicleId);
     const anomalyCount = vehicleRecords.filter(({ anomaly }) => anomaly).length;
+    const confirmedCount = vehicleRecords.filter(({ id }) => vehicleHistoryRecordConfirmed(id)).length;
     const group = document.createElement("section");
     group.className = "vehicle-history-vehicle-group";
 
@@ -1624,7 +1989,8 @@ function renderVehicleHistoryVehicleGroups(records, offset) {
 
     const count = document.createElement("span");
     count.className = "vehicle-history-count";
-    count.textContent = `${vehicleRecords.length}件`;
+    count.classList.toggle("is-complete", confirmedCount === vehicleRecords.length);
+    count.textContent = `${confirmedCount}/${vehicleRecords.length}件確認`;
 
     const status = document.createElement("strong");
     status.className = anomalyCount ? "vehicle-history-status is-alert" : "vehicle-history-status is-clear";
@@ -1651,8 +2017,11 @@ function renderVehicleHistory() {
   const records = filteredVehicleHistoryRecords();
   const dayGroups = groupVehicleHistoryByDate(records);
   const vehicleCount = new Set(records.map(({ vehicleId }) => vehicleId)).size;
+  const confirmedCount = records.filter(({ id }) => vehicleHistoryRecordConfirmed(id)).length;
+  elements.vehicleHistoryScopeLabel.textContent = state.vehicleHistoryTodayOnly ? "本日" : "全車両";
+  elements.vehicleHistoryTitle.textContent = state.vehicleHistoryTodayOnly ? "本日の車両記録" : "車両記録の履歴";
   elements.vehicleHistoryFilter.value = state.vehicleHistoryFilter;
-  elements.vehicleHistorySummary.textContent = `${dayGroups.length}日分・${records.length}件・${vehicleCount}台`;
+  elements.vehicleHistorySummary.textContent = `${dayGroups.length}日分・${records.length}件・${vehicleCount}台・${confirmedCount}/${records.length}件確認`;
   elements.vehicleHistoryEmpty.hidden = records.length > 0;
   elements.vehicleHistoryList.replaceChildren();
 
@@ -1747,7 +2116,6 @@ function renderVehicleHistoryDetail(record) {
     ["事故・接触", record.accident],
     ["整備・修繕", record.maintenance],
     ["最終走行距離", `${record.odometer.toLocaleString("ja-JP")} km`],
-    ["車両写真", `${record.photoCount}枚・前後左右`],
   ];
   for (const [term, value] of fields) {
     const row = document.createElement("div");
@@ -1758,13 +2126,59 @@ function renderVehicleHistoryDetail(record) {
     row.append(dt, dd);
     details.append(row);
   }
-  elements.vehicleHistoryDetailContent.append(status, details);
+  const photos = document.createElement("section");
+  photos.className = "vehicle-history-photo-section";
+  photos.setAttribute("aria-labelledby", "vehicle-history-photo-heading");
+  const photoHeading = document.createElement("h3");
+  photoHeading.id = "vehicle-history-photo-heading";
+  photoHeading.textContent = `車両写真 ${record.photoCount}枚`;
+  photos.append(photoHeading);
+
+  if (record.photoCount > 0) {
+    const photoGrid = document.createElement("div");
+    photoGrid.className = "vehicle-history-photo-grid";
+    const photoDirections = [
+      { key: "front", label: "フロント", alt: "前面。ナンバーを確認できる写真" },
+      { key: "back", label: "バック", alt: "後面。ナンバーを確認できる写真" },
+      { key: "left", label: "左サイド", alt: "左側面の写真" },
+      { key: "right", label: "右サイド", alt: "右側面の写真" },
+    ];
+    for (const { key, label, alt } of photoDirections.slice(0, record.photoCount)) {
+      const figure = document.createElement("figure");
+      const crop = document.createElement("span");
+      crop.className = `vehicle-photo-crop is-${key}`;
+      const image = document.createElement("img");
+      image.src = "../assets/generated/vehicle-inspection-views-v1.png";
+      image.width = 1254;
+      image.height = 1254;
+      image.loading = "lazy";
+      image.alt = `${record.vehicleLabel} ${alt}`;
+      const caption = document.createElement("figcaption");
+      caption.textContent = label;
+      crop.append(image);
+      figure.append(crop, caption);
+      photoGrid.append(figure);
+    }
+    photos.append(photoGrid);
+  } else {
+    const empty = document.createElement("p");
+    empty.className = "vehicle-history-photo-empty";
+    empty.textContent = "この記録には車両写真がありません。";
+    photos.append(empty);
+  }
+
+  const confirmed = vehicleHistoryRecordConfirmed(record.id);
+  elements.vehicleHistoryDetailConfirm.setAttribute("aria-pressed", String(confirmed));
+  elements.vehicleHistoryDetailConfirm.dataset.state = confirmed ? "success" : "pending";
+  elements.vehicleHistoryDetailConfirmLabel.textContent = confirmed ? "確認済み・取り消す" : "この記録を確認済みにする";
+  elements.vehicleHistoryDetailContent.append(status, details, photos);
 }
 
 function openVehicleHistoryDetail(recordId, trigger) {
   const record = VEHICLE_HISTORY_FIXTURES.find(({ id }) => id === recordId);
   if (!record) return;
   lastVehicleHistoryDetailTrigger = trigger;
+  state.vehicleHistoryDetailRecordId = record.id;
   renderVehicleHistoryDetail(record);
   elements.vehicleHistoryDetailDialog.showModal();
   elements.vehicleHistoryDetailTitle.focus({ preventScroll: true });
@@ -1773,8 +2187,12 @@ function openVehicleHistoryDetail(recordId, trigger) {
 function closeVehicleHistoryDetail({ restoreFocus = true } = {}) {
   if (!elements.vehicleHistoryDetailDialog.open) return;
   elements.vehicleHistoryDetailDialog.close();
-  if (restoreFocus) lastVehicleHistoryDetailTrigger?.focus({ preventScroll: true });
+  const currentRecordTrigger = elements.vehicleHistoryList.querySelector(
+    `[data-vehicle-history-record="${state.vehicleHistoryDetailRecordId}"]`,
+  );
+  if (restoreFocus) (currentRecordTrigger || lastVehicleHistoryDetailTrigger)?.focus({ preventScroll: true });
   lastVehicleHistoryDetailTrigger = null;
+  state.vehicleHistoryDetailRecordId = "";
 }
 
 function selectedVehicleLabel() {
@@ -1821,19 +2239,69 @@ function focusNewVehicleReveal(previous) {
   });
 }
 
-function resetVehicleEntryForVehicle(nextVehicleId) {
+function resetVehicleEntryForVehicle(
+  nextVehicleId,
+  reporter = elements.vehicleReporter.value || LOGIN_ACCOUNT.name,
+) {
   const recordedAt = elements.vehicleRecordedAt.value;
-  const reporter = elements.vehicleReporter.value;
   elements.vehicleForm.reset();
   elements.vehicleRecordedAt.value = recordedAt;
-  elements.vehicleReporter.value = reporter || LOGIN_ACCOUNT.name;
+  elements.vehicleReporter.value = reporter;
   elements.vehicleSelect.value = nextVehicleId;
   state.vehicleId = nextVehicleId;
+  resetVehicleDraftIdentity(reporter);
   state.vehiclePhotos.clear();
   state.vehiclePhotoView = "today";
   markVehicleRecordEditing();
   setHeaderStatus("未保存", "is-pristine");
   clearVehicleErrors();
+}
+
+function activateVehicleEntry(nextVehicleId, trigger) {
+  const activate = () => {
+    const previousRevealState = captureVehicleRevealState();
+    const reporter = elements.vehicleReporter.value || LOGIN_ACCOUNT.name;
+    if (!restoreVehicleDraft(nextVehicleId, reporter)) resetVehicleEntryForVehicle(nextVehicleId, reporter);
+    renderVehicleFormState();
+    setVehicleHeaderStatus();
+    focusNewVehicleReveal(previousRevealState);
+    window.requestAnimationFrame(() => {
+      elements.vehicleSelectionSection.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "start",
+      });
+      elements.vehicleSelect.focus({ preventScroll: true });
+    });
+  };
+  if (nextVehicleId === state.vehicleId) {
+    elements.vehicleSelectionSection.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      block: "start",
+    });
+    elements.vehicleSelect.focus({ preventScroll: true });
+    return;
+  }
+  requestVehicleLeave(activate, trigger);
+}
+
+function activateVehicleReporter(nextReporter, trigger) {
+  const previousReporter = state.vehicleDraftReporter || LOGIN_ACCOUNT.name;
+  if (!state.vehicleId) {
+    elements.vehicleReporter.value = nextReporter;
+    state.vehicleDraftReporter = nextReporter;
+    renderVehicleFormState();
+    return;
+  }
+  elements.vehicleReporter.value = previousReporter;
+  const activate = () => {
+    const vehicleId = state.vehicleId;
+    elements.vehicleReporter.value = nextReporter;
+    if (!restoreVehicleDraft(vehicleId, nextReporter)) resetVehicleEntryForVehicle(vehicleId, nextReporter);
+    renderVehicleFormState();
+    setVehicleHeaderStatus();
+    elements.vehicleReporter.focus({ preventScroll: true });
+  };
+  requestVehicleLeave(activate, trigger);
 }
 
 function renderVehicleFormState() {
@@ -1847,12 +2315,7 @@ function renderVehicleFormState() {
   const usageReady = Boolean(vehicleValue("purpose"));
 
   elements.vehicleFooterSummary.textContent = `${vehicleLabel || "車両未選択"}・${recordDate.label}・${elements.vehicleReporter.value || LOGIN_ACCOUNT.name}`;
-  elements.vehicleSelectedSummary.textContent = hasVehicle
-    ? `${vehicleLabel}の記録を編集中`
-    : "車両を選ぶと、この1台の記録を開始します";
-  elements.vehiclePhotoScope.textContent = hasVehicle
-    ? `${vehicleLabel}に4方向の写真を登録します`
-    : "選択した1台に4方向の写真を登録します";
+  renderVehicleCollaborationNotice();
   elements.vehiclePreviousName.textContent = vehicleLabel || "車両A（25-07）";
   const distanceState = currentVehicleDistanceState(vehicleId);
   if (distanceState.previous === null) {
@@ -1942,6 +2405,17 @@ function renderVehicleFormState() {
     abnormalDetailsReady,
     distanceReady,
   });
+  const progressGroups = [
+    Boolean(elements.vehicleRecordedAt.value) && Boolean(elements.vehicleReporter.value),
+    hasVehicle,
+    photosReady,
+    flow.contextReady,
+    hasGateAnswer && abnormalDetailsReady,
+    distanceReady,
+  ];
+  state.vehicleProgressPercent = Math.round(
+    (progressGroups.filter(Boolean).length / progressGroups.length) * 100,
+  );
 
   elements.vehiclePhotoSection.hidden = !flow.showPhotos;
   elements.vehicleContextSection.hidden = !flow.showContext;
@@ -1955,6 +2429,10 @@ function renderVehicleFormState() {
   elements.vehicleAccidentOtherWrap.hidden = !(showAccident && vehicleOtherSelected("accident-type"));
   elements.vehicleConditionOtherWrap.hidden = !(showCondition && vehicleOtherSelected("condition-type"));
   elements.vehicleMaintenanceOtherWrap.hidden = !(showMaintenance && vehicleOtherSelected("maintenance-type"));
+  renderVehicleFleetProgress();
+  if (state.vehicleValidationVisible) {
+    renderVehicleValidationSummary(collectVehicleValidationIssues());
+  }
   renderVehicleCompletion(flow);
 
   for (const step of elements.vehicleFlowSteps) {
@@ -1987,111 +2465,175 @@ function renderVehicleFormState() {
   }
 }
 
-function clearVehicleErrors() {
-  elements.vehicleFormError.hidden = true;
-  elements.vehicleFormError.textContent = "";
+function clearVehicleErrors({ preserveSummary = false } = {}) {
   for (const node of elements.vehicleForm.querySelectorAll(".has-error")) node.classList.remove("has-error");
   for (const control of elements.vehicleForm.querySelectorAll("[aria-invalid='true']")) control.removeAttribute("aria-invalid");
+  if (preserveSummary) return;
+  state.vehicleValidationVisible = false;
+  state.vehicleValidationIssues = [];
+  elements.vehicleFormError.hidden = true;
+  elements.vehicleFormErrorTitle.textContent = "未入力の項目があります";
+  elements.vehicleFormErrorSummary.textContent = "項目を選ぶと入力位置へ移動します";
+  elements.vehicleFormErrorList.replaceChildren();
 }
 
 function markVehicleError(selector) {
   const control = elements.vehicleForm.querySelector(selector);
   if (!control) return null;
   control.setAttribute("aria-invalid", "true");
-  control.closest(".vehicle-abnormal-card, .vehicle-choice-group, .vehicle-number-field, .vehicle-meta-field, .vehicle-select-field, .vehicle-detail-field, label")?.classList.add("has-error");
+  control.closest(".vehicle-photo-item, .vehicle-abnormal-card, .vehicle-choice-group, .vehicle-number-field, .vehicle-meta-field, .vehicle-select-field, .vehicle-detail-field, label")?.classList.add("has-error");
   return control;
 }
 
-function validateVehicleForm() {
-  clearVehicleErrors();
-  const messages = [];
-  let firstInvalid = null;
-  const requireChoice = (name, message) => {
+function collectVehicleValidationIssues({ markErrors = true } = {}) {
+  if (markErrors) clearVehicleErrors({ preserveSummary: true });
+  const issues = [];
+  const addIssue = (label, message, selector) => {
+    const control = markErrors ? markVehicleError(selector) : elements.vehicleForm.querySelector(selector);
+    issues.push({ label, message, selector, control });
+  };
+  const requireChoice = (name, label, message) => {
     if (vehicleValue(name)) return;
-    messages.push(message);
-    firstInvalid ??= markVehicleError(`[name="${name}"]`);
+    addIssue(label, message, `[name="${name}"]`);
   };
   if (!elements.vehicleRecordedAt.value) {
-    messages.push("記録日時を選択してください。");
-    firstInvalid ??= markVehicleError('[name="recorded-at"]');
+    addIssue("記録日時", "記録日時を選択してください。", '[name="recorded-at"]');
   }
   if (!elements.vehicleReporter.value) {
-    messages.push("担当者を選択してください。");
-    firstInvalid ??= markVehicleError('[name="reporter"]');
+    addIssue("担当者", "担当者を選択してください。", '[name="reporter"]');
   }
-  requireChoice("vehicle", "最初に記録する車両を選択してください。");
+  requireChoice("vehicle", "記録する車両", "最初に記録する車両を選択してください。");
   if (!vehicleValue("vehicle")) {
-    elements.vehicleFormError.textContent = messages[0];
-    elements.vehicleFormError.hidden = false;
-    firstInvalid?.focus();
-    return false;
+    return issues;
   }
-  if (state.vehiclePhotos.size !== elements.vehiclePhotoButtons.length) {
-    messages.push(`写真を4枚撮影してください。残り${elements.vehiclePhotoButtons.length - state.vehiclePhotos.size}枚です。`);
-    firstInvalid ??= elements.vehiclePhotoButtons.find((button) => !state.vehiclePhotos.has(button.dataset.photoPosition));
-    firstInvalid?.classList.add("has-error");
-  }
-  requireChoice("observation", "車両の状況チェックを選択してください。");
-  if (vehicleOtherSelected("observation") && !elements.vehicleObservationOther.value.trim()) {
-    messages.push("その他の気づきを入力してください。");
-    firstInvalid ??= markVehicleError('[name="observation-other"]');
-  }
-  requireChoice("purpose", "使用用途を選択してください。");
-  requireChoice("abnormality", "異常の有無を選択してください。");
+
   const distanceState = currentVehicleDistanceState();
   if (distanceState.state === "empty") {
-    messages.push("最終走行距離を入力してください。");
-    firstInvalid ??= markVehicleError('[name="odometer"]');
+    addIssue("最終走行距離", "メーター値を入力してください。", '[name="odometer"]');
   } else if (distanceState.state === "below-previous") {
-    messages.push(`最終走行距離は前日の${distanceState.previous.toLocaleString("ja-JP")} km以上で入力してください。`);
-    firstInvalid ??= markVehicleError('[name="odometer"]');
+    addIssue(
+      "最終走行距離",
+      `前日の${distanceState.previous.toLocaleString("ja-JP")} km以上で入力してください。`,
+      '[name="odometer"]',
+    );
   } else if (!distanceState.valid) {
-    messages.push("前日の走行距離を確認してください。");
-    firstInvalid ??= markVehicleError('[name="odometer"]');
+    addIssue("最終走行距離", "前日の走行距離を確認してください。", '[name="odometer"]');
   }
+
+  if (state.vehiclePhotos.size !== elements.vehiclePhotoButtons.length) {
+    const firstMissingPhoto = elements.vehiclePhotoButtons.find((button) => !state.vehiclePhotos.has(button.dataset.photoPosition));
+    addIssue(
+      "車両写真",
+      `4方向の写真を撮影してください。残り${elements.vehiclePhotoButtons.length - state.vehiclePhotos.size}枚です。`,
+      `#${firstMissingPhoto.id}`,
+    );
+    return issues;
+  }
+
+  requireChoice("observation", "車両の状況", "車両の状況チェックを選択してください。");
+  if (vehicleOtherSelected("observation") && !elements.vehicleObservationOther.value.trim()) {
+    addIssue("その他の気づき", "気づいた内容を入力してください。", '[name="observation-other"]');
+  }
+  requireChoice("purpose", "使用用途", "使用用途を選択してください。");
+  requireChoice("abnormality", "異常の有無", "「なし / あり」を選択してください。");
   if (vehicleValue("abnormality") === "yes") {
-    requireChoice("accident", "事故・接触の「なし / あり」を選択してください。");
-    requireChoice("condition", "車両状態を選択してください。");
-    requireChoice("maintenance", "整備・修繕の「なし / あり」を選択してください。");
+    requireChoice("accident", "事故・接触", "「なし / あり」を選択してください。");
+    requireChoice("condition", "車両状態", "A・B・Cから選択してください。");
+    requireChoice("maintenance", "整備・修繕", "「なし / あり」を選択してください。");
 
     if (vehicleValue("accident") === "yes") {
-      requireChoice("accident-type", "事故・接触の内容を選択してください。");
+      requireChoice("accident-type", "事故・接触の内容", "内容を選択してください。");
       if (vehicleOtherSelected("accident-type") && !elements.vehicleForm.elements["accident-other"].value.trim()) {
-        messages.push("「その他」の事故・接触内容を入力してください。");
-        firstInvalid ??= markVehicleError('[name="accident-other"]');
+        addIssue("その他の事故・接触内容", "発生場所や状況を入力してください。", '[name="accident-other"]');
       }
     }
     if (vehicleValue("condition") === "C") {
-      requireChoice("condition-type", "C・要修理の症状を選択してください。");
+      requireChoice("condition-type", "C・要修理の症状", "症状を選択してください。");
       if (vehicleOtherSelected("condition-type") && !elements.vehicleForm.elements["condition-other"].value.trim()) {
-        messages.push("「その他」の症状を入力してください。");
-        firstInvalid ??= markVehicleError('[name="condition-other"]');
+        addIssue("その他の症状", "音・場所・発生条件などを入力してください。", '[name="condition-other"]');
       }
     }
     if (vehicleValue("maintenance") === "yes") {
-      requireChoice("maintenance-type", "整備・修繕の内容を選択してください。");
+      requireChoice("maintenance-type", "整備・修繕の内容", "内容を選択してください。");
       if (vehicleOtherSelected("maintenance-type") && !elements.vehicleForm.elements["maintenance-other"].value.trim()) {
-        messages.push("「その他」の整備・修繕内容を入力してください。");
-        firstInvalid ??= markVehicleError('[name="maintenance-other"]');
+        addIssue("その他の整備・修繕内容", "作業内容を入力してください。", '[name="maintenance-other"]');
       }
     }
   }
-  if (messages.length) {
-    elements.vehicleFormError.textContent = messages[0];
-    elements.vehicleFormError.hidden = false;
-    firstInvalid?.focus();
-    return false;
+  return issues;
+}
+
+function renderVehicleValidationSummary(issues, { focus = false } = {}) {
+  state.vehicleValidationIssues = issues;
+  state.vehicleValidationVisible = issues.length > 0;
+  if (!issues.length) {
+    elements.vehicleFormError.hidden = true;
+    elements.vehicleFormErrorList.replaceChildren();
+    return;
   }
-  return true;
+  elements.vehicleFormErrorTitle.textContent = `未入力が${issues.length}件あります`;
+  elements.vehicleFormErrorSummary.textContent = "項目を選ぶと入力位置へ移動します";
+  const fragment = document.createDocumentFragment();
+  issues.forEach((issue, index) => {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.vehicleValidationIndex = String(index);
+    const copy = document.createElement("span");
+    const label = document.createElement("strong");
+    label.textContent = issue.label;
+    const message = document.createElement("span");
+    message.textContent = issue.message;
+    copy.append(label, message);
+    const arrow = document.createElement("span");
+    arrow.className = "vehicle-validation-arrow";
+    arrow.setAttribute("aria-hidden", "true");
+    arrow.textContent = "→";
+    button.append(copy, arrow);
+    item.append(button);
+    fragment.append(item);
+  });
+  elements.vehicleFormErrorList.replaceChildren(fragment);
+  elements.vehicleFormError.hidden = false;
+  if (focus) {
+    window.requestAnimationFrame(() => {
+      elements.vehicleFormError.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "start",
+      });
+      elements.vehicleFormError.focus({ preventScroll: true });
+    });
+  }
+}
+
+function focusVehicleValidationIssue(index) {
+  const issue = state.vehicleValidationIssues[index];
+  if (!issue) return;
+  const control = elements.vehicleForm.querySelector(issue.selector);
+  if (!control) return;
+  const target = control.closest(".vehicle-form-section, .vehicle-page-header") || control;
+  target.scrollIntoView({
+    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    block: "center",
+  });
+  window.requestAnimationFrame(() => control.focus({ preventScroll: true }));
+}
+
+function validateVehicleForm() {
+  const issues = collectVehicleValidationIssues();
+  renderVehicleValidationSummary(issues, { focus: issues.length > 0 });
+  return issues.length === 0;
 }
 
 function saveVehicleRecord(event) {
   event.preventDefault();
   elements.vehicleFormSuccess.hidden = true;
   if (!validateVehicleForm()) {
+    renderVehicleFormState();
     setHeaderStatus("入力を確認", "is-error");
     return;
   }
+  completeVehicleDailyStatus(state.vehicleId);
   state.vehicleRecordStatus = "saved";
   state.vehicleDraftDirty = false;
   clearVehicleDraft();
@@ -2121,8 +2663,9 @@ function showVehicleCompletion({ focus = true } = {}) {
   if (focus) elements.vehicleCompletionTitle.focus({ preventScroll: true });
 }
 
-function openVehicleHistory(trigger) {
+function openVehicleHistory(trigger, { todayOnly = false } = {}) {
   lastVehicleHistoryTrigger = trigger;
+  state.vehicleHistoryTodayOnly = todayOnly;
   state.vehicleHistoryOpenOffset = 0;
   state.vehicleHistoryOpenVehicle = "";
   renderVehicleHistory();
@@ -2155,10 +2698,16 @@ function startNewVehicleRecord() {
   elements.vehicleRecordedAt.value = currentLocalDatetimeValue();
   elements.vehicleReporter.value = LOGIN_ACCOUNT.name;
   state.vehicleId = "";
+  state.vehicleDraftId = "";
+  state.vehicleDraftStartedAt = "";
+  state.vehicleDraftReporter = LOGIN_ACCOUNT.name;
   state.vehiclePhotos.clear();
   state.vehiclePhotoView = "today";
   state.vehicleRecordStatus = "editing";
   state.vehicleDraftDirty = false;
+  state.vehicleProgressPercent = 0;
+  state.vehicleValidationVisible = false;
+  state.vehicleValidationIssues = [];
   elements.vehicleFormSuccess.hidden = true;
   clearVehicleErrors();
 }
@@ -2373,31 +2922,43 @@ function bindEvents() {
       else state.vehiclePhotos.add(position);
       markVehicleRecordEditing();
       setHeaderStatus("未保存", "is-pristine");
-      clearVehicleErrors();
+      clearVehicleErrors({ preserveSummary: state.vehicleValidationVisible });
       renderVehicleFormState();
       focusNewVehicleReveal(previousRevealState);
     });
   }
-  elements.vehicleSelect.addEventListener("change", () => {
-    const previousRevealState = captureVehicleRevealState();
+  elements.vehicleFleetList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-vehicle-fleet-id]");
+    if (button) activateVehicleEntry(button.dataset.vehicleFleetId, button);
+  });
+  elements.vehicleFormErrorList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-vehicle-validation-index]");
+    if (button) focusVehicleValidationIssue(Number(button.dataset.vehicleValidationIndex));
+  });
+  elements.vehicleSelect.addEventListener("change", (event) => {
+    event.stopPropagation();
     const nextVehicleId = elements.vehicleSelect.value;
-    if (nextVehicleId !== state.vehicleId) resetVehicleEntryForVehicle(nextVehicleId);
-    renderVehicleFormState();
-    focusNewVehicleReveal(previousRevealState);
+    elements.vehicleSelect.value = state.vehicleId;
+    activateVehicleEntry(nextVehicleId, elements.vehicleSelect);
+  });
+  elements.vehicleReporter.addEventListener("change", (event) => {
+    event.stopPropagation();
+    activateVehicleReporter(elements.vehicleReporter.value || LOGIN_ACCOUNT.name, elements.vehicleReporter);
   });
   elements.vehicleForm.addEventListener("change", () => {
     const previousRevealState = captureVehicleRevealState();
     markVehicleRecordEditing();
     setHeaderStatus("未保存", "is-pristine");
-    clearVehicleErrors();
+    clearVehicleErrors({ preserveSummary: state.vehicleValidationVisible });
     renderVehicleFormState();
     focusNewVehicleReveal(previousRevealState);
   });
-  elements.vehicleForm.addEventListener("input", () => {
+  elements.vehicleForm.addEventListener("input", (event) => {
+    if (event.target === elements.vehicleSelect || event.target === elements.vehicleReporter) return;
     const previousRevealState = captureVehicleRevealState();
     markVehicleRecordEditing();
     setHeaderStatus("未保存", "is-pristine");
-    clearVehicleErrors();
+    clearVehicleErrors({ preserveSummary: state.vehicleValidationVisible });
     renderVehicleFormState();
     focusNewVehicleReveal(previousRevealState);
   });
@@ -2410,8 +2971,16 @@ function bindEvents() {
   }
   elements.vehicleNewRecord.addEventListener("click", openVehicleEntry);
   elements.vehicleContinueRecord.addEventListener("click", openVehicleEntry);
+  elements.vehicleTodayHistory.addEventListener("click", () => {
+    requestVehicleLeave(
+      () => openVehicleHistory(elements.vehicleTodayHistory, { todayOnly: true }),
+      elements.vehicleTodayHistory,
+    );
+  });
   for (const trigger of elements.vehicleHistoryTriggers) {
-    trigger.addEventListener("click", () => requestVehicleLeave(() => openVehicleHistory(trigger), trigger));
+    trigger.addEventListener("click", () => {
+      requestVehicleLeave(() => openVehicleHistory(trigger, { todayOnly: false }), trigger);
+    });
   }
   elements.vehicleHistoryFilter.addEventListener("change", () => {
     state.vehicleHistoryFilter = elements.vehicleHistoryFilter.value;
@@ -2435,6 +3004,14 @@ function bindEvents() {
   });
   elements.vehicleHistoryClose.addEventListener("click", closeVehicleHistory);
   elements.vehicleHistoryDetailClose.addEventListener("click", () => closeVehicleHistoryDetail());
+  elements.vehicleHistoryDetailConfirm.addEventListener("click", () => {
+    const record = VEHICLE_HISTORY_FIXTURES.find(({ id }) => id === state.vehicleHistoryDetailRecordId);
+    if (!record) return;
+    toggleVehicleHistoryConfirmation(record.id);
+    renderVehicleHistory();
+    renderVehicleHistoryDetail(record);
+    elements.vehicleHistoryDetailConfirm.focus({ preventScroll: true });
+  });
   elements.vehicleHistoryDetailDone.addEventListener("click", () => closeVehicleHistoryDetail());
   elements.vehicleHistoryDetailDialog.addEventListener("click", (event) => {
     if (event.target === elements.vehicleHistoryDetailDialog) closeVehicleHistoryDetail();
@@ -2472,6 +3049,9 @@ function bindEvents() {
   elements.appGuideDialog.addEventListener("cancel", (event) => {
     event.preventDefault();
     closeAppGuide();
+  });
+  window.addEventListener("storage", (event) => {
+    if (event.key === VEHICLE_DRAFT_STORAGE_KEY) renderVehicleFormState();
   });
 
   for (const trigger of elements.infoTriggers) trigger.addEventListener("click", () => toggleInfo(trigger));
@@ -2512,8 +3092,9 @@ function initialize() {
   elements.vehicleForm.insertBefore(elements.vehicleContextSection, elements.vehicleGateSection);
   elements.vehicleRecordedAt.value = currentLocalDatetimeValue();
   elements.vehicleReporter.value = LOGIN_ACCOUNT.name;
+  state.vehicleDraftReporter = LOGIN_ACCOUNT.name;
   state.vehicleId = elements.vehicleSelect.value;
-  restoreVehicleDraft();
+  restoreVehicleDraft("", LOGIN_ACCOUNT.name);
   renderMeetingTypes();
   renderParticipantCategories();
   loadHistory();
