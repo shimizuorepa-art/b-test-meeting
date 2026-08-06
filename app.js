@@ -7,6 +7,10 @@ const VEHICLE_DAILY_STATUS_STORAGE_KEY = "bsystem.vehicle-record.daily-status.v1
 const VEHICLE_DAILY_STATUS_VERSION = 1;
 const VEHICLE_HISTORY_CONFIRM_STORAGE_KEY = "bsystem.vehicle-record.history-confirmed.v1";
 const VEHICLE_HISTORY_CONFIRM_VERSION = 1;
+const VEHICLE_HISTORY_RECORDS_STORAGE_KEY = "bsystem.vehicle-record.history-records.v1";
+const VEHICLE_HISTORY_RECORDS_VERSION = 1;
+const VEHICLE_DAY_COMPLETION_STORAGE_KEY = "bsystem.vehicle-record.day-completion.v1";
+const VEHICLE_DAY_COMPLETION_VERSION = 1;
 const DEMO_DATE = "2026-07-21";
 const CONTACT_FORM_URL = "https://northern-hearing-e36.notion.site/ebd//55559c2fd62e828c8c318163c97e7d62";
 const LOGIN_ACCOUNT = Object.freeze({ name: "田中" });
@@ -342,7 +346,11 @@ const state = {
   vehicleProgressPercent: 0,
   vehicleValidationVisible: false,
   vehicleValidationIssues: [],
+  vehicleEditingRecordId: "",
+  vehicleLastSavedMode: "created",
   vehicleDailyStatuses: null,
+  vehicleDayCompletions: null,
+  vehicleHistoryRecords: null,
   vehicleHistoryFilter: "all",
   vehicleHistoryTodayOnly: false,
   vehicleHistoryOpenOffset: 0,
@@ -465,11 +473,30 @@ const elements = {
   vehicleFormSuccess: document.querySelector("#vehicle-form-success"),
   vehicleFleetProgressSection: document.querySelector("#vehicle-fleet-progress-section"),
   vehicleTodayHistory: document.querySelector("#vehicle-today-history"),
+  vehicleDayCompletionTrigger: document.querySelector("#vehicle-day-completion-trigger"),
+  vehicleDayCompletionLabel: document.querySelector("[data-vehicle-day-completion-label]"),
+  vehicleDayCompletionDialog: document.querySelector("#vehicle-day-completion-dialog"),
+  vehicleDayCompletionTitle: document.querySelector("#vehicle-day-completion-title"),
+  vehicleDayCompletionClose: document.querySelector("#vehicle-day-completion-close"),
+  vehicleDayCompletionCancel: document.querySelector("#vehicle-day-completion-cancel"),
+  vehicleDayCompletionConfirm: document.querySelector("#vehicle-day-completion-confirm"),
+  vehicleDayCompletionSummary: document.querySelector("#vehicle-day-completion-summary"),
+  vehicleDayCompletionPending: document.querySelector("#vehicle-day-completion-pending"),
+  vehicleDayCompletionIssues: document.querySelector("#vehicle-day-completion-issues"),
+  vehicleDayCompletionSuccess: document.querySelector("#vehicle-day-completion-success"),
+  vehicleDayCompletionMeta: document.querySelector("#vehicle-day-completion-meta"),
   vehicleFleetList: document.querySelector("#vehicle-fleet-list"),
   vehicleSelectionSection: document.querySelector("#vehicle-selection-section"),
   vehicleSelect: document.querySelector("#vehicle-select"),
   vehicleCollaborationNotice: document.querySelector("#vehicle-collaboration-notice"),
   vehicleCollaborationMessage: document.querySelector("#vehicle-collaboration-message"),
+  vehicleRecordEditNotice: document.querySelector("#vehicle-record-edit-notice"),
+  vehicleRecordEditCancel: document.querySelector("#vehicle-record-edit-cancel"),
+  vehicleDraftManagement: document.querySelector("#vehicle-draft-management"),
+  vehicleDraftDiscard: document.querySelector("#vehicle-draft-discard"),
+  vehicleDraftDiscardConfirm: document.querySelector("#vehicle-draft-discard-confirm"),
+  vehicleDraftDiscardCancel: document.querySelector("#vehicle-draft-discard-cancel"),
+  vehicleDraftDiscardConfirmAction: document.querySelector("#vehicle-draft-discard-confirm-action"),
   vehiclePhotoButtons: [...document.querySelectorAll("[data-photo-position]")],
   vehiclePhotoViewButtons: [...document.querySelectorAll("[data-vehicle-photo-view]")],
   vehiclePhotoCount: document.querySelector("#vehicle-photo-count"),
@@ -485,6 +512,7 @@ const elements = {
   vehiclePhotoSection: document.querySelector("#vehicle-photo-section"),
   vehicleGateSection: document.querySelector(".vehicle-gate-section"),
   vehicleAbnormalChecks: document.querySelector("#vehicle-abnormal-checks"),
+  vehicleAbnormalConsistency: document.querySelector("#vehicle-abnormal-consistency"),
   vehicleDistanceSection: document.querySelector("#vehicle-distance-section"),
   vehicleOdometer: document.querySelector("#vehicle-odometer"),
   vehiclePreviousOdometer: document.querySelector("#vehicle-previous-odometer"),
@@ -533,6 +561,11 @@ const elements = {
   vehicleHistoryDetailClose: document.querySelector("#vehicle-history-detail-close"),
   vehicleHistoryDetailConfirm: document.querySelector("#vehicle-history-detail-confirm"),
   vehicleHistoryDetailConfirmLabel: document.querySelector("[data-vehicle-history-confirm-label]"),
+  vehicleHistoryDetailEdit: document.querySelector("#vehicle-history-detail-edit"),
+  vehicleHistoryDetailDelete: document.querySelector("#vehicle-history-detail-delete"),
+  vehicleHistoryDeleteConfirm: document.querySelector("#vehicle-history-delete-confirm"),
+  vehicleHistoryDeleteCancel: document.querySelector("#vehicle-history-delete-cancel"),
+  vehicleHistoryDeleteConfirmAction: document.querySelector("#vehicle-history-delete-confirm-action"),
   vehicleHistoryDetailDone: document.querySelector("#vehicle-history-detail-done"),
   vehicleLeaveDialog: document.querySelector("#vehicle-leave-dialog"),
   vehicleLeaveTitle: document.querySelector("#vehicle-leave-title"),
@@ -1438,6 +1471,14 @@ function updateVehicleDailyDraft(vehicleId, progress) {
   const entry = vehicleDailyStatusForDate()[vehicleId];
   entry.draftProgress = Math.max(1, Math.min(99, Math.round(progress)));
   persistVehicleDailyStatuses();
+  invalidateVehicleDayCompletion();
+}
+
+function clearVehicleDailyDraft(vehicleId, dateKey = currentVehicleDateKey(), remainingProgress = 0) {
+  if (!vehicleId) return;
+  const entry = vehicleDailyStatusForDate(dateKey)[vehicleId];
+  entry.draftProgress = Math.max(0, Math.min(99, Math.round(remainingProgress)));
+  persistVehicleDailyStatuses();
 }
 
 function completeVehicleDailyStatus(vehicleId) {
@@ -1446,6 +1487,7 @@ function completeVehicleDailyStatus(vehicleId) {
   entry.completedCount += 1;
   entry.draftProgress = 0;
   persistVehicleDailyStatuses();
+  invalidateVehicleDayCompletion();
 }
 
 function createVehicleProgressSvg(progress, className) {
@@ -1471,18 +1513,27 @@ function createVehicleProgressSvg(progress, className) {
   return svg;
 }
 
-function vehicleFleetStatusSnapshot(vehicle, dailyStatus) {
+function vehicleFleetStatusSnapshot(vehicle, dailyStatus, savedDraftProgress = 0) {
   const persisted = dailyStatus[vehicle.id] || { completedCount: 0, draftProgress: 0 };
   const isCurrent = vehicle.id === state.vehicleId;
-  const liveProgress = isCurrent && state.vehicleRecordStatus !== "saved" ? state.vehicleProgressPercent : 0;
-  const progress = Math.max(persisted.draftProgress || 0, liveProgress || 0);
+  const hasLiveChanges =
+    isCurrent &&
+    state.vehicleRecordStatus !== "saved" &&
+    state.vehicleDraftDirty;
+  const liveProgress = hasLiveChanges ? state.vehicleProgressPercent : 0;
+  const draftProgress = Math.max(persisted.draftProgress || 0, savedDraftProgress || 0);
+  const progress = Math.max(draftProgress, liveProgress || 0);
   if (persisted.completedCount > 0) {
+    const hasIncomplete = draftProgress > 0;
     return {
       state: "complete",
       progress: 100,
-      label: "完了",
-      detail: `本日${persisted.completedCount}件`,
+      label: hasIncomplete ? "完了・入力途中あり" : "完了",
+      detail: hasIncomplete ? `本日${persisted.completedCount}件・一時保存${draftProgress}%` : `本日${persisted.completedCount}件`,
       completedCount: persisted.completedCount,
+      hasIncomplete,
+      hasLiveChanges,
+      incompleteProgress: draftProgress,
     };
   }
   if (progress > 0) {
@@ -1496,15 +1547,17 @@ function vehicleFleetStatusSnapshot(vehicle, dailyStatus) {
       completedCount: 0,
     };
   }
-  return { state: "pending", progress: 0, label: "未完了", detail: "未着手", completedCount: 0 };
+  return { state: "pending", progress: 0, label: "未完了", detail: "未着手", completedCount: 0, hasIncomplete: false };
 }
 
 function renderVehicleFleetProgress() {
   const date = formatVehicleRecordDate(elements.vehicleRecordedAt.value);
-  const dailyStatus = vehicleDailyStatusForDate(date.iso || currentVehicleDateKey());
+  const dateKey = date.iso || currentVehicleDateKey();
+  const dailyStatus = vehicleDailyStatusForDate(dateKey);
+  const savedDraftProgress = vehicleDraftProgressByVehicle(dateKey);
   const snapshots = VEHICLE_FLEET.map((vehicle) => ({
     vehicle,
-    status: vehicleFleetStatusSnapshot(vehicle, dailyStatus),
+    status: vehicleFleetStatusSnapshot(vehicle, dailyStatus, savedDraftProgress.get(vehicle.id) || 0),
   }));
 
   const fragment = document.createDocumentFragment();
@@ -1520,6 +1573,14 @@ function renderVehicleFleetProgress() {
     visual.className = "vehicle-fleet-item-visual";
     if (status.state === "complete") {
       visual.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5 9.2 17 19 7" /></svg>';
+      if (status.hasIncomplete) {
+        const warning = document.createElement("span");
+        warning.className = "vehicle-fleet-warning";
+        warning.setAttribute("aria-hidden", "true");
+        warning.textContent = "!";
+        visual.append(warning);
+        button.classList.add("has-incomplete");
+      }
     } else if (["draft", "editing"].includes(status.state)) {
       visual.append(createVehicleProgressSvg(status.progress, "vehicle-fleet-mini-progress"));
     } else {
@@ -1534,6 +1595,141 @@ function renderVehicleFleetProgress() {
     fragment.append(button);
   }
   elements.vehicleFleetList.replaceChildren(fragment);
+  renderVehicleDayCompletionTrigger(snapshots);
+}
+
+function loadVehicleDayCompletions() {
+  if (state.vehicleDayCompletions) return state.vehicleDayCompletions;
+  try {
+    const stored = JSON.parse(window.sessionStorage.getItem(VEHICLE_DAY_COMPLETION_STORAGE_KEY) || "null");
+    state.vehicleDayCompletions = stored?.version === VEHICLE_DAY_COMPLETION_VERSION && stored.dates
+      ? stored.dates
+      : {};
+  } catch {
+    state.vehicleDayCompletions = {};
+  }
+  return state.vehicleDayCompletions;
+}
+
+function persistVehicleDayCompletions() {
+  try {
+    window.sessionStorage.setItem(
+      VEHICLE_DAY_COMPLETION_STORAGE_KEY,
+      JSON.stringify({ version: VEHICLE_DAY_COMPLETION_VERSION, dates: loadVehicleDayCompletions() }),
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function invalidateVehicleDayCompletion(dateKey = currentVehicleDateKey()) {
+  const completions = loadVehicleDayCompletions();
+  if (!completions[dateKey]) return;
+  delete completions[dateKey];
+  persistVehicleDayCompletions();
+}
+
+function vehicleDayCompletionSnapshot(snapshots = null) {
+  const statuses = snapshots || (() => {
+    const dateKey = currentVehicleDateKey();
+    const dailyStatus = vehicleDailyStatusForDate(dateKey);
+    const savedDraftProgress = vehicleDraftProgressByVehicle(dateKey);
+    return VEHICLE_FLEET.map((vehicle) => ({
+      vehicle,
+      status: vehicleFleetStatusSnapshot(vehicle, dailyStatus, savedDraftProgress.get(vehicle.id) || 0),
+    }));
+  })();
+  const hasOpenWork = (status) => status.hasIncomplete || status.hasLiveChanges || ["draft", "editing"].includes(status.state);
+  const issues = statuses.filter(({ status }) => status.completedCount === 0 || hasOpenWork(status));
+  return {
+    ready: issues.length === 0,
+    completedCount: statuses.filter(({ status }) => status.completedCount > 0).length,
+    draftCount: statuses.filter(({ status }) => hasOpenWork(status)).length,
+    issues,
+  };
+}
+
+function renderVehicleDayCompletionTrigger(snapshots = null) {
+  const dateKey = currentVehicleDateKey();
+  const readiness = vehicleDayCompletionSnapshot(snapshots);
+  const completion = loadVehicleDayCompletions()[dateKey];
+  const isComplete = Boolean(completion && readiness.ready);
+  elements.vehicleDayCompletionTrigger.dataset.state = isComplete ? "success" : readiness.ready ? "ready" : "waiting";
+  elements.vehicleDayCompletionTrigger.setAttribute("aria-label", isComplete
+    ? `本日分は${completion.reporter}さんが完了済み`
+    : `本日の車両チェックを完了する。${readiness.completedCount}/${VEHICLE_FLEET.length}台完了、入力途中${readiness.draftCount}台`);
+  elements.vehicleDayCompletionLabel.textContent = isComplete ? "本日完了" : "日次完了";
+}
+
+function renderVehicleDayCompletionDialog() {
+  const dateKey = currentVehicleDateKey();
+  const readiness = vehicleDayCompletionSnapshot();
+  const completion = loadVehicleDayCompletions()[dateKey];
+  const isComplete = Boolean(completion && readiness.ready);
+  elements.vehicleDayCompletionSummary.dataset.state = readiness.ready ? "ready" : "waiting";
+  elements.vehicleDayCompletionSummary.textContent = `${readiness.completedCount} / ${VEHICLE_FLEET.length}台完了・入力途中 ${readiness.draftCount}台`;
+  elements.vehicleDayCompletionSuccess.hidden = !isComplete;
+  elements.vehicleDayCompletionPending.hidden = isComplete;
+  elements.vehicleDayCompletionConfirm.hidden = isComplete;
+  if (isComplete) {
+    const completedAt = new Date(completion.completedAt);
+    const time = Number.isNaN(completedAt.getTime())
+      ? "時刻不明"
+      : new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit", hour12: false }).format(completedAt);
+    elements.vehicleDayCompletionMeta.textContent = `${completion.reporter}・${time}`;
+  }
+
+  const fragment = document.createDocumentFragment();
+  for (const { vehicle, status } of readiness.issues) {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.vehicleDayIssue = vehicle.id;
+    const label = document.createElement("strong");
+    label.textContent = vehicle.shortLabel;
+    const detail = document.createElement("span");
+    detail.textContent = status.hasIncomplete || status.hasLiveChanges || ["draft", "editing"].includes(status.state)
+      ? status.completedCount > 0 ? "完了済み・入力途中あり" : "入力途中"
+      : "未完了";
+    const arrow = document.createElement("span");
+    arrow.setAttribute("aria-hidden", "true");
+    arrow.textContent = "→";
+    button.append(label, detail, arrow);
+    item.append(button);
+    fragment.append(item);
+  }
+  elements.vehicleDayCompletionIssues.replaceChildren(fragment);
+}
+
+function openVehicleDayCompletionDialog() {
+  renderVehicleDayCompletionDialog();
+  elements.vehicleDayCompletionDialog.showModal();
+  elements.vehicleDayCompletionTitle.focus({ preventScroll: true });
+}
+
+function closeVehicleDayCompletionDialog({ restoreFocus = true } = {}) {
+  if (!elements.vehicleDayCompletionDialog.open) return;
+  elements.vehicleDayCompletionDialog.close();
+  if (restoreFocus) elements.vehicleDayCompletionTrigger.focus({ preventScroll: true });
+}
+
+function completeVehicleDay() {
+  const readiness = vehicleDayCompletionSnapshot();
+  if (!readiness.ready) {
+    elements.vehicleDayCompletionSummary.dataset.state = "error";
+    elements.vehicleDayCompletionSummary.textContent = `未完了または入力途中の車両が${readiness.issues.length}台あります`;
+    return;
+  }
+  const dateKey = currentVehicleDateKey();
+  loadVehicleDayCompletions()[dateKey] = {
+    reporter: elements.vehicleReporter.value || LOGIN_ACCOUNT.name,
+    completedAt: new Date().toISOString(),
+  };
+  persistVehicleDayCompletions();
+  renderVehicleDayCompletionDialog();
+  renderVehicleDayCompletionTrigger();
+  elements.vehicleDayCompletionSuccess.focus?.({ preventScroll: true });
 }
 
 function markVehicleRecordEditing() {
@@ -1555,10 +1751,11 @@ function setVehicleHeaderStatus() {
 function renderVehicleDraftActions() {
   const finalSaved = state.vehicleRecordStatus === "saved";
   const draftSaved = state.vehicleRecordStatus === "draft" && !state.vehicleDraftDirty;
-  const canSaveDraft = state.vehicleDraftDirty && Boolean(state.vehicleId) && !finalSaved;
+  const editingRegistered = Boolean(state.vehicleEditingRecordId);
+  const canSaveDraft = state.vehicleDraftDirty && Boolean(state.vehicleId) && !finalSaved && !editingRegistered;
   for (const button of elements.vehicleDraftButtons) {
     button.disabled = !canSaveDraft;
-    button.dataset.state = finalSaved ? "complete" : draftSaved ? "saved" : canSaveDraft ? "ready" : "waiting";
+    button.dataset.state = editingRegistered ? "editing-registered" : finalSaved ? "complete" : draftSaved ? "saved" : canSaveDraft ? "ready" : "waiting";
     const label = button.querySelector("[data-vehicle-draft-label]");
     if (label) label.textContent = draftSaved ? "一時保存済み" : "一時保存";
   }
@@ -1569,12 +1766,17 @@ function renderVehicleCompletion(flow) {
   const draftSaved = state.vehicleRecordStatus === "draft" && !state.vehicleDraftDirty;
   const ready = flow.requiredReady && !saved;
   const hasValidationErrors = state.vehicleValidationVisible && state.vehicleValidationIssues.length > 0;
+  const editingRegistered = Boolean(state.vehicleEditingRecordId);
   for (const button of elements.vehicleCompletionButtons) {
     button.disabled = saved;
     button.dataset.ready = String(ready);
     button.dataset.state = saved ? "success" : hasValidationErrors ? "error" : ready ? "ready" : "waiting";
     const label = button.querySelector("[data-vehicle-complete-label]");
-    if (label) label.textContent = saved ? button.dataset.labelSuccess : button.dataset.labelDefault;
+    if (label) label.textContent = saved
+      ? button.dataset.labelSuccess
+      : editingRegistered
+        ? "変更を保存する"
+        : button.dataset.labelDefault;
   }
   renderVehicleDraftActions();
   elements.vehicleCompletionStatus.textContent = saved
@@ -1586,6 +1788,23 @@ function renderVehicleCompletion(flow) {
       : flow.requiredReady
         ? "入力完了。登録できます"
         : "必要な項目を入力してください";
+}
+
+function renderVehicleProgressBackdrop() {
+  const automaticMetadataPercent = 17;
+  const visualProgress = Math.min(
+    1,
+    Math.max(0, (state.vehicleProgressPercent - automaticMetadataPercent) / (100 - automaticMetadataPercent)),
+  );
+  document.body.style.setProperty("--vehicle-progress-level", visualProgress.toFixed(3));
+  document.body.dataset.vehicleProgress =
+    visualProgress === 0
+      ? "idle"
+      : visualProgress < 0.5
+        ? "started"
+        : visualProgress < 1
+          ? "nearly-ready"
+          : "ready";
 }
 
 function serializeVehicleDraft() {
@@ -1606,6 +1825,7 @@ function serializeVehicleDraft() {
     reporter: state.vehicleDraftReporter || elements.vehicleReporter.value || LOGIN_ACCOUNT.name,
     startedAt: state.vehicleDraftStartedAt,
     savedAt: new Date().toISOString(),
+    progress: state.vehicleProgressPercent,
     values,
     photos: [...state.vehiclePhotos],
     photoView: state.vehiclePhotoView,
@@ -1700,6 +1920,17 @@ function vehicleDraftCandidates({ vehicleId = "", reporter = "", dateKey = curre
     .sort((left, right) => String(right.savedAt).localeCompare(String(left.savedAt)));
 }
 
+function vehicleDraftProgressByVehicle(dateKey = currentVehicleDateKey()) {
+  const progressByVehicle = new Map();
+  for (const draft of vehicleDraftCandidates({ dateKey })) {
+    const vehicleId = draft.values?.vehicle;
+    if (!vehicleId) continue;
+    const progress = Math.max(1, Math.min(99, Math.round(Number(draft.progress) || 0)));
+    progressByVehicle.set(vehicleId, Math.max(progressByVehicle.get(vehicleId) || 0, progress));
+  }
+  return progressByVehicle;
+}
+
 function restoreVehicleDraft(
   vehicleId = "",
   reporter = elements.vehicleReporter.value || LOGIN_ACCOUNT.name,
@@ -1713,13 +1944,26 @@ function restoreVehicleDraft(
 function clearVehicleDraft(draftId = state.vehicleDraftId) {
   try {
     const store = readVehicleDraftStore();
+    const affected = new Map();
     for (const [storageId, draft] of Object.entries(store.drafts)) {
-      if (draftId && draft?.id === draftId) delete store.drafts[storageId];
+      if (draftId && draft?.id === draftId) {
+        const dateKey = draft.dateKey || String(draft.values?.["recorded-at"] || "").slice(0, 10) || currentVehicleDateKey();
+        const vehicleId = draft.values?.vehicle || state.vehicleId;
+        affected.set(`${dateKey}:${vehicleId}`, { dateKey, vehicleId });
+        delete store.drafts[storageId];
+      }
     }
     if (Object.keys(store.drafts).length) {
       window.localStorage.setItem(VEHICLE_DRAFT_STORAGE_KEY, JSON.stringify(store));
     } else {
       window.localStorage.removeItem(VEHICLE_DRAFT_STORAGE_KEY);
+    }
+    for (const { dateKey, vehicleId } of affected.values()) {
+      const remainingProgress = Object.values(store.drafts)
+        .filter((draft) => (draft.dateKey || String(draft.values?.["recorded-at"] || "").slice(0, 10)) === dateKey)
+        .filter((draft) => draft.values?.vehicle === vehicleId)
+        .reduce((highest, draft) => Math.max(highest, Number(draft.progress) || 1), 0);
+      clearVehicleDailyDraft(vehicleId, dateKey, remainingProgress);
     }
   } catch {
     // The in-memory form remains usable when browser storage is unavailable.
@@ -1756,6 +2000,36 @@ function saveVehicleDraft() {
   renderVehicleFormState();
   setVehicleHeaderStatus();
   return true;
+}
+
+function hasCurrentVehicleDraft() {
+  if (!state.vehicleDraftId) return false;
+  return vehicleDraftCandidates({ vehicleId: state.vehicleId }).some(({ id }) => id === state.vehicleDraftId);
+}
+
+function renderVehicleRecordManagement() {
+  const editingRegistered = Boolean(state.vehicleEditingRecordId);
+  const hasDraft = !editingRegistered && hasCurrentVehicleDraft();
+  elements.vehicleRecordEditNotice.hidden = !editingRegistered;
+  elements.vehicleDraftManagement.hidden = !hasDraft;
+  if (!hasDraft) elements.vehicleDraftDiscardConfirm.hidden = true;
+  elements.vehicleSelect.disabled = editingRegistered;
+}
+
+function discardCurrentVehicleDraft() {
+  const vehicleId = state.vehicleId;
+  clearVehicleDraft();
+  state.vehicleDraftId = "";
+  state.vehicleDraftStartedAt = "";
+  state.vehicleDraftDirty = false;
+  state.vehicleRecordStatus = "editing";
+  state.vehicleEditingRecordId = "";
+  startNewVehicleRecord();
+  elements.vehicleDraftDiscardConfirm.hidden = true;
+  renderVehicleFormState();
+  setVehicleHeaderStatus();
+  const fleetButton = elements.vehicleFleetList.querySelector(`[data-vehicle-fleet-id="${vehicleId}"]`);
+  (fleetButton || elements.vehicleSelect).focus({ preventScroll: true });
 }
 
 function formatVehicleDraftStartTime(value) {
@@ -1829,10 +2103,39 @@ function createVehicleHistoryChevron() {
   return svg;
 }
 
+function loadVehicleHistoryRecords() {
+  if (state.vehicleHistoryRecords) return state.vehicleHistoryRecords;
+  try {
+    const stored = JSON.parse(window.sessionStorage.getItem(VEHICLE_HISTORY_RECORDS_STORAGE_KEY) || "null");
+    state.vehicleHistoryRecords = stored?.version === VEHICLE_HISTORY_RECORDS_VERSION && Array.isArray(stored.records)
+      ? stored.records
+      : VEHICLE_HISTORY_FIXTURES.map((record) => ({ ...record }));
+  } catch {
+    state.vehicleHistoryRecords = VEHICLE_HISTORY_FIXTURES.map((record) => ({ ...record }));
+  }
+  return state.vehicleHistoryRecords;
+}
+
+function persistVehicleHistoryRecords() {
+  try {
+    window.sessionStorage.setItem(
+      VEHICLE_HISTORY_RECORDS_STORAGE_KEY,
+      JSON.stringify({ version: VEHICLE_HISTORY_RECORDS_VERSION, records: loadVehicleHistoryRecords() }),
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function findVehicleHistoryRecord(recordId) {
+  return loadVehicleHistoryRecords().find(({ id }) => id === recordId);
+}
+
 function filteredVehicleHistoryRecords() {
   const records = state.vehicleHistoryFilter === "all"
-    ? [...VEHICLE_HISTORY_FIXTURES]
-    : VEHICLE_HISTORY_FIXTURES.filter(({ vehicleId }) => vehicleId === state.vehicleHistoryFilter);
+    ? [...loadVehicleHistoryRecords()]
+    : loadVehicleHistoryRecords().filter(({ vehicleId }) => vehicleId === state.vehicleHistoryFilter);
   return state.vehicleHistoryTodayOnly ? records.filter(({ offset }) => offset === 0) : records;
 }
 
@@ -1847,7 +2150,7 @@ function groupVehicleHistoryByDate(records) {
 
 function groupVehicleHistoryByVehicle(records) {
   const groups = new Map();
-  for (const vehicle of VEHICLE_HISTORY_VEHICLES) {
+  for (const vehicle of VEHICLE_FLEET) {
     const vehicleRecords = records.filter(({ vehicleId }) => vehicleId === vehicle.id);
     if (vehicleRecords.length) groups.set(vehicle.id, vehicleRecords);
   }
@@ -2171,11 +2474,12 @@ function renderVehicleHistoryDetail(record) {
   elements.vehicleHistoryDetailConfirm.setAttribute("aria-pressed", String(confirmed));
   elements.vehicleHistoryDetailConfirm.dataset.state = confirmed ? "success" : "pending";
   elements.vehicleHistoryDetailConfirmLabel.textContent = confirmed ? "確認済み・取り消す" : "この記録を確認済みにする";
+  elements.vehicleHistoryDeleteConfirm.hidden = true;
   elements.vehicleHistoryDetailContent.append(status, details, photos);
 }
 
 function openVehicleHistoryDetail(recordId, trigger) {
-  const record = VEHICLE_HISTORY_FIXTURES.find(({ id }) => id === recordId);
+  const record = findVehicleHistoryRecord(recordId);
   if (!record) return;
   lastVehicleHistoryDetailTrigger = trigger;
   state.vehicleHistoryDetailRecordId = record.id;
@@ -2193,6 +2497,155 @@ function closeVehicleHistoryDetail({ restoreFocus = true } = {}) {
   if (restoreFocus) (currentRecordTrigger || lastVehicleHistoryDetailTrigger)?.focus({ preventScroll: true });
   lastVehicleHistoryDetailTrigger = null;
   state.vehicleHistoryDetailRecordId = "";
+}
+
+function setVehicleRadioValue(name, value) {
+  for (const control of elements.vehicleForm.querySelectorAll(`[name="${name}"]`)) {
+    control.checked = control.value === value;
+  }
+}
+
+function setVehicleSelectValue(control, value, otherControl = null) {
+  const hasOption = [...control.options].some((option) => option.value === value);
+  control.value = hasOption ? value : "その他";
+  if (!hasOption && otherControl) otherControl.value = value;
+}
+
+function vehicleHistoryRecordFromForm(existingRecord = null) {
+  const recordedAt = elements.vehicleRecordedAt.value || currentLocalDatetimeValue();
+  const vehicle = VEHICLE_FLEET.find(({ id }) => id === state.vehicleId);
+  const anomaly = vehicleValue("abnormality") === "yes";
+  const conditionValue = anomaly ? vehicleValue("condition") : "A";
+  const accidentType = vehicleOtherSelected("accident-type")
+    ? elements.vehicleForm.elements["accident-other"].value.trim()
+    : vehicleValue("accident-type");
+  const maintenanceType = vehicleOtherSelected("maintenance-type")
+    ? elements.vehicleForm.elements["maintenance-other"].value.trim()
+    : vehicleValue("maintenance-type");
+  const observation = vehicleOtherSelected("observation")
+    ? elements.vehicleObservationOther.value.trim()
+    : vehicleValue("observation");
+  return {
+    id: existingRecord?.id || `vehicle-record-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    offset: existingRecord?.offset ?? 0,
+    vehicleId: vehicle.id,
+    vehicleLabel: vehicle.label,
+    time: recordedAt.slice(11, 16) || "00:00",
+    reporter: elements.vehicleReporter.value || LOGIN_ACCOUNT.name,
+    purpose: vehicleValue("purpose"),
+    anomaly,
+    condition: conditionValue === "C" ? "C・要修理" : conditionValue === "B" ? "B・走行可" : "A・良好",
+    accident: anomaly && vehicleValue("accident") === "yes" ? `あり・${accidentType}` : "なし",
+    maintenance: anomaly && vehicleValue("maintenance") === "yes" ? maintenanceType : "なし",
+    observation,
+    odometer: Number(elements.vehicleOdometer.value),
+    photoCount: state.vehiclePhotos.size,
+  };
+}
+
+function persistVehicleHistoryRecord(recordId = "") {
+  const records = loadVehicleHistoryRecords();
+  const existingIndex = recordId ? records.findIndex(({ id }) => id === recordId) : -1;
+  const existing = existingIndex >= 0 ? records[existingIndex] : null;
+  const nextRecord = vehicleHistoryRecordFromForm(existing);
+  if (existingIndex >= 0) records.splice(existingIndex, 1, nextRecord);
+  else records.unshift(nextRecord);
+  persistVehicleHistoryRecords();
+  return nextRecord;
+}
+
+function applyVehicleHistoryRecordToForm(record) {
+  elements.vehicleForm.reset();
+  const recordDate = offsetVehicleRecordDate(currentLocalDatetimeValue(), record.offset);
+  elements.vehicleRecordedAt.value = `${recordDate.iso}T${record.time}`;
+  elements.vehicleReporter.value = record.reporter;
+  elements.vehicleSelect.value = record.vehicleId;
+  elements.vehicleOdometer.value = String(record.odometer);
+  setVehicleSelectValue(elements.vehicleForm.elements.purpose, record.purpose);
+  setVehicleSelectValue(elements.vehicleObservation, record.observation, elements.vehicleObservationOther);
+  setVehicleRadioValue("abnormality", record.anomaly ? "yes" : "none");
+  if (record.anomaly) {
+    const accidentPresent = record.accident !== "なし";
+    setVehicleRadioValue("accident", accidentPresent ? "yes" : "none");
+    if (accidentPresent) {
+      setVehicleSelectValue(
+        elements.vehicleForm.elements["accident-type"],
+        record.accident.replace(/^あり・/u, ""),
+        elements.vehicleForm.elements["accident-other"],
+      );
+    }
+    const condition = record.condition.startsWith("C") ? "C" : record.condition.startsWith("B") ? "B" : "A";
+    setVehicleRadioValue("condition", condition);
+    if (condition === "C") {
+      const symptom = ["異音", "警告灯", "タイヤ", "ブレーキ", "エンジン", "走行不能"]
+        .find((label) => record.observation.includes(label));
+      setVehicleSelectValue(
+        elements.vehicleForm.elements["condition-type"],
+        symptom || record.condition,
+        elements.vehicleForm.elements["condition-other"],
+      );
+    }
+    const maintenancePresent = record.maintenance !== "なし";
+    setVehicleRadioValue("maintenance", maintenancePresent ? "yes" : "none");
+    if (maintenancePresent) {
+      setVehicleSelectValue(
+        elements.vehicleForm.elements["maintenance-type"],
+        record.maintenance,
+        elements.vehicleForm.elements["maintenance-other"],
+      );
+    }
+  }
+  const photoPositions = elements.vehiclePhotoButtons.slice(0, record.photoCount).map(({ dataset }) => dataset.photoPosition);
+  state.vehiclePhotos = new Set(photoPositions);
+  state.vehicleId = record.vehicleId;
+  state.vehiclePhotoView = "today";
+  state.vehicleEditingRecordId = record.id;
+  state.vehicleDraftId = "";
+  state.vehicleDraftStartedAt = "";
+  state.vehicleDraftReporter = record.reporter;
+  state.vehicleRecordStatus = "editing";
+  state.vehicleDraftDirty = false;
+  state.vehicleValidationVisible = false;
+  state.vehicleValidationIssues = [];
+  clearVehicleErrors();
+}
+
+function editVehicleHistoryRecord(recordId) {
+  const record = findVehicleHistoryRecord(recordId);
+  if (!record) return;
+  closeVehicleHistoryDetail({ restoreFocus: false });
+  elements.vehicleHistoryWorkspace.hidden = true;
+  applyVehicleHistoryRecordToForm(record);
+  elements.vehicleForm.hidden = false;
+  elements.vehicleCompletionWorkspace.hidden = true;
+  document.body.dataset.vehicleScreen = "form";
+  renderVehicleFormState();
+  setVehicleHeaderStatus();
+  window.requestAnimationFrame(() => {
+    elements.vehicleSelectionSection.scrollIntoView({ behavior: "auto", block: "start" });
+    elements.vehicleOdometer.focus({ preventScroll: true });
+  });
+}
+
+function deleteVehicleHistoryRecord(recordId) {
+  const records = loadVehicleHistoryRecords();
+  const index = records.findIndex(({ id }) => id === recordId);
+  if (index < 0) return;
+  const [record] = records.splice(index, 1);
+  persistVehicleHistoryRecords();
+  const confirmed = loadVehicleHistoryConfirmations();
+  confirmed.delete(record.id);
+  persistVehicleHistoryConfirmations();
+  if (record.offset === 0) {
+    const entry = vehicleDailyStatusForDate()[record.vehicleId];
+    entry.completedCount = Math.max(0, entry.completedCount - 1);
+    persistVehicleDailyStatuses();
+    invalidateVehicleDayCompletion();
+  }
+  closeVehicleHistoryDetail({ restoreFocus: false });
+  renderVehicleHistory();
+  renderVehicleFleetProgress();
+  elements.vehicleHistoryTitle.focus({ preventScroll: true });
 }
 
 function selectedVehicleLabel() {
@@ -2249,10 +2702,13 @@ function resetVehicleEntryForVehicle(
   elements.vehicleReporter.value = reporter;
   elements.vehicleSelect.value = nextVehicleId;
   state.vehicleId = nextVehicleId;
+  state.vehicleEditingRecordId = "";
   resetVehicleDraftIdentity(reporter);
   state.vehiclePhotos.clear();
   state.vehiclePhotoView = "today";
-  markVehicleRecordEditing();
+  state.vehicleRecordStatus = "editing";
+  state.vehicleDraftDirty = false;
+  elements.vehicleFormSuccess.hidden = true;
   setHeaderStatus("未保存", "is-pristine");
   clearVehicleErrors();
 }
@@ -2302,6 +2758,14 @@ function activateVehicleReporter(nextReporter, trigger) {
     elements.vehicleReporter.focus({ preventScroll: true });
   };
   requestVehicleLeave(activate, trigger);
+}
+
+function vehicleAbnormalSelectionIsSubstantive() {
+  return (
+    vehicleValue("accident") === "yes" ||
+    ["B", "C"].includes(vehicleValue("condition")) ||
+    vehicleValue("maintenance") === "yes"
+  );
 }
 
 function renderVehicleFormState() {
@@ -2375,11 +2839,12 @@ function renderVehicleFormState() {
   const showAccident = hasAbnormality && accident === "yes";
   const showCondition = hasAbnormality && condition === "C";
   const showMaintenance = hasAbnormality && maintenance === "yes";
+  const abnormalChoicesComplete = Boolean(accident) && Boolean(condition) && Boolean(maintenance);
+  const abnormalSelectionConsistent = !hasAbnormality || vehicleAbnormalSelectionIsSubstantive();
   const abnormalDetailsReady =
     !hasAbnormality ||
-    (Boolean(accident) &&
-      Boolean(condition) &&
-      Boolean(maintenance) &&
+    (abnormalChoicesComplete &&
+      abnormalSelectionConsistent &&
       (!showAccident ||
         (Boolean(vehicleValue("accident-type")) &&
           (!vehicleOtherSelected("accident-type") || Boolean(elements.vehicleForm.elements["accident-other"].value.trim())))) &&
@@ -2416,6 +2881,7 @@ function renderVehicleFormState() {
   state.vehicleProgressPercent = Math.round(
     (progressGroups.filter(Boolean).length / progressGroups.length) * 100,
   );
+  renderVehicleProgressBackdrop();
 
   elements.vehiclePhotoSection.hidden = !flow.showPhotos;
   elements.vehicleContextSection.hidden = !flow.showContext;
@@ -2429,6 +2895,8 @@ function renderVehicleFormState() {
   elements.vehicleAccidentOtherWrap.hidden = !(showAccident && vehicleOtherSelected("accident-type"));
   elements.vehicleConditionOtherWrap.hidden = !(showCondition && vehicleOtherSelected("condition-type"));
   elements.vehicleMaintenanceOtherWrap.hidden = !(showMaintenance && vehicleOtherSelected("maintenance-type"));
+  elements.vehicleAbnormalConsistency.hidden = !(hasAbnormality && abnormalChoicesComplete && !abnormalSelectionConsistent);
+  renderVehicleRecordManagement();
   renderVehicleFleetProgress();
   if (state.vehicleValidationVisible) {
     renderVehicleValidationSummary(collectVehicleValidationIssues());
@@ -2455,7 +2923,9 @@ function renderVehicleFormState() {
   } else if (!hasGateAnswer) {
     elements.vehicleSaveHelp.textContent = "異常の有無を選択してください。";
   } else if (hasAbnormality && !abnormalDetailsReady) {
-    elements.vehicleSaveHelp.textContent = "異常の内容を上から順に選択してください。";
+    elements.vehicleSaveHelp.textContent = abnormalChoicesComplete && !abnormalSelectionConsistent
+      ? "異常ありの内容を1つ以上選択するか、異常なしに戻してください。"
+      : "異常の内容を上から順に選択してください。";
   } else if (distanceState.state === "below-previous") {
     elements.vehicleSaveHelp.textContent = `最終走行距離は前日の${distanceState.previous.toLocaleString("ja-JP")} km以上で入力してください。`;
   } else if (!distanceReady) {
@@ -2466,7 +2936,9 @@ function renderVehicleFormState() {
 }
 
 function clearVehicleErrors({ preserveSummary = false } = {}) {
-  for (const node of elements.vehicleForm.querySelectorAll(".has-error")) node.classList.remove("has-error");
+  for (const node of elements.vehicleForm.querySelectorAll(".has-error, .has-validation-error")) {
+    node.classList.remove("has-error", "has-validation-error");
+  }
   for (const control of elements.vehicleForm.querySelectorAll("[aria-invalid='true']")) control.removeAttribute("aria-invalid");
   if (preserveSummary) return;
   state.vehicleValidationVisible = false;
@@ -2482,7 +2954,13 @@ function markVehicleError(selector) {
   if (!control) return null;
   control.setAttribute("aria-invalid", "true");
   control.closest(".vehicle-photo-item, .vehicle-abnormal-card, .vehicle-choice-group, .vehicle-number-field, .vehicle-meta-field, .vehicle-select-field, .vehicle-detail-field, label")?.classList.add("has-error");
+  control.closest(".vehicle-form-section, .vehicle-page-header")?.classList.add("has-validation-error");
   return control;
+}
+
+function firstVehicleValidationBlock() {
+  return [...elements.vehicleForm.querySelectorAll(".vehicle-page-header.has-validation-error, .vehicle-form-section.has-validation-error")]
+    .find((block) => !block.hidden);
 }
 
 function collectVehicleValidationIssues({ markErrors = true } = {}) {
@@ -2541,6 +3019,19 @@ function collectVehicleValidationIssues({ markErrors = true } = {}) {
     requireChoice("condition", "車両状態", "A・B・Cから選択してください。");
     requireChoice("maintenance", "整備・修繕", "「なし / あり」を選択してください。");
 
+    if (
+      vehicleValue("accident") &&
+      vehicleValue("condition") &&
+      vehicleValue("maintenance") &&
+      !vehicleAbnormalSelectionIsSubstantive()
+    ) {
+      addIssue(
+        "異常ありの内容",
+        "事故・接触を「あり」、車両状態をB/C、または整備・修繕を「あり」にしてください。すべて問題なければ「異常なし」に戻してください。",
+        '[name="accident"]',
+      );
+    }
+
     if (vehicleValue("accident") === "yes") {
       requireChoice("accident-type", "事故・接触の内容", "内容を選択してください。");
       if (vehicleOtherSelected("accident-type") && !elements.vehicleForm.elements["accident-other"].value.trim()) {
@@ -2597,11 +3088,13 @@ function renderVehicleValidationSummary(issues, { focus = false } = {}) {
   elements.vehicleFormError.hidden = false;
   if (focus) {
     window.requestAnimationFrame(() => {
-      elements.vehicleFormError.scrollIntoView({
+      const target = firstVehicleValidationBlock() || elements.vehicleFormError;
+      target.scrollIntoView({
         behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
         block: "start",
       });
-      elements.vehicleFormError.focus({ preventScroll: true });
+      const invalidControl = target.querySelector?.("[aria-invalid='true']");
+      (invalidControl || elements.vehicleFormError).focus({ preventScroll: true });
     });
   }
 }
@@ -2633,7 +3126,11 @@ function saveVehicleRecord(event) {
     setHeaderStatus("入力を確認", "is-error");
     return;
   }
-  completeVehicleDailyStatus(state.vehicleId);
+  const editingRecordId = state.vehicleEditingRecordId;
+  persistVehicleHistoryRecord(editingRecordId);
+  if (!editingRecordId) completeVehicleDailyStatus(state.vehicleId);
+  state.vehicleLastSavedMode = editingRecordId ? "updated" : "created";
+  state.vehicleEditingRecordId = "";
   state.vehicleRecordStatus = "saved";
   state.vehicleDraftDirty = false;
   clearVehicleDraft();
@@ -2646,10 +3143,24 @@ function renderVehicleSuccessSummary() {
   const distance = elements.vehicleForm.elements.odometer.value;
   const reporter = elements.vehicleReporter.value || LOGIN_ACCOUNT.name;
   const formattedDistance = distance ? `${Number(distance).toLocaleString("ja-JP")} km` : "—";
-  elements.vehicleCompletionMessage.textContent = `${vehicleLabel}の本日の記録を保存しました`;
+  elements.vehicleCompletionMessage.textContent = state.vehicleLastSavedMode === "updated"
+    ? `${vehicleLabel}の登録済み記録を更新しました`
+    : `${vehicleLabel}の本日の記録を保存しました`;
   elements.vehicleCompletionVehicle.textContent = vehicleLabel;
   elements.vehicleCompletionDistance.textContent = formattedDistance;
   elements.vehicleCompletionReporter.textContent = reporter;
+}
+
+function playVehicleCompletionCelebration() {
+  elements.vehicleCompletionWorkspace.classList.remove("is-celebrating");
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      if (!elements.vehicleCompletionWorkspace.hidden) {
+        elements.vehicleCompletionWorkspace.classList.add("is-celebrating");
+      }
+    });
+  });
 }
 
 function showVehicleCompletion({ focus = true } = {}) {
@@ -2658,8 +3169,11 @@ function showVehicleCompletion({ focus = true } = {}) {
   elements.vehicleHistoryWorkspace.hidden = true;
   elements.vehicleCompletionWorkspace.hidden = false;
   document.body.dataset.vehicleScreen = "complete";
+  document.body.dataset.vehicleProgress = "complete";
+  document.body.style.setProperty("--vehicle-progress-level", "1");
   setHeaderStatus("登録完了", "is-saved");
   window.scrollTo({ top: 0, left: 0 });
+  playVehicleCompletionCelebration();
   if (focus) elements.vehicleCompletionTitle.focus({ preventScroll: true });
 }
 
@@ -2698,6 +3212,8 @@ function startNewVehicleRecord() {
   elements.vehicleRecordedAt.value = currentLocalDatetimeValue();
   elements.vehicleReporter.value = LOGIN_ACCOUNT.name;
   state.vehicleId = "";
+  state.vehicleEditingRecordId = "";
+  state.vehicleLastSavedMode = "created";
   state.vehicleDraftId = "";
   state.vehicleDraftStartedAt = "";
   state.vehicleDraftReporter = LOGIN_ACCOUNT.name;
@@ -2708,8 +3224,16 @@ function startNewVehicleRecord() {
   state.vehicleProgressPercent = 0;
   state.vehicleValidationVisible = false;
   state.vehicleValidationIssues = [];
+  document.body.dataset.vehicleProgress = "idle";
+  document.body.style.setProperty("--vehicle-progress-level", "0");
+  elements.vehicleCompletionWorkspace.classList.remove("is-celebrating");
   elements.vehicleFormSuccess.hidden = true;
   clearVehicleErrors();
+}
+
+function cancelVehicleHistoryEdit() {
+  startNewVehicleRecord();
+  openVehicleHistory(elements.vehicleTodayHistory, { todayOnly: true });
 }
 
 function openVehicleEntry() {
@@ -2969,8 +3493,36 @@ function bindEvents() {
   for (const button of elements.vehicleDraftButtons) {
     button.addEventListener("click", () => saveVehicleDraft());
   }
+  elements.vehicleDraftDiscard.addEventListener("click", () => {
+    elements.vehicleDraftDiscardConfirm.hidden = false;
+    elements.vehicleDraftDiscardConfirmAction.focus({ preventScroll: true });
+  });
+  elements.vehicleDraftDiscardCancel.addEventListener("click", () => {
+    elements.vehicleDraftDiscardConfirm.hidden = true;
+    elements.vehicleDraftDiscard.focus({ preventScroll: true });
+  });
+  elements.vehicleDraftDiscardConfirmAction.addEventListener("click", discardCurrentVehicleDraft);
+  elements.vehicleRecordEditCancel.addEventListener("click", cancelVehicleHistoryEdit);
   elements.vehicleNewRecord.addEventListener("click", openVehicleEntry);
   elements.vehicleContinueRecord.addEventListener("click", openVehicleEntry);
+  elements.vehicleDayCompletionTrigger.addEventListener("click", openVehicleDayCompletionDialog);
+  elements.vehicleDayCompletionClose.addEventListener("click", () => closeVehicleDayCompletionDialog());
+  elements.vehicleDayCompletionCancel.addEventListener("click", () => closeVehicleDayCompletionDialog());
+  elements.vehicleDayCompletionConfirm.addEventListener("click", completeVehicleDay);
+  elements.vehicleDayCompletionIssues.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-vehicle-day-issue]");
+    if (!button) return;
+    const vehicleId = button.dataset.vehicleDayIssue;
+    closeVehicleDayCompletionDialog({ restoreFocus: false });
+    activateVehicleEntry(vehicleId, elements.vehicleFleetList.querySelector(`[data-vehicle-fleet-id="${vehicleId}"]`));
+  });
+  elements.vehicleDayCompletionDialog.addEventListener("click", (event) => {
+    if (event.target === elements.vehicleDayCompletionDialog) closeVehicleDayCompletionDialog();
+  });
+  elements.vehicleDayCompletionDialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeVehicleDayCompletionDialog();
+  });
   elements.vehicleTodayHistory.addEventListener("click", () => {
     requestVehicleLeave(
       () => openVehicleHistory(elements.vehicleTodayHistory, { todayOnly: true }),
@@ -3005,13 +3557,23 @@ function bindEvents() {
   elements.vehicleHistoryClose.addEventListener("click", closeVehicleHistory);
   elements.vehicleHistoryDetailClose.addEventListener("click", () => closeVehicleHistoryDetail());
   elements.vehicleHistoryDetailConfirm.addEventListener("click", () => {
-    const record = VEHICLE_HISTORY_FIXTURES.find(({ id }) => id === state.vehicleHistoryDetailRecordId);
+    const record = findVehicleHistoryRecord(state.vehicleHistoryDetailRecordId);
     if (!record) return;
     toggleVehicleHistoryConfirmation(record.id);
     renderVehicleHistory();
     renderVehicleHistoryDetail(record);
     elements.vehicleHistoryDetailConfirm.focus({ preventScroll: true });
   });
+  elements.vehicleHistoryDetailEdit.addEventListener("click", () => editVehicleHistoryRecord(state.vehicleHistoryDetailRecordId));
+  elements.vehicleHistoryDetailDelete.addEventListener("click", () => {
+    elements.vehicleHistoryDeleteConfirm.hidden = false;
+    elements.vehicleHistoryDeleteConfirmAction.focus({ preventScroll: true });
+  });
+  elements.vehicleHistoryDeleteCancel.addEventListener("click", () => {
+    elements.vehicleHistoryDeleteConfirm.hidden = true;
+    elements.vehicleHistoryDetailDelete.focus({ preventScroll: true });
+  });
+  elements.vehicleHistoryDeleteConfirmAction.addEventListener("click", () => deleteVehicleHistoryRecord(state.vehicleHistoryDetailRecordId));
   elements.vehicleHistoryDetailDone.addEventListener("click", () => closeVehicleHistoryDetail());
   elements.vehicleHistoryDetailDialog.addEventListener("click", (event) => {
     if (event.target === elements.vehicleHistoryDetailDialog) closeVehicleHistoryDetail();

@@ -25,6 +25,13 @@
   --color-disabled: oklch(96.32% 0.0034 247.86);
   --color-success: oklch(52.41% 0.1377 149.60);
   --color-success-soft: oklch(96.87% 0.0157 154.47);
+  --color-vehicle-progress-mint: oklch(94.5% 0.052 151);
+  --color-vehicle-progress-green: oklch(80.5% 0.174 148);
+  --color-vehicle-complete-green: oklch(86% 0.186 147);
+  --color-vehicle-complete-deep: oklch(77% 0.174 149);
+  --color-celebration-paper: oklch(99% 0.006 151);
+  --color-celebration-sun: oklch(88% 0.17 94);
+  --color-celebration-sky: oklch(76% 0.132 236);
   --color-warning: oklch(53.94% 0.1562 42.99);
   --color-warning-soft: oklch(96.61% 0.04 88.20);
   --color-danger: oklch(50.03% 0.1821 29.51);
@@ -73,6 +80,7 @@
   --shadow-raised: 0 8px 24px oklch(24.30% 0.024 248.84 / 0.08);
   --shadow-dock: 0 -8px 24px oklch(24.30% 0.024 248.84 / 0.06);
   --shadow-modal: 0 18px 48px oklch(24.30% 0.024 248.84 / 0.18);
+  --shadow-success: 0 18px 42px oklch(36% 0.12 149 / 0.18);
 
   --control-mobile: 44px;
   --action-face-mobile: 36px;
@@ -87,6 +95,7 @@
   --dur-micro: 120ms;
   --dur-short: 220ms;
   --dur-long: 360ms;
+  --dur-celebration: 500ms;
   --duration-micro: var(--dur-micro);
   --duration-short: var(--dur-short);
 

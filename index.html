@@ -9,8 +9,8 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23075d9c'/%3E%3Cpath d='M9 7h8c4 0 6 2 6 5 0 2-1 3-3 4 3 1 4 2 4 5 0 4-3 6-7 6H9V7zm5 4v4h3c1 0 2-1 2-2s-1-2-2-2h-3zm0 8v4h4c1 0 2-1 2-2s-1-2-2-2h-4z' fill='white'/%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="./tokens.css?v=20260731-2" />
-    <link rel="stylesheet" href="./styles.css?v=20260806-06" />
+    <link rel="stylesheet" href="./tokens.css?v=20260806-07" />
+    <link rel="stylesheet" href="./styles.css?v=20260806-11" />
   </head>
   <body>
     <div class="app-shell">
@@ -446,12 +446,18 @@
                 <div class="vehicle-section-title">
                   <h3 id="vehicle-fleet-progress-heading">本日の車両チェック</h3>
                 </div>
-                <button id="vehicle-today-history" class="vehicle-today-history" type="button">
-                  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                    <path d="M4.5 5.5h11v10h-11zM7 3.5v4M13 3.5v4M4.5 8.5h11M7 11h2M11 11h2M7 13.5h2" />
-                  </svg>
-                  <span>本日の履歴</span>
-                </button>
+                <div class="vehicle-fleet-heading-actions">
+                  <button id="vehicle-today-history" class="vehicle-today-history" type="button">
+                    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                      <path d="M4.5 5.5h11v10h-11zM7 3.5v4M13 3.5v4M4.5 8.5h11M7 11h2M11 11h2M7 13.5h2" />
+                    </svg>
+                    <span>本日の履歴</span>
+                  </button>
+                  <button id="vehicle-day-completion-trigger" class="vehicle-day-completion-trigger" type="button" aria-haspopup="dialog" aria-controls="vehicle-day-completion-dialog">
+                    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="m4 10.5 3.5 3.5L16 5.5" /></svg>
+                    <span data-vehicle-day-completion-label>日次完了</span>
+                  </button>
+                </div>
               </div>
               <div id="vehicle-fleet-list" class="vehicle-fleet-list" role="group" aria-label="登録車両ごとの本日のチェック状況"></div>
             </section>
@@ -508,6 +514,21 @@
                   </svg>
                   <p id="vehicle-collaboration-message"></p>
                 </div>
+                <div id="vehicle-record-edit-notice" class="vehicle-record-edit-notice" role="status" hidden>
+                  <span>登録済みの記録を編集中</span>
+                  <button id="vehicle-record-edit-cancel" type="button">編集をやめる</button>
+                </div>
+                <div id="vehicle-draft-management" class="vehicle-draft-management" role="status" hidden>
+                  <span>この担当者の一時保存があります</span>
+                  <button id="vehicle-draft-discard" type="button">一時保存を破棄</button>
+                </div>
+                <div id="vehicle-draft-discard-confirm" class="vehicle-inline-confirm" role="alert" hidden>
+                  <strong>入力途中の内容を破棄しますか？</strong>
+                  <div>
+                    <button id="vehicle-draft-discard-cancel" type="button">戻る</button>
+                    <button id="vehicle-draft-discard-confirm-action" type="button">破棄する</button>
+                  </div>
+                </div>
               </div>
             </section>
 
@@ -536,7 +557,7 @@
             <section id="vehicle-context-section" class="vehicle-form-section vehicle-context-section" aria-labelledby="vehicle-context-heading" hidden>
               <div class="vehicle-section-heading">
                 <div class="vehicle-section-title">
-                  <h3 id="vehicle-context-heading" tabindex="-1">車両の状況・使用情報</h3>
+                  <h3 id="vehicle-context-heading" tabindex="-1">車両の状況・使用用途</h3>
                 </div>
                 <span>必須</span>
               </div>
@@ -548,8 +569,7 @@
                   </div>
                   <div class="vehicle-observation-fields">
                     <label class="vehicle-select-field" for="vehicle-observation">
-                      <span>気づいた状態</span>
-                      <select id="vehicle-observation" name="observation">
+                      <select id="vehicle-observation" name="observation" aria-label="気づいた状態">
                         <option value="特になし">特になし</option>
                         <option value="空調が弱い">空調が弱い</option>
                         <option value="異音がする">異音がする</option>
@@ -571,16 +591,18 @@
 
                 <div id="vehicle-common-section" class="vehicle-context-pane" aria-labelledby="vehicle-basic-heading">
                   <div class="vehicle-context-pane-heading">
-                    <h4 id="vehicle-basic-heading" tabindex="-1">使用情報</h4>
+                    <h4 id="vehicle-basic-heading" tabindex="-1">使用用途</h4>
                   </div>
                   <div class="vehicle-user-row">
                     <label class="vehicle-select-field" data-required-group="purpose" for="vehicle-purpose">
-                      <span>使用用途</span>
-                      <select id="vehicle-purpose" name="purpose">
+                      <select id="vehicle-purpose" name="purpose" aria-labelledby="vehicle-basic-heading">
                         <option value="">選択</option>
                         <option value="見回り">見回り</option>
                         <option value="送迎">送迎</option>
                         <option value="資材運搬">資材運搬</option>
+                        <option value="買い出し">買い出し</option>
+                        <option value="農園間移動">農園間移動</option>
+                        <option value="その他業務">その他業務</option>
                         <option value="その他">その他</option>
                       </select>
                     </label>
@@ -723,6 +745,9 @@
                   <h3 id="vehicle-check-heading" tabindex="-1">異常の詳細</h3>
                 </div>
               </div>
+              <p id="vehicle-abnormal-consistency" class="vehicle-abnormal-consistency" role="alert" hidden>
+                「異常あり」ですが、異常を示す内容がありません。すべて問題なければ「異常なし」に戻してください。
+              </p>
 
               <div class="vehicle-abnormal-grid">
                 <fieldset class="vehicle-abnormal-card vehicle-choice-group" data-required-group="accident">
@@ -837,12 +862,28 @@
             aria-labelledby="vehicle-completion-title"
             hidden
           >
-            <div class="vehicle-completion-mark" aria-hidden="true">
-              <svg viewBox="0 0 24 24" focusable="false"><path d="M5 12.5 9.2 17 19 7" /></svg>
+            <div class="vehicle-completion-stage" aria-hidden="true">
+              <div class="vehicle-completion-splash">
+                <span class="vehicle-completion-particle is-paper"></span>
+                <span class="vehicle-completion-particle is-sun"></span>
+                <span class="vehicle-completion-particle is-sky"></span>
+                <span class="vehicle-completion-particle is-paper"></span>
+                <span class="vehicle-completion-particle is-sun"></span>
+                <span class="vehicle-completion-particle is-sky"></span>
+                <span class="vehicle-completion-particle is-paper"></span>
+                <span class="vehicle-completion-particle is-sun"></span>
+                <span class="vehicle-completion-particle is-sky"></span>
+                <span class="vehicle-completion-particle is-paper"></span>
+                <span class="vehicle-completion-particle is-sun"></span>
+                <span class="vehicle-completion-particle is-sky"></span>
+              </div>
+              <div class="vehicle-completion-mark">
+                <svg viewBox="0 0 24 24" focusable="false"><path d="M5 12.5 9.2 17 19 7" /></svg>
+              </div>
             </div>
             <div class="vehicle-completion-copy">
-              <span class="vehicle-completion-eyebrow">登録完了</span>
-              <h2 id="vehicle-completion-title" tabindex="-1">車両記録を登録しました</h2>
+              <span class="vehicle-completion-eyebrow">車両記録</span>
+              <h2 id="vehicle-completion-title" tabindex="-1">登録完了！</h2>
               <p id="vehicle-completion-message">本日の記録を保存しました</p>
             </div>
             <dl class="vehicle-completion-summary">
@@ -880,6 +921,11 @@
                     <option value="vehicle-c">車両C（56-78）</option>
                     <option value="vehicle-d">車両D（90-12）</option>
                     <option value="vehicle-e">車両E（34-56）</option>
+                    <option value="vehicle-f">車両F（78-90）</option>
+                    <option value="vehicle-g">車両G（11-22）</option>
+                    <option value="vehicle-h">車両H（33-44）</option>
+                    <option value="vehicle-i">車両I（55-66）</option>
+                    <option value="vehicle-j">車両J（77-88）</option>
                   </select>
                 </label>
               </div>
@@ -908,11 +954,59 @@
               </header>
               <div id="vehicle-history-detail-content" class="vehicle-history-dialog-body"></div>
               <footer class="app-guide-footer vehicle-history-dialog-footer">
-                <button id="vehicle-history-detail-confirm" class="button button-primary vehicle-history-confirm-action" type="button" aria-pressed="false" data-state="pending">
-                  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="m4.5 10.5 3.2 3.2 7.8-8" /></svg>
-                  <span data-vehicle-history-confirm-label>この記録を確認済みにする</span>
-                </button>
-                <button id="vehicle-history-detail-done" class="button button-secondary" type="button">履歴に戻る</button>
+                <div class="vehicle-history-management-actions">
+                  <button id="vehicle-history-detail-edit" class="button button-secondary" type="button">編集する</button>
+                  <button id="vehicle-history-detail-delete" class="button vehicle-danger-action" type="button">削除する</button>
+                </div>
+                <div id="vehicle-history-delete-confirm" class="vehicle-history-delete-confirm" role="alert" hidden>
+                  <p>この登録済み記録を削除します。元に戻せません。</p>
+                  <div>
+                    <button id="vehicle-history-delete-cancel" class="button button-secondary" type="button">戻る</button>
+                    <button id="vehicle-history-delete-confirm-action" class="button vehicle-danger-action" type="button">削除を確定</button>
+                  </div>
+                </div>
+                <div class="vehicle-history-review-actions">
+                  <button id="vehicle-history-detail-confirm" class="button button-primary vehicle-history-confirm-action" type="button" aria-pressed="false" data-state="pending">
+                    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="m4.5 10.5 3.2 3.2 7.8-8" /></svg>
+                    <span data-vehicle-history-confirm-label>この記録を確認済みにする</span>
+                  </button>
+                  <button id="vehicle-history-detail-done" class="button button-secondary" type="button">履歴に戻る</button>
+                </div>
+              </footer>
+            </div>
+          </dialog>
+
+          <dialog
+            id="vehicle-day-completion-dialog"
+            class="app-guide-dialog vehicle-day-completion-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="vehicle-day-completion-title"
+            aria-describedby="vehicle-day-completion-description"
+          >
+            <div class="app-guide-surface vehicle-day-completion-surface">
+              <header class="app-guide-header">
+                <div>
+                  <span class="app-guide-kicker">担当者の日次確認</span>
+                  <h2 id="vehicle-day-completion-title" tabindex="-1">本日の車両チェックを完了</h2>
+                  <p id="vehicle-day-completion-description">全車両の登録と、入力途中が残っていないことを確認します。</p>
+                </div>
+                <button id="vehicle-day-completion-close" class="button button-secondary app-guide-close" type="button" aria-label="日次完了の確認を閉じる"><span aria-hidden="true">×</span></button>
+              </header>
+              <div class="vehicle-day-completion-body">
+                <div id="vehicle-day-completion-summary" class="vehicle-day-completion-summary" role="status" aria-live="polite"></div>
+                <div id="vehicle-day-completion-success" class="vehicle-day-completion-success" tabindex="-1" hidden>
+                  <span aria-hidden="true">✓</span>
+                  <div><strong>本日分を完了しました</strong><p id="vehicle-day-completion-meta"></p></div>
+                </div>
+                <div id="vehicle-day-completion-pending">
+                  <p>確認が必要な車両</p>
+                  <ul id="vehicle-day-completion-issues" class="vehicle-day-completion-issues"></ul>
+                </div>
+              </div>
+              <footer class="app-guide-footer vehicle-day-completion-footer">
+                <button id="vehicle-day-completion-cancel" class="button button-secondary" type="button">閉じる</button>
+                <button id="vehicle-day-completion-confirm" class="button button-primary" type="button">本日分を完了する</button>
               </footer>
             </div>
           </dialog>
@@ -1154,11 +1248,13 @@
               <ol>
                 <li>記録日時と担当者を確認します。</li>
                 <li>記録する社用車を1台選び、メーターの最終走行距離を入力してから前後左右4枚の写真を撮影します。前日値との差から本日の走行距離が自動表示されます。</li>
-                <li>写真の後に、車両の状況と使用情報を1つのブロックで入力します。</li>
+                <li>写真の後に、車両の状況と使用用途を1つのブロックで入力します。</li>
                 <li>使用用途を選びます。</li>
                 <li>異常ありの場合だけ詳細を回答します。最終走行距離は車両選択直後から入力でき、異常の有無にかかわらず必須です。</li>
                 <li>別の社用車へ切り替えると、その1台用の新しい記録に切り替わります。同じ車両に別の担当者の一時保存がある場合も内容は混ざらず、誰が何時から入力中かを表示します。</li>
                 <li>写真ブロックと画面下部から、昨日の写真や車両記録の履歴を確認できます。履歴は日付、車両、登録時刻の順に開きます。</li>
+                <li>完了済みの車両に入力途中が残ると「!」で表示されます。自分の一時保存は破棄でき、登録済み記録は履歴から編集・削除できます。</li>
+                <li>全車両の登録が終わり、入力途中が0件になったら、担当者が「日次完了」から本日分を確定します。</li>
               </ol>
             </div>
           </section>
@@ -1175,6 +1271,6 @@
     </dialog>
 
     <script defer src="./vehicle-flow.js?v=20260731-5"></script>
-    <script defer src="./app.js?v=20260806-06"></script>
+    <script defer src="./app.js?v=20260806-09"></script>
   </body>
 </html>
